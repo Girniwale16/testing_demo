@@ -79,6 +79,24 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
     }
 
+    @ExceptionHandler(ForbiddenAccessException.class)
+    public ResponseEntity<ErrorResponse> handleForbiddenAccessException(ForbiddenAccessException ex) {
+        String correlationId = getOrGenerateCorrelationId();
+
+        logger.warn("Forbidden access - correlationId: {}, userId: {}, facilityId: {}, resource: {}, reason: {}",
+                correlationId, ex.getUserId(), ex.getFacilityId(), ex.getResource(), ex.getReason());
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .correlationId(correlationId)
+                .errorCode("FORBIDDEN_ACCESS")
+                .message(ex.getMessage())
+                .remediation("Please contact your system administrator if you believe you should have access to this resource")
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex) {
         String correlationId = getOrGenerateCorrelationId();
