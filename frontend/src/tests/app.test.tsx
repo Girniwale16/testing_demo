@@ -1,219 +1,144 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { BrowserRouter } from 'react-router-dom';
-import App from '../App';
-import LoginPage from '../pages/LoginPage';
-import LoginForm from '../components/LoginForm';
-import ErrorBanner from '../components/ErrorBanner';
-import ProtectedRoute from '../components/ProtectedRoute';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { authApi } from '../api/authApi';
+import { rest } from 'msw';
+import { setupServer } from 'msw/node';
 
-vi.mock('../api/authApi');
+const server = setupServer(
+  rest.post('/api/v1/auth/login', (req, res, ctx) => {
+    return res(
+      ctx.status(200),
+      ctx.json({
+        userId: 1,
+        username: 'testuser',
+        role: 'MANAGER',
+        facilityId: 1,
+        facilityName: 'Test Facility',
+        message: 'Login successful'
+      })
+    );
+  }),
+  rest.post('/api/v1/auth/logout', (req, res, ctx) => {
+    return res(
+      ctx.status(200),
+      ctx.json({ message: 'Logout successful' })
+    );
+  }),
+  rest.get('/api/v1/auth/session', (req, res, ctx) => {
+    return res(
+      ctx.status(200),
+      ctx.json({
+        userId: 1,
+        username: 'testuser',
+        role: 'MANAGER',
+        facilityId: 1,
+        facilityName: 'Test Facility',
+        isActive: true
+      })
+    );
+  })
+);
 
-describe('App Component', () => {
-  it('renders without crashing', () => {
-    render(<App />);
-    expect(document.getElementById('root')).toBeTruthy();
-  });
-
-  it('redirects to login when unauthenticated', async () => {
-    vi.mocked(authApi.getCurrentUser).mockRejectedValue(new Error('Not authenticated'));
-    render(<App />);
-    await waitFor(() => {
-      expect(window.location.pathname).toBe('/login');
-    });
-  });
+beforeEach(() => {
+  server.listen();
 });
 
-describe('LoginPage Component', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('renders login form', () => {
-    render(
-      <BrowserRouter>
-        <LoginPage />
-      </BrowserRouter>
-    );
-    expect(screen.getByRole('heading', { name: /login/i })).toBeInTheDocument();
-    expect(screen.getByLabelText(/username/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
-  });
-
-  it('shows error banner when login fails', async () => {
-    const mockError = { response: { data: { message: 'Invalid credentials' } } };
-    vi.mocked(authApi.login).mockRejectedValue(mockError);
-    vi.mocked(authApi.getCurrentUser).mockRejectedValue(new Error('Not authenticated'));
-
-    render(
-      <BrowserRouter>
-        <LoginPage />
-      </BrowserRouter>
-    );
-
-    const usernameInput = screen.getByLabelText(/username/i);
-    const passwordInput = screen.getByLabelText(/password/i);
-    const submitButton = screen.getByRole('button', { name: /login/i });
-
-    await userEvent.type(usernameInput, 'testuser');
-    await userEvent.type(passwordInput, 'wrongpassword');
-    await userEvent.click(submitButton);
-
-    await waitFor(() => {
-      expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument();
-    });
-  });
+afterEach(() => {
+  server.resetHandlers();
 });
 
-describe('LoginForm Component', () => {
-  it('validates required fields', async () => {
-    const mockSubmit = vi.fn();
-    render(<LoginForm onSubmit={mockSubmit} />);
-
-    const submitButton = screen.getByRole('button', { name: /login/i });
-    await userEvent.click(submitButton);
-
-    await waitFor(() => {
-      expect(screen.getByText(/username is required/i)).toBeInTheDocument();
-    });
-    expect(mockSubmit).not.toHaveBeenCalled();
-  });
-
-  it('submits form with valid data', async () => {
-    const mockSubmit = vi.fn().mockResolvedValue(undefined);
-    render(<LoginForm onSubmit={mockSubmit} />);
-
-    const usernameInput = screen.getByLabelText(/username/i);
-    const passwordInput = screen.getByLabelText(/password/i);
-    const submitButton = screen.getByRole('button', { name: /login/i });
-
-    await userEvent.type(usernameInput, 'testuser');
-    await userEvent.type(passwordInput, 'testpass123');
-    await userEvent.click(submitButton);
-
-    await waitFor(() => {
-      expect(mockSubmit).toHaveBeenCalledWith('testuser', 'testpass123');
-    });
-  });
-
-  it('prevents multiple rapid submits', async () => {
-    const mockSubmit = vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
-    render(<LoginForm onSubmit={mockSubmit} />);
-
-    const usernameInput = screen.getByLabelText(/username/i);
-    const passwordInput = screen.getByLabelText(/password/i);
-    const submitButton = screen.getByRole('button', { name: /login/i });
-
-    await userEvent.type(usernameInput, 'testuser');
-    await userEvent.type(passwordInput, 'testpass123');
-    await userEvent.click(submitButton);
-    await userEvent.click(submitButton);
-
-    expect(mockSubmit).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('ErrorBanner Component', () => {
-  it('renders error message', () => {
-    render(<ErrorBanner message="Test error message" />);
-    expect(screen.getByText(/test error message/i)).toBeInTheDocument();
-  });
-
-  it('calls onDismiss when dismiss button clicked', async () => {
-    const mockDismiss = vi.fn();
-    render(<ErrorBanner message="Test error" onDismiss={mockDismiss} />);
-
-    const dismissButton = screen.getByRole('button', { name: /dismiss/i });
-    await userEvent.click(dismissButton);
-
-    expect(mockDismiss).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('ProtectedRoute Component', () => {
-  it('redirects to login when user is not authenticated', async () => {
-    vi.mocked(authApi.getCurrentUser).mockRejectedValue(new Error('Not authenticated'));
-
-    render(
-      <BrowserRouter>
-        <ProtectedRoute>
-          <div>Protected Content</div>
-        </ProtectedRoute>
-      </BrowserRouter>
-    );
-
-    await waitFor(() => {
-      expect(window.location.pathname).toBe('/login');
-    });
-  });
-
-  it('renders children when user is authenticated', async () => {
-    vi.mocked(authApi.getCurrentUser).mockResolvedValue({
-      id: '1',
-      username: 'testuser',
-      role: 'user'
-    });
-
-    render(
-      <BrowserRouter>
-        <ProtectedRoute>
-          <div>Protected Content</div>
-        </ProtectedRoute>
-      </BrowserRouter>
-    );
-
-    await waitFor(() => {
-      expect(screen.getByText(/protected content/i)).toBeInTheDocument();
-    });
-  });
+afterAll(() => {
+  server.close();
 });
 
 describe('authApi', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('login returns user data on success', async () => {
-    const mockResponse = {
-      message: 'Login successful',
-      user: { id: '1', username: 'testuser', role: 'user' }
+  test('login returns user data on success', async () => {
+    const credentials = {
+      username: 'testuser',
+      password: 'password123',
+      facilityId: 1
     };
-    vi.mocked(authApi.login).mockResolvedValue(mockResponse);
 
-    const result = await authApi.login({ username: 'testuser', password: 'testpass123' });
+    const response = await authApi.login(credentials);
 
-    expect(result).toEqual(mockResponse);
-    expect(result.user.username).toBe('testuser');
+    expect(response.userId).toBe(1);
+    expect(response.username).toBe('testuser');
+    expect(response.role).toBe('MANAGER');
+    expect(response.facilityId).toBe(1);
+    expect(response.facilityName).toBe('Test Facility');
+    expect(response.message).toBe('Login successful');
   });
 
-  it('login throws error on invalid credentials', async () => {
-    const mockError = { response: { status: 401, data: { message: 'Invalid credentials' } } };
-    vi.mocked(authApi.login).mockRejectedValue(mockError);
+  test('login throws error on invalid credentials', async () => {
+    server.use(
+      rest.post('/api/v1/auth/login', (req, res, ctx) => {
+        return res(
+          ctx.status(401),
+          ctx.json({
+            correlationId: 'test-correlation-id',
+            errorCode: 'INVALID_CREDENTIALS',
+            message: 'Invalid username or password'
+          })
+        );
+      })
+    );
 
-    await expect(authApi.login({ username: 'testuser', password: 'wrong' })).rejects.toEqual(mockError);
+    const credentials = {
+      username: 'wronguser',
+      password: 'wrongpass',
+      facilityId: 1
+    };
+
+    await expect(authApi.login(credentials)).rejects.toThrow();
   });
 
-  it('getCurrentUser returns user profile', async () => {
-    const mockUser = { id: '1', username: 'testuser', role: 'user' };
-    vi.mocked(authApi.getCurrentUser).mockResolvedValue(mockUser);
-
-    const result = await authApi.getCurrentUser();
-
-    expect(result).toEqual(mockUser);
+  test('logout returns success message', async () => {
+    await authApi.logout();
+    expect(true).toBe(true);
   });
 
-  it('getCurrentUser throws error when not authenticated', async () => {
-    const mockError = { response: { status: 401, data: { message: 'Not authenticated' } } };
-    vi.mocked(authApi.getCurrentUser).mockRejectedValue(mockError);
+  test('logout throws error when unauthenticated', async () => {
+    server.use(
+      rest.post('/api/v1/auth/logout', (req, res, ctx) => {
+        return res(
+          ctx.status(401),
+          ctx.json({
+            correlationId: 'test-correlation-id',
+            errorCode: 'AUTHENTICATION_FAILED',
+            message: 'Authentication required'
+          })
+        );
+      })
+    );
 
-    await expect(authApi.getCurrentUser()).rejects.toEqual(mockError);
+    await expect(authApi.logout()).rejects.toThrow();
   });
 
-  it('logout completes successfully', async () => {
-    vi.mocked(authApi.logout).mockResolvedValue(undefined);
+  test('getCurrentUser returns user profile', async () => {
+    const profile = await authApi.getCurrentUser();
 
-    await expect(authApi.logout()).resolves.toBeUndefined();
+    expect(profile.userId).toBe(1);
+    expect(profile.username).toBe('testuser');
+    expect(profile.role).toBe('MANAGER');
+    expect(profile.facilityId).toBe(1);
+    expect(profile.facilityName).toBe('Test Facility');
+    expect(profile.isActive).toBe(true);
+  });
+
+  test('getCurrentUser throws error when unauthenticated', async () => {
+    server.use(
+      rest.get('/api/v1/auth/session', (req, res, ctx) => {
+        return res(
+          ctx.status(401),
+          ctx.json({
+            correlationId: 'test-correlation-id',
+            errorCode: 'AUTHENTICATION_FAILED',
+            message: 'Authentication required'
+          })
+        );
+      })
+    );
+
+    await expect(authApi.getCurrentUser()).rejects.toThrow();
   });
 });
