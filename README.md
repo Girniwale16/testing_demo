@@ -1,6 +1,6 @@
-# VIS-2094 Authentication System
+# VIS-2095 Authorization Infrastructure
 
-User authentication system with facility-scoped login, session management, and security logging for healthcare facility roster management.
+Role-based authorization and facility scoping enforcement for healthcare facility roster management system.
 
 ## Prerequisites
 
@@ -15,7 +15,7 @@ User authentication system with facility-scoped login, session management, and s
 
 ```bash
 git clone <repo-url>
-cd VIS-2094
+cd VIS-2095
 cp .env.example .env
 ```
 
@@ -131,3 +131,14 @@ Get current authenticated user session information.
   "isActive": "boolean"
 }
 ```
+
+## Authorization Infrastructure
+
+This ticket implements role-based authorization and facility scoping services:
+
+- **FacilityScopingService**: Validates that users can only access data from their assigned facility
+- **RoleAuthorizationService**: Validates that users have the required role for operations
+- **ForbiddenAccessException**: Custom exception for authorization failures (403 responses)
+- **GlobalExceptionHandler**: Centralized exception handling with structured error responses
+
+All authorization checks are logged with correlation IDs for audit trails.
