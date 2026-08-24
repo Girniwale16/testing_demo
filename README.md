@@ -1,137 +1,133 @@
-# VIS-2092
+# VIS-2094 Authentication System
 
-Frontend login screen with protected routing and authentication state management.
+User authentication system with facility-scoped login, session management, and security logging for healthcare facility roster management.
 
 ## Prerequisites
 
+- Java 17+
+- Maven 3.8+
 - Node.js 18+
 - Docker and Docker Compose
 
 ## Quick Start
 
-### Option 1 — Docker (recommended)
+### Option 1 - Docker (recommended)
 
-```
+```bash
 git clone <repo-url>
-cd VIS-2092
+cd VIS-2094
 cp .env.example .env
 ```
 
 Fill in the required values in .env
 
-```
+```bash
 docker-compose up --build
 ```
 
-Service URLs:
+Services will be available at:
+- Backend API: http://localhost:8080
 - Frontend: http://localhost:3000
-- Backend API: http://localhost:8080 (dependency IA-02/IA-03)
+- PostgreSQL: localhost:5432
 
-### Option 2 — Manual
+### Option 2 - Manual
 
-Frontend setup:
+#### Backend Setup
+
+```bash
+cd backend
+mvn clean install
+mvn spring-boot:run
 ```
+
+Backend will start at http://localhost:8080
+
+#### Frontend Setup
+
+```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Frontend will be available at http://localhost:3000
+Frontend will start at http://localhost:3000
 
 ## Running Tests
 
-Frontend tests:
+### Backend Tests
+
+```bash
+cd backend
+mvn test
 ```
+
+### Frontend Tests
+
+```bash
 cd frontend
 npm test
 ```
 
 ## Environment Variables
 
-VITE_API_URL - Backend API base URL (default: /api)
+See `.env.example` for all required environment variables:
+
+- `SPRING_DATASOURCE_URL` - PostgreSQL connection URL
+- `SPRING_DATASOURCE_USERNAME` - Database username
+- `SPRING_DATASOURCE_PASSWORD` - Database password
+- `POSTGRES_USER` - PostgreSQL user for Docker
+- `POSTGRES_PASSWORD` - PostgreSQL password for Docker
+- `POSTGRES_DB` - PostgreSQL database name
+- `POSTGRES_PORT` - PostgreSQL port (default 5432)
+- `VITE_API_URL` - Backend API URL for frontend
 
 ## API Endpoints
 
-POST /api/auth/login - Authenticate user with username and password
-POST /api/auth/logout - Invalidate current session
-GET /api/auth/me - Retrieve current authenticated user profile
-# VIS-2093
+### POST /api/v1/auth/login
+Authenticate user with username, password, and facility scope.
 
-Facility and User Account Management - Database persistence layer for multi-facility user authentication with facility-scoped username uniqueness.
-
-## Prerequisites
-
-- Java 17+
-- Maven 3.8+
-- Docker and Docker Compose
-
-## Quick Start
-
-### Option 1 — Docker (recommended)
-
-```
-git clone <repo-url>
-cd VIS-2093
-cp .env.example .env
+**Request:**
+```json
+{
+  "username": "string",
+  "password": "string",
+  "facilityId": "integer"
+}
 ```
 
-Fill in the required values in .env
-
-```
-docker-compose up --build
-```
-
-Service URLs:
-- Backend: http://localhost:8080
-- PostgreSQL: localhost:5432
-
-### Option 2 — Manual
-
-Backend setup:
-```
-cd backend
-mvn clean install
-mvn spring-boot:run
+**Response (200):**
+```json
+{
+  "userId": "integer",
+  "username": "string",
+  "role": "string",
+  "facilityId": "integer",
+  "facilityName": "string",
+  "message": "string"
+}
 ```
 
-## Running Tests
+### POST /api/v1/auth/logout
+Invalidate current session.
 
-Backend tests:
+**Response (200):**
+```json
+{
+  "message": "string"
+}
 ```
-cd backend
-mvn test
+
+### GET /api/v1/auth/session
+Get current authenticated user session information.
+
+**Response (200):**
+```json
+{
+  "userId": "integer",
+  "username": "string",
+  "role": "string",
+  "facilityId": "integer",
+  "facilityName": "string",
+  "isActive": "boolean"
+}
 ```
-
-## Environment Variables
-
-- `DATABASE_URL` - PostgreSQL connection string (format: jdbc:postgresql://host:port/database)
-- `DATABASE_USERNAME` - PostgreSQL username
-- `DATABASE_PASSWORD` - PostgreSQL password
-- `POSTGRES_USER` - PostgreSQL user for Docker container
-- `POSTGRES_PASSWORD` - PostgreSQL password for Docker container
-- `POSTGRES_DB` - PostgreSQL database name
-- `POSTGRES_PORT` - PostgreSQL port (default: 5432)
-- `SERVER_PORT` - Backend server port (default: 8080)
-
-## Database Schema
-
-### facility table
-- `facility_id` (BIGSERIAL PRIMARY KEY)
-- `timezone` (VARCHAR(100) NOT NULL) - IANA timezone identifier
-- `region_code` (VARCHAR(50)) - Optional region code
-- `is_active` (BOOLEAN DEFAULT TRUE)
-- `created_at`, `created_by`, `updated_at`, `updated_by` - Audit columns
-
-### user_account table
-- `user_account_id` (BIGSERIAL PRIMARY KEY)
-- `facility_id` (BIGINT NOT NULL FK to facility)
-- `username` (VARCHAR(100) NOT NULL) - Facility-scoped unique
-- `password_hash` (VARCHAR(255) NOT NULL)
-- `role` (VARCHAR(50) NOT NULL) - CHECK constraint: MANAGER, STAFF, SUPERVISOR
-- `staff_member_id` (BIGINT) - Optional, maps STAFF role to staff member
-- `created_at`, `created_by`, `updated_at`, `updated_by` - Audit columns
-
-Constraints:
-- UNIQUE (facility_id, username)
-- INDEX on (facility_id, role)
-- INDEX on (staff_member_id)
