@@ -63,4 +63,11 @@
 | File Path | Core Purpose | Exposed Functions |
 |-----------|--------------|-------------------|
 | `backend/src/main/resources/db/migration/V1__create_tables.sql` | API Error 401 |  |
+| `backend/src/main/resources/db/migration/V2__add_auth_columns_to_user_account.sql` | API Error 401 |  |
+| `backend/src/main/resources/db/migration/V3__update_audit_fields.sql` | API Error 401 |  |
+
+## `backend/src/test/java/com/visionary/roster`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `backend/src/test/java/com/visionary/roster/AppTest.java` | API Error 401 |  |
 
