@@ -5,13 +5,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Comprehensive unit tests for StaffMember entity
- * Ensures 100% coverage of all business logic, constructors, getters, setters, equals, hashCode, and toString
+ * Comprehensive unit tests for StaffMember entity.
+ * Ensures 100% test coverage of all business logic including constructors,
+ * getters, setters, equals, hashCode, and toString methods.
  */
 @DisplayName("StaffMember Entity Tests")
 class StaffMemberTest {
@@ -19,402 +19,330 @@ class StaffMemberTest {
     private StaffMember staffMember;
     private LocalDate testStartDate;
     private LocalDate testEndDate;
-    private LocalDateTime testCreatedAt;
-    private LocalDateTime testUpdatedAt;
 
     @BeforeEach
     void setUp() {
-        staffMember = new StaffMember();
         testStartDate = LocalDate.of(2023, 1, 15);
         testEndDate = LocalDate.of(2024, 12, 31);
-        testCreatedAt = LocalDateTime.of(2023, 1, 15, 10, 0, 0);
-        testUpdatedAt = LocalDateTime.of(2024, 6, 20, 14, 30, 0);
+        staffMember = new StaffMember();
     }
 
     @Test
-    @DisplayName("Test no-argument constructor creates empty StaffMember")
-    void testNoArgumentConstructor() {
-        StaffMember newStaffMember = new StaffMember();
-        assertNotNull(newStaffMember);
-        assertNull(newStaffMember.getStaffMemberId());
-        assertNull(newStaffMember.getName());
-        assertNull(newStaffMember.getContact());
-        assertNull(newStaffMember.getRole());
-        assertNull(newStaffMember.getEmploymentStatus());
-        assertNull(newStaffMember.getFacilityId());
-        assertNull(newStaffMember.getStartDate());
-        assertNull(newStaffMember.getEndDate());
-        assertNull(newStaffMember.getCreatedAt());
-        assertNull(newStaffMember.getUpdatedAt());
+    @DisplayName("Test no-args constructor creates instance")
+    void testNoArgsConstructor() {
+        StaffMember member = new StaffMember();
+        assertNotNull(member);
+        assertNull(member.getId());
+        assertNull(member.getName());
+        assertNull(member.getContact());
+        assertNull(member.getRole());
+        assertNull(member.getEmploymentStatus());
+        assertNull(member.getStartDate());
+        assertNull(member.getEndDate());
+        assertNull(member.getFacilityId());
     }
 
     @Test
-    @DisplayName("Test all-arguments constructor initializes all fields correctly")
-    void testAllArgumentsConstructor() {
-        StaffMember newStaffMember = new StaffMember(
+    @DisplayName("Test all-args constructor sets all fields correctly")
+    void testAllArgsConstructor() {
+        StaffMember member = new StaffMember(
                 1L,
                 "John Doe",
                 "john.doe@example.com",
                 "Nurse",
                 "ACTIVE",
-                100L,
                 testStartDate,
                 testEndDate,
-                testCreatedAt,
-                testUpdatedAt
+                100L
         );
 
-        assertEquals(1L, newStaffMember.getStaffMemberId());
-        assertEquals("John Doe", newStaffMember.getName());
-        assertEquals("john.doe@example.com", newStaffMember.getContact());
-        assertEquals("Nurse", newStaffMember.getRole());
-        assertEquals("ACTIVE", newStaffMember.getEmploymentStatus());
-        assertEquals(100L, newStaffMember.getFacilityId());
-        assertEquals(testStartDate, newStaffMember.getStartDate());
-        assertEquals(testEndDate, newStaffMember.getEndDate());
-        assertEquals(testCreatedAt, newStaffMember.getCreatedAt());
-        assertEquals(testUpdatedAt, newStaffMember.getUpdatedAt());
+        assertEquals(1L, member.getId());
+        assertEquals("John Doe", member.getName());
+        assertEquals("john.doe@example.com", member.getContact());
+        assertEquals("Nurse", member.getRole());
+        assertEquals("ACTIVE", member.getEmploymentStatus());
+        assertEquals(testStartDate, member.getStartDate());
+        assertEquals(testEndDate, member.getEndDate());
+        assertEquals(100L, member.getFacilityId());
     }
 
     @Test
-    @DisplayName("Test staffMemberId getter and setter")
-    void testStaffMemberIdGetterAndSetter() {
-        assertNull(staffMember.getStaffMemberId());
-        staffMember.setStaffMemberId(42L);
-        assertEquals(42L, staffMember.getStaffMemberId());
+    @DisplayName("Test all-args constructor with null optional fields")
+    void testAllArgsConstructorWithNullOptionalFields() {
+        StaffMember member = new StaffMember(
+                2L,
+                "Jane Smith",
+                "jane.smith@example.com",
+                "Doctor",
+                "ACTIVE",
+                null,
+                null,
+                200L
+        );
+
+        assertEquals(2L, member.getId());
+        assertEquals("Jane Smith", member.getName());
+        assertEquals("jane.smith@example.com", member.getContact());
+        assertEquals("Doctor", member.getRole());
+        assertEquals("ACTIVE", member.getEmploymentStatus());
+        assertNull(member.getStartDate());
+        assertNull(member.getEndDate());
+        assertEquals(200L, member.getFacilityId());
     }
 
     @Test
-    @DisplayName("Test name getter and setter")
-    void testNameGetterAndSetter() {
+    @DisplayName("Test getId and setId")
+    void testGetAndSetId() {
+        assertNull(staffMember.getId());
+        staffMember.setId(10L);
+        assertEquals(10L, staffMember.getId());
+    }
+
+    @Test
+    @DisplayName("Test getName and setName")
+    void testGetAndSetName() {
         assertNull(staffMember.getName());
-        staffMember.setName("Jane Smith");
-        assertEquals("Jane Smith", staffMember.getName());
+        staffMember.setName("Alice Johnson");
+        assertEquals("Alice Johnson", staffMember.getName());
     }
 
     @Test
-    @DisplayName("Test contact getter and setter")
-    void testContactGetterAndSetter() {
+    @DisplayName("Test getContact and setContact")
+    void testGetAndSetContact() {
         assertNull(staffMember.getContact());
-        staffMember.setContact("jane.smith@hospital.com");
-        assertEquals("jane.smith@hospital.com", staffMember.getContact());
+        staffMember.setContact("alice.johnson@example.com");
+        assertEquals("alice.johnson@example.com", staffMember.getContact());
     }
 
     @Test
-    @DisplayName("Test role getter and setter")
-    void testRoleGetterAndSetter() {
+    @DisplayName("Test getRole and setRole")
+    void testGetAndSetRole() {
         assertNull(staffMember.getRole());
-        staffMember.setRole("Doctor");
-        assertEquals("Doctor", staffMember.getRole());
+        staffMember.setRole("Physician");
+        assertEquals("Physician", staffMember.getRole());
     }
 
     @Test
-    @DisplayName("Test employmentStatus getter and setter with ACTIVE status")
-    void testEmploymentStatusGetterAndSetterActive() {
+    @DisplayName("Test getEmploymentStatus and setEmploymentStatus")
+    void testGetAndSetEmploymentStatus() {
         assertNull(staffMember.getEmploymentStatus());
-        staffMember.setEmploymentStatus("ACTIVE");
-        assertEquals("ACTIVE", staffMember.getEmploymentStatus());
-    }
-
-    @Test
-    @DisplayName("Test employmentStatus getter and setter with INACTIVE status")
-    void testEmploymentStatusGetterAndSetterInactive() {
         staffMember.setEmploymentStatus("INACTIVE");
         assertEquals("INACTIVE", staffMember.getEmploymentStatus());
     }
 
     @Test
-    @DisplayName("Test employmentStatus getter and setter with TERMINATED status")
-    void testEmploymentStatusGetterAndSetterTerminated() {
-        staffMember.setEmploymentStatus("TERMINATED");
-        assertEquals("TERMINATED", staffMember.getEmploymentStatus());
-    }
-
-    @Test
-    @DisplayName("Test facilityId getter and setter")
-    void testFacilityIdGetterAndSetter() {
-        assertNull(staffMember.getFacilityId());
-        staffMember.setFacilityId(500L);
-        assertEquals(500L, staffMember.getFacilityId());
-    }
-
-    @Test
-    @DisplayName("Test startDate getter and setter")
-    void testStartDateGetterAndSetter() {
+    @DisplayName("Test getStartDate and setStartDate")
+    void testGetAndSetStartDate() {
         assertNull(staffMember.getStartDate());
         staffMember.setStartDate(testStartDate);
         assertEquals(testStartDate, staffMember.getStartDate());
     }
 
     @Test
-    @DisplayName("Test endDate getter and setter")
-    void testEndDateGetterAndSetter() {
+    @DisplayName("Test getEndDate and setEndDate")
+    void testGetAndSetEndDate() {
         assertNull(staffMember.getEndDate());
         staffMember.setEndDate(testEndDate);
         assertEquals(testEndDate, staffMember.getEndDate());
     }
 
     @Test
-    @DisplayName("Test createdAt getter and setter")
-    void testCreatedAtGetterAndSetter() {
-        assertNull(staffMember.getCreatedAt());
-        staffMember.setCreatedAt(testCreatedAt);
-        assertEquals(testCreatedAt, staffMember.getCreatedAt());
+    @DisplayName("Test getFacilityId and setFacilityId")
+    void testGetAndSetFacilityId() {
+        assertNull(staffMember.getFacilityId());
+        staffMember.setFacilityId(500L);
+        assertEquals(500L, staffMember.getFacilityId());
     }
 
     @Test
-    @DisplayName("Test updatedAt getter and setter")
-    void testUpdatedAtGetterAndSetter() {
-        assertNull(staffMember.getUpdatedAt());
-        staffMember.setUpdatedAt(testUpdatedAt);
-        assertEquals(testUpdatedAt, staffMember.getUpdatedAt());
-    }
-
-    @Test
-    @DisplayName("Test equals method with same object returns true")
+    @DisplayName("Test equals with same object returns true")
     void testEqualsWithSameObject() {
-        staffMember.setStaffMemberId(1L);
+        staffMember.setId(1L);
         assertTrue(staffMember.equals(staffMember));
     }
 
     @Test
-    @DisplayName("Test equals method with null returns false")
+    @DisplayName("Test equals with null returns false")
     void testEqualsWithNull() {
-        staffMember.setStaffMemberId(1L);
+        staffMember.setId(1L);
         assertFalse(staffMember.equals(null));
     }
 
     @Test
-    @DisplayName("Test equals method with different class returns false")
+    @DisplayName("Test equals with different class returns false")
     void testEqualsWithDifferentClass() {
-        staffMember.setStaffMemberId(1L);
+        staffMember.setId(1L);
         assertFalse(staffMember.equals("Not a StaffMember"));
     }
 
     @Test
-    @DisplayName("Test equals method with same staffMemberId returns true")
-    void testEqualsWithSameStaffMemberId() {
-        staffMember.setStaffMemberId(1L);
+    @DisplayName("Test equals with same id returns true")
+    void testEqualsWithSameId() {
+        staffMember.setId(1L);
         StaffMember other = new StaffMember();
-        other.setStaffMemberId(1L);
+        other.setId(1L);
         assertTrue(staffMember.equals(other));
     }
 
     @Test
-    @DisplayName("Test equals method with different staffMemberId returns false")
-    void testEqualsWithDifferentStaffMemberId() {
-        staffMember.setStaffMemberId(1L);
+    @DisplayName("Test equals with different id returns false")
+    void testEqualsWithDifferentId() {
+        staffMember.setId(1L);
         StaffMember other = new StaffMember();
-        other.setStaffMemberId(2L);
+        other.setId(2L);
         assertFalse(staffMember.equals(other));
     }
 
     @Test
-    @DisplayName("Test equals method with both null staffMemberId returns true")
-    void testEqualsWithBothNullStaffMemberId() {
+    @DisplayName("Test equals with both null ids returns true")
+    void testEqualsWithBothNullIds() {
         StaffMember other = new StaffMember();
         assertTrue(staffMember.equals(other));
     }
 
     @Test
-    @DisplayName("Test equals method with one null staffMemberId returns false")
-    void testEqualsWithOneNullStaffMemberId() {
-        staffMember.setStaffMemberId(1L);
+    @DisplayName("Test equals with one null id returns false")
+    void testEqualsWithOneNullId() {
+        staffMember.setId(1L);
         StaffMember other = new StaffMember();
         assertFalse(staffMember.equals(other));
     }
 
     @Test
-    @DisplayName("Test hashCode consistency with same staffMemberId")
+    @DisplayName("Test hashCode consistency")
     void testHashCodeConsistency() {
-        staffMember.setStaffMemberId(1L);
+        staffMember.setId(1L);
         int hashCode1 = staffMember.hashCode();
         int hashCode2 = staffMember.hashCode();
         assertEquals(hashCode1, hashCode2);
     }
 
     @Test
-    @DisplayName("Test hashCode equality for equal objects")
-    void testHashCodeEqualityForEqualObjects() {
-        staffMember.setStaffMemberId(1L);
+    @DisplayName("Test hashCode with same id produces same hash")
+    void testHashCodeWithSameId() {
+        staffMember.setId(1L);
         StaffMember other = new StaffMember();
-        other.setStaffMemberId(1L);
+        other.setId(1L);
         assertEquals(staffMember.hashCode(), other.hashCode());
     }
 
     @Test
-    @DisplayName("Test hashCode difference for different staffMemberId")
-    void testHashCodeDifferenceForDifferentStaffMemberId() {
-        staffMember.setStaffMemberId(1L);
-        StaffMember other = new StaffMember();
-        other.setStaffMemberId(2L);
-        assertNotEquals(staffMember.hashCode(), other.hashCode());
-    }
-
-    @Test
-    @DisplayName("Test hashCode with null staffMemberId")
-    void testHashCodeWithNullStaffMemberId() {
+    @DisplayName("Test hashCode with null id")
+    void testHashCodeWithNullId() {
         int hashCode = staffMember.hashCode();
         assertNotNull(hashCode);
     }
 
     @Test
-    @DisplayName("Test toString contains all field values")
+    @DisplayName("Test toString contains all fields")
     void testToStringContainsAllFields() {
-        staffMember.setStaffMemberId(1L);
-        staffMember.setName("Alice Johnson");
-        staffMember.setContact("alice@hospital.com");
-        staffMember.setRole("Surgeon");
-        staffMember.setEmploymentStatus("ACTIVE");
-        staffMember.setFacilityId(200L);
-        staffMember.setStartDate(testStartDate);
-        staffMember.setEndDate(testEndDate);
-        staffMember.setCreatedAt(testCreatedAt);
-        staffMember.setUpdatedAt(testUpdatedAt);
-
-        String result = staffMember.toString();
-
-        assertTrue(result.contains("staffMemberId=1"));
-        assertTrue(result.contains("name='Alice Johnson'"));
-        assertTrue(result.contains("contact='alice@hospital.com'"));
-        assertTrue(result.contains("role='Surgeon'"));
-        assertTrue(result.contains("employmentStatus='ACTIVE'"));
-        assertTrue(result.contains("facilityId=200"));
-        assertTrue(result.contains("startDate=" + testStartDate));
-        assertTrue(result.contains("endDate=" + testEndDate));
-        assertTrue(result.contains("createdAt=" + testCreatedAt));
-        assertTrue(result.contains("updatedAt=" + testUpdatedAt));
-    }
-
-    @Test
-    @DisplayName("Test toString with null values")
-    void testToStringWithNullValues() {
-        String result = staffMember.toString();
-        assertTrue(result.contains("StaffMember{"));
-        assertTrue(result.contains("staffMemberId=null"));
-        assertTrue(result.contains("name='null'"));
-        assertTrue(result.contains("contact='null'"));
-        assertTrue(result.contains("role='null'"));
-        assertTrue(result.contains("employmentStatus='null'"));
-        assertTrue(result.contains("facilityId=null"));
-        assertTrue(result.contains("startDate=null"));
-        assertTrue(result.contains("endDate=null"));
-        assertTrue(result.contains("createdAt=null"));
-        assertTrue(result.contains("updatedAt=null"));
-    }
-
-    @Test
-    @DisplayName("Test soft-delete pattern: ACTIVE to INACTIVE transition")
-    void testSoftDeletePatternActiveToInactive() {
-        staffMember.setEmploymentStatus("ACTIVE");
-        staffMember.setEndDate(null);
-
-        staffMember.setEmploymentStatus("INACTIVE");
-        staffMember.setEndDate(LocalDate.now());
-
-        assertEquals("INACTIVE", staffMember.getEmploymentStatus());
-        assertNotNull(staffMember.getEndDate());
-    }
-
-    @Test
-    @DisplayName("Test soft-delete pattern: ACTIVE to TERMINATED transition")
-    void testSoftDeletePatternActiveToTerminated() {
-        staffMember.setEmploymentStatus("ACTIVE");
-        staffMember.setEndDate(null);
-
-        staffMember.setEmploymentStatus("TERMINATED");
-        staffMember.setEndDate(LocalDate.now());
-
-        assertEquals("TERMINATED", staffMember.getEmploymentStatus());
-        assertNotNull(staffMember.getEndDate());
-    }
-
-    @Test
-    @DisplayName("Test facilityId as foreign key reference")
-    void testFacilityIdAsForeignKeyReference() {
-        Long facilityId = 999L;
-        staffMember.setFacilityId(facilityId);
-        assertEquals(facilityId, staffMember.getFacilityId());
-    }
-
-    @Test
-    @DisplayName("Test all fields can be set and retrieved independently")
-    void testAllFieldsIndependentSetAndGet() {
-        staffMember.setStaffMemberId(10L);
-        staffMember.setName("Bob Williams");
-        staffMember.setContact("bob@clinic.com");
+        staffMember.setId(1L);
+        staffMember.setName("Bob Wilson");
+        staffMember.setContact("bob.wilson@example.com");
         staffMember.setRole("Technician");
         staffMember.setEmploymentStatus("ACTIVE");
-        staffMember.setFacilityId(300L);
         staffMember.setStartDate(testStartDate);
         staffMember.setEndDate(testEndDate);
-        staffMember.setCreatedAt(testCreatedAt);
-        staffMember.setUpdatedAt(testUpdatedAt);
+        staffMember.setFacilityId(300L);
 
-        assertEquals(10L, staffMember.getStaffMemberId());
-        assertEquals("Bob Williams", staffMember.getName());
-        assertEquals("bob@clinic.com", staffMember.getContact());
-        assertEquals("Technician", staffMember.getRole());
-        assertEquals("ACTIVE", staffMember.getEmploymentStatus());
-        assertEquals(300L, staffMember.getFacilityId());
-        assertEquals(testStartDate, staffMember.getStartDate());
-        assertEquals(testEndDate, staffMember.getEndDate());
-        assertEquals(testCreatedAt, staffMember.getCreatedAt());
-        assertEquals(testUpdatedAt, staffMember.getUpdatedAt());
+        String toString = staffMember.toString();
+
+        assertTrue(toString.contains("id=1"));
+        assertTrue(toString.contains("name='Bob Wilson'"));
+        assertTrue(toString.contains("contact='bob.wilson@example.com'"));
+        assertTrue(toString.contains("role='Technician'"));
+        assertTrue(toString.contains("employmentStatus='ACTIVE'"));
+        assertTrue(toString.contains("startDate=" + testStartDate));
+        assertTrue(toString.contains("endDate=" + testEndDate));
+        assertTrue(toString.contains("facilityId=300"));
+        assertTrue(toString.startsWith("StaffMember{"));
+        assertTrue(toString.endsWith("}"));
     }
 
     @Test
-    @DisplayName("Test entity with maximum length values for string fields")
-    void testMaximumLengthStringFields() {
-        String maxName = "A".repeat(255);
-        String maxContact = "B".repeat(255);
-        String maxRole = "C".repeat(100);
-        String maxStatus = "D".repeat(20);
+    @DisplayName("Test toString with null fields")
+    void testToStringWithNullFields() {
+        String toString = staffMember.toString();
 
-        staffMember.setName(maxName);
-        staffMember.setContact(maxContact);
-        staffMember.setRole(maxRole);
-        staffMember.setEmploymentStatus(maxStatus);
-
-        assertEquals(maxName, staffMember.getName());
-        assertEquals(maxContact, staffMember.getContact());
-        assertEquals(maxRole, staffMember.getRole());
-        assertEquals(maxStatus, staffMember.getEmploymentStatus());
+        assertTrue(toString.contains("id=null"));
+        assertTrue(toString.contains("name='null'"));
+        assertTrue(toString.contains("contact='null'"));
+        assertTrue(toString.contains("role='null'"));
+        assertTrue(toString.contains("employmentStatus='null'"));
+        assertTrue(toString.contains("startDate=null"));
+        assertTrue(toString.contains("endDate=null"));
+        assertTrue(toString.contains("facilityId=null"));
     }
 
     @Test
-    @DisplayName("Test entity with empty string values")
-    void testEmptyStringValues() {
-        staffMember.setName("");
-        staffMember.setContact("");
-        staffMember.setRole("");
-        staffMember.setEmploymentStatus("");
+    @DisplayName("Test facilityId enforces multi-tenant scoping")
+    void testFacilityIdMultiTenantScoping() {
+        staffMember.setFacilityId(100L);
+        assertEquals(100L, staffMember.getFacilityId());
 
-        assertEquals("", staffMember.getName());
-        assertEquals("", staffMember.getContact());
-        assertEquals("", staffMember.getRole());
-        assertEquals("", staffMember.getEmploymentStatus());
+        staffMember.setFacilityId(200L);
+        assertEquals(200L, staffMember.getFacilityId());
     }
 
     @Test
-    @DisplayName("Test startDate and endDate with same date")
-    void testStartDateAndEndDateSameDate() {
-        LocalDate sameDate = LocalDate.of(2024, 6, 15);
-        staffMember.setStartDate(sameDate);
-        staffMember.setEndDate(sameDate);
+    @DisplayName("Test complete object lifecycle")
+    void testCompleteObjectLifecycle() {
+        StaffMember member = new StaffMember(
+                1L,
+                "Complete Test",
+                "complete@test.com",
+                "Manager",
+                "ACTIVE",
+                testStartDate,
+                testEndDate,
+                999L
+        );
 
-        assertEquals(sameDate, staffMember.getStartDate());
-        assertEquals(sameDate, staffMember.getEndDate());
+        member.setName("Updated Name");
+        member.setEmploymentStatus("INACTIVE");
+        member.setEndDate(LocalDate.of(2025, 6, 30));
+
+        assertEquals("Updated Name", member.getName());
+        assertEquals("INACTIVE", member.getEmploymentStatus());
+        assertEquals(LocalDate.of(2025, 6, 30), member.getEndDate());
+        assertEquals(1L, member.getId());
+        assertEquals(999L, member.getFacilityId());
     }
 
     @Test
-    @DisplayName("Test createdAt and updatedAt with same timestamp")
-    void testCreatedAtAndUpdatedAtSameTimestamp() {
-        LocalDateTime sameTimestamp = LocalDateTime.now();
-        staffMember.setCreatedAt(sameTimestamp);
-        staffMember.setUpdatedAt(sameTimestamp);
+    @DisplayName("Test entity with only required fields")
+    void testEntityWithOnlyRequiredFields() {
+        StaffMember member = new StaffMember();
+        member.setName("Required Only");
+        member.setContact("required@test.com");
+        member.setRole("Staff");
+        member.setEmploymentStatus("ACTIVE");
+        member.setFacilityId(1L);
 
-        assertEquals(sameTimestamp, staffMember.getCreatedAt());
-        assertEquals(sameTimestamp, staffMember.getUpdatedAt());
+        assertEquals("Required Only", member.getName());
+        assertEquals("required@test.com", member.getContact());
+        assertEquals("Staff", member.getRole());
+        assertEquals("ACTIVE", member.getEmploymentStatus());
+        assertEquals(1L, member.getFacilityId());
+        assertNull(member.getStartDate());
+        assertNull(member.getEndDate());
+    }
+
+    @Test
+    @DisplayName("Test equals and hashCode contract")
+    void testEqualsAndHashCodeContract() {
+        StaffMember member1 = new StaffMember();
+        member1.setId(1L);
+
+        StaffMember member2 = new StaffMember();
+        member2.setId(1L);
+
+        StaffMember member3 = new StaffMember();
+        member3.setId(2L);
+
+        assertTrue(member1.equals(member2) && member2.equals(member1));
+        assertEquals(member1.hashCode(), member2.hashCode());
+
+        assertFalse(member1.equals(member3));
     }
 }

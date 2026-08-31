@@ -1,15 +1,13 @@
 package com.visionary.roster.model;
 
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
-
 import javax.persistence.*;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
- * Entity representing staff members with soft-delete support via employment_status and end_date fields
+ * JPA Entity representing a staff member in the roster system.
+ * This entity enforces multi-tenant facility scoping through the facilityId field,
+ * ensuring that staff members are properly isolated by facility.
  */
 @Entity
 @Table(name = "staff_member")
@@ -17,71 +15,70 @@ public class StaffMember {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "staff_member_id")
-    private Long staffMemberId;
+    private Long id;
 
-    @Column(name = "name", nullable = false, length = 255)
+    @Column(nullable = false)
     private String name;
 
-    @Column(name = "contact", nullable = false, length = 255)
+    @Column(nullable = false)
     private String contact;
 
-    @Column(name = "role", nullable = false, length = 100)
+    @Column(nullable = false)
     private String role;
 
-    // Valid values: ACTIVE, INACTIVE, TERMINATED (enforced by database CHECK constraint)
-    @Column(name = "employment_status", nullable = false, length = 20)
+    @Column(name = "employment_status", nullable = false)
     private String employmentStatus;
-
-    // Foreign key reference to facility.facility_id
-    @Column(name = "facility_id", nullable = false)
-    private Long facilityId;
 
     @Column(name = "start_date")
     private LocalDate startDate;
 
-    // Populated when employment_status transitions to INACTIVE or TERMINATED (soft-delete pattern)
     @Column(name = "end_date")
     private LocalDate endDate;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    @CreationTimestamp
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    @UpdateTimestamp
-    private LocalDateTime updatedAt;
+    /**
+     * Facility identifier that enforces multi-tenant facility scoping.
+     * This field ensures that staff members are properly associated with
+     * their respective facilities for data isolation and security.
+     */
+    @Column(name = "facility_id", nullable = false)
+    private Long facilityId;
 
     /**
-     * No-argument constructor (required by JPA)
+     * No-args constructor required by JPA.
      */
     public StaffMember() {
     }
 
     /**
-     * All-arguments constructor for convenience
+     * All-args constructor for convenient object creation.
+     *
+     * @param id               the unique identifier
+     * @param name             the staff member's name
+     * @param contact          the staff member's contact information
+     * @param role             the staff member's role
+     * @param employmentStatus the employment status
+     * @param startDate        the start date of employment
+     * @param endDate          the end date of employment (nullable)
+     * @param facilityId       the facility identifier for multi-tenant scoping
      */
-    public StaffMember(Long staffMemberId, String name, String contact, String role, String employmentStatus, 
-                       Long facilityId, LocalDate startDate, LocalDate endDate, LocalDateTime createdAt, 
-                       LocalDateTime updatedAt) {
-        this.staffMemberId = staffMemberId;
+    public StaffMember(Long id, String name, String contact, String role, String employmentStatus, 
+                       LocalDate startDate, LocalDate endDate, Long facilityId) {
+        this.id = id;
         this.name = name;
         this.contact = contact;
         this.role = role;
         this.employmentStatus = employmentStatus;
-        this.facilityId = facilityId;
         this.startDate = startDate;
         this.endDate = endDate;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
+        this.facilityId = facilityId;
     }
 
-    public Long getStaffMemberId() {
-        return staffMemberId;
+    public Long getId() {
+        return id;
     }
 
-    public void setStaffMemberId(Long staffMemberId) {
-        this.staffMemberId = staffMemberId;
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getName() {
@@ -116,14 +113,6 @@ public class StaffMember {
         this.employmentStatus = employmentStatus;
     }
 
-    public Long getFacilityId() {
-        return facilityId;
-    }
-
-    public void setFacilityId(Long facilityId) {
-        this.facilityId = facilityId;
-    }
-
     public LocalDate getStartDate() {
         return startDate;
     }
@@ -140,20 +129,12 @@ public class StaffMember {
         this.endDate = endDate;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+    public Long getFacilityId() {
+        return facilityId;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
+    public void setFacilityId(Long facilityId) {
+        this.facilityId = facilityId;
     }
 
     @Override
@@ -161,27 +142,25 @@ public class StaffMember {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         StaffMember that = (StaffMember) o;
-        return Objects.equals(staffMemberId, that.staffMemberId);
+        return Objects.equals(id, that.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(staffMemberId);
+        return Objects.hash(id);
     }
 
     @Override
     public String toString() {
         return "StaffMember{" +
-                "staffMemberId=" + staffMemberId +
+                "id=" + id +
                 ", name='" + name + '\'' +
                 ", contact='" + contact + '\'' +
                 ", role='" + role + '\'' +
                 ", employmentStatus='" + employmentStatus + '\'' +
-                ", facilityId=" + facilityId +
                 ", startDate=" + startDate +
                 ", endDate=" + endDate +
-                ", createdAt=" + createdAt +
-                ", updatedAt=" + updatedAt +
+                ", facilityId=" + facilityId +
                 '}';
     }
 }

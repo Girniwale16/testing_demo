@@ -13,7 +13,10 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import javax.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -26,6 +29,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex) {
         String correlationId = getOrGenerateCorrelationId();
         
+        Map<String, String> fieldErrors = new HashMap<>();
+        for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
+            fieldErrors.put(fieldError.getField(), fieldError.getDefaultMessage());
+        }
+
         String details = ex.getBindingResult().getFieldErrors().stream()
                 .map(FieldError::getDefaultMessage)
                 .collect(Collectors.joining("; "));
@@ -39,9 +47,11 @@ public class GlobalExceptionHandler {
                 .details(details)
                 .remediation("Please check the request body and ensure all required fields are provided with valid values")
                 .timestamp(LocalDateTime.now())
+                .status(HttpStatus.UNPROCESSABLE_ENTITY.value())
+                .fieldErrors(fieldErrors)
                 .build();
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorResponse);
     }
 
     @ExceptionHandler(InvalidCredentialsException.class)
@@ -56,6 +66,7 @@ public class GlobalExceptionHandler {
                 .message("Invalid username or password")
                 .remediation("Please verify your credentials and try again")
                 .timestamp(LocalDateTime.now())
+                .status(HttpStatus.UNAUTHORIZED.value())
                 .build();
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
@@ -74,6 +85,7 @@ public class GlobalExceptionHandler {
                 .message("Account is inactive")
                 .remediation("Please contact your system administrator to activate your account")
                 .timestamp(LocalDateTime.now())
+                .status(HttpStatus.FORBIDDEN.value())
                 .build();
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
@@ -92,9 +104,46 @@ public class GlobalExceptionHandler {
                 .message(ex.getMessage())
                 .remediation("Please contact your system administrator if you believe you should have access to this resource")
                 .timestamp(LocalDateTime.now())
+                .status(HttpStatus.FORBIDDEN.value())
                 .build();
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
+        String correlationId = getOrGenerateCorrelationId();
+
+        logger.warn("Illegal argument - correlationId: {}, message: {}", correlationId, ex.getMessage());
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .correlationId(correlationId)
+                .errorCode("BAD_REQUEST")
+                .message(ex.getMessage())
+                .remediation("Please check your request parameters and try again")
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException ex) {
+        String correlationId = getOrGenerateCorrelationId();
+
+        logger.warn("Entity not found - correlationId: {}, message: {}", correlationId, ex.getMessage());
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .correlationId(correlationId)
+                .errorCode("NOT_FOUND")
+                .message(ex.getMessage())
+                .remediation("The requested resource could not be found")
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.NOT_FOUND.value())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 
     @ExceptionHandler(AuthenticationException.class)
@@ -109,6 +158,7 @@ public class GlobalExceptionHandler {
                 .message("Authentication required")
                 .remediation("Please log in to access this resource")
                 .timestamp(LocalDateTime.now())
+                .status(HttpStatus.UNAUTHORIZED.value())
                 .build();
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorResponse);
@@ -126,6 +176,7 @@ public class GlobalExceptionHandler {
                 .message("Access denied")
                 .remediation("You do not have permission to access this resource")
                 .timestamp(LocalDateTime.now())
+                .status(HttpStatus.FORBIDDEN.value())
                 .build();
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
@@ -144,6 +195,7 @@ public class GlobalExceptionHandler {
                 .message("An unexpected error occurred")
                 .remediation("Please try again later or contact support with the correlation ID")
                 .timestamp(LocalDateTime.now())
+                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .build();
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);

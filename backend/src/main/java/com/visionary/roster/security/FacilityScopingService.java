@@ -21,6 +21,62 @@ public class FacilityScopingService {
         this.userAccountRepository = userAccountRepository;
     }
 
+    /**
+     * Extracts the facility ID from the authenticated user's security context.
+     * <p>
+     * This method is the single source of truth for facility context extraction across the application.
+     * It retrieves the authenticated user's principal from the SecurityContextHolder, loads the full
+     * UserAccount entity, and returns the associated facility ID.
+     * </p>
+     * <p>
+     * <strong>CRITICAL:</strong> This method is consumed by AuthService, UserAccountRepository queries,
+     * and StaffRepository. Do not modify the return type or signature as breaking changes will cascade
+     * to 5+ services and 8+ repositories.
+     * </p>
+     *
+     * @return the facility ID of the currently authenticated user
+     * @throws IllegalStateException if the user is not authenticated, user not found, or facility is not assigned
+     */
+    public Long getCurrentUserFacilityId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new IllegalStateException("User is not authenticated");
+        }
+
+        Long userId = (Long) authentication.getPrincipal();
+        UserAccount user = userAccountRepository.findById(userId)
+                .orElseThrow(() -> new IllegalStateException("User not found with ID: " + userId));
+
+        if (user.getFacility() == null) {
+            throw new IllegalStateException("User has no facility assigned");
+        }
+
+        return user.getFacility().getFacilityId();
+    }
+
+    /**
+     * Validates that the provided facility ID matches the current authenticated user's facility.
+     * <p>
+     * This method must be called before any cross-facility data access to enforce facility scoping
+     * and prevent unauthorized access to resources belonging to other facilities.
+     * </p>
+     * <p>
+     * <strong>CRITICAL:</strong> This method throws ForbiddenAccessException to maintain consistency
+     * with existing error handling in GlobalExceptionHandler. Do not modify the exception type as it
+     * will break authorization flows across the application.
+     * </p>
+     *
+     * @param facilityId the facility ID to validate against the current user's facility
+     * @throws ForbiddenAccessException if the provided facility ID does not match the current user's facility
+     */
+    public void validateFacilityAccess(Long facilityId) {
+        Long currentUserFacilityId = getCurrentUserFacilityId();
+        
+        if (!currentUserFacilityId.equals(facilityId)) {
+            throw new ForbiddenAccessException("Cross-facility access denied");
+        }
+    }
+
     public void validateFacilityAccess(Long requestedFacilityId, String resourceType) {
         String correlationId = MDC.get("correlationId");
 
