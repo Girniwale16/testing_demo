@@ -114,5 +114,53 @@
     "backend/src/main/resources/db/migration/V3__update_audit_fields.sql": {
         "purpose": "API Error 401",
         "functions": []
+    },
+    "frontend/src/api/authApi.ts": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "frontend/src/App.tsx": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "frontend/src/components/LoginForm.tsx": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "frontend/src/main.tsx": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "frontend/src/components/ErrorBanner.tsx": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "frontend/src/hooks/useAuth.ts": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "frontend/src/api/axiosInstance.ts": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "frontend/src/tests/app.test.tsx": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "frontend/src/pages/LoginPage.tsx": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "frontend/src/components/ProtectedRoute.tsx": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "frontend/src/types/auth.types.ts": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "frontend/src/utils/logger.ts": {
+        "purpose": "API Error 401",
+        "functions": []
     }
 }
