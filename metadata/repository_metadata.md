@@ -93,3 +93,47 @@
 |-----------|--------------|-------------------|
 | `backend/target/surefire-reports/TEST-com.visionary.roster.AppTest.xml` | API Error 401 |  |
 
+## `frontend/src`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `frontend/src/App.tsx` | API Error 401 |  |
+| `frontend/src/main.tsx` | API Error 401 |  |
+
+## `frontend/src/api`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `frontend/src/api/authApi.ts` | API Error 401 |  |
+| `frontend/src/api/axiosInstance.ts` | API Error 401 |  |
+
+## `frontend/src/components`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `frontend/src/components/ErrorBanner.tsx` | API Error 401 |  |
+| `frontend/src/components/LoginForm.tsx` | API Error 401 |  |
+| `frontend/src/components/ProtectedRoute.tsx` | API Error 401 |  |
+
+## `frontend/src/hooks`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `frontend/src/hooks/useAuth.ts` | API Error 401 |  |
+
+## `frontend/src/pages`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `frontend/src/pages/LoginPage.tsx` | API Error 401 |  |
+
+## `frontend/src/tests`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `frontend/src/tests/app.test.tsx` | API Error 401 |  |
+
+## `frontend/src/types`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `frontend/src/types/auth.types.ts` | API Error 401 |  |
+
+## `frontend/src/utils`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `frontend/src/utils/logger.ts` | API Error 401 |  |
+
