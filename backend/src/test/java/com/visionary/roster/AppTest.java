@@ -53,7 +53,7 @@ class AppTest {
         Long userId = 1L;
         Long facilityId = 100L;
         UserAccount user = new UserAccount();
-        user.setUserId(userId);
+        user.setUserAccountId(userId);
         Facility facility = new Facility();
         facility.setFacilityId(facilityId);
         user.setFacility(facility);
@@ -74,7 +74,7 @@ class AppTest {
         Long userFacilityId = 100L;
         Long requestedFacilityId = 200L;
         UserAccount user = new UserAccount();
-        user.setUserId(userId);
+        user.setUserAccountId(userId);
         Facility facility = new Facility();
         facility.setFacilityId(userFacilityId);
         user.setFacility(facility);
@@ -100,7 +100,7 @@ class AppTest {
         Long userId = 1L;
         Long requestedFacilityId = 100L;
         UserAccount user = new UserAccount();
-        user.setUserId(userId);
+        user.setUserAccountId(userId);
         user.setFacility(null);
 
         when(securityContext.getAuthentication()).thenReturn(authentication);
@@ -162,7 +162,7 @@ class AppTest {
         when(securityContext.getAuthentication()).thenReturn(authentication);
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getPrincipal()).thenReturn(userId);
-        when(authentication.getAuthorities()).thenReturn(Collections.singletonList(authority));
+        doReturn(Collections.singletonList(authority)).when(authentication).getAuthorities();
 
         assertDoesNotThrow(() -> roleAuthorizationService.validateRole("MANAGER", "create_roster"));
     }
@@ -175,7 +175,7 @@ class AppTest {
         when(securityContext.getAuthentication()).thenReturn(authentication);
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getPrincipal()).thenReturn(userId);
-        when(authentication.getAuthorities()).thenReturn(Collections.singletonList(authority));
+        doReturn(Collections.singletonList(authority)).when(authentication).getAuthorities();
 
         ForbiddenAccessException exception = assertThrows(
             ForbiddenAccessException.class,
@@ -195,7 +195,7 @@ class AppTest {
         when(securityContext.getAuthentication()).thenReturn(authentication);
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getPrincipal()).thenReturn(userId);
-        when(authentication.getAuthorities()).thenReturn(Collections.singletonList(authority));
+        doReturn(Collections.singletonList(authority)).when(authentication).getAuthorities();
 
         ForbiddenAccessException exception = assertThrows(
             ForbiddenAccessException.class,
@@ -213,7 +213,7 @@ class AppTest {
         when(securityContext.getAuthentication()).thenReturn(authentication);
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getPrincipal()).thenReturn(userId);
-        when(authentication.getAuthorities()).thenReturn(Collections.emptyList());
+        doReturn(Collections.emptyList()).when(authentication).getAuthorities();
 
         ForbiddenAccessException exception = assertThrows(
             ForbiddenAccessException.class,

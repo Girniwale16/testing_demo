@@ -1,17 +1,25 @@
 export interface LoginRequest {
   username: string;
   password: string;
+  facilityId?: number;
 }
 
 export interface UserProfile {
-  id: string | number;
+  userId: number;
   username: string;
   role: string;
+  facilityId: number;
+  facilityName: string;
+  isActive?: boolean;
 }
 
 export interface LoginResponse {
+  userId: number;
+  username: string;
+  role: string;
+  facilityId: number;
+  facilityName: string;
   message: string;
-  user: UserProfile;
 }
 
 export interface AuthError {

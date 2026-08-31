@@ -1,4 +1,4 @@
-package com.vis;
+package com.visionary.roster;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

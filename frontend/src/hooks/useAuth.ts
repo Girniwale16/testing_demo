@@ -46,14 +46,21 @@ export function useAuth() {
         event: 'login_attempt',
         username
       });
-
-      const response = await authApi.login({ username, password });
-      setUser(response.user);
+      const response = await authApi.login({ username, password, facilityId: 1 });
+      const userProfile: UserProfile = {
+        userId: response.userId,
+        username: response.username,
+        role: response.role,
+        facilityId: response.facilityId,
+        facilityName: response.facilityName,
+        isActive: true
+      };
+      setUser(userProfile);
 
       logger.info('Login successful', {
         event: 'login_success',
-        username: response.user.username,
-        role: response.user.role
+        username: userProfile.username,
+        role: userProfile.role
       });
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || 'Login failed. Please try again.';

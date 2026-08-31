@@ -5,7 +5,7 @@ import { rest } from 'msw';
 import { setupServer } from 'msw/node';
 
 const server = setupServer(
-  rest.post('/api/v1/auth/login', (req, res, ctx) => {
+  rest.post('/api/v1/auth/login', (_req: any, res: any, ctx: any) => {
     return res(
       ctx.status(200),
       ctx.json({
@@ -18,13 +18,13 @@ const server = setupServer(
       })
     );
   }),
-  rest.post('/api/v1/auth/logout', (req, res, ctx) => {
+  rest.post('/api/v1/auth/logout', (_req: any, res: any, ctx: any) => {
     return res(
       ctx.status(200),
       ctx.json({ message: 'Logout successful' })
     );
   }),
-  rest.get('/api/v1/auth/session', (req, res, ctx) => {
+  rest.get('/api/v1/auth/session', (_req: any, res: any, ctx: any) => {
     return res(
       ctx.status(200),
       ctx.json({
@@ -71,7 +71,7 @@ describe('authApi', () => {
 
   test('login throws error on invalid credentials', async () => {
     server.use(
-      rest.post('/api/v1/auth/login', (req, res, ctx) => {
+      rest.post('/api/v1/auth/login', (_req: any, res: any, ctx: any) => {
         return res(
           ctx.status(401),
           ctx.json({
@@ -99,7 +99,7 @@ describe('authApi', () => {
 
   test('logout throws error when unauthenticated', async () => {
     server.use(
-      rest.post('/api/v1/auth/logout', (req, res, ctx) => {
+      rest.post('/api/v1/auth/logout', (_req: any, res: any, ctx: any) => {
         return res(
           ctx.status(401),
           ctx.json({
@@ -127,7 +127,7 @@ describe('authApi', () => {
 
   test('getCurrentUser throws error when unauthenticated', async () => {
     server.use(
-      rest.get('/api/v1/auth/session', (req, res, ctx) => {
+      rest.get('/api/v1/auth/session', (_req: any, res: any, ctx: any) => {
         return res(
           ctx.status(401),
           ctx.json({

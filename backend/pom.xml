@@ -12,7 +12,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.vis</groupId>
+    <groupId>com.visionary.roster</groupId>
     <artifactId>vis-backend</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <name>VIS Backend</name>
@@ -63,11 +63,6 @@
             <artifactId>flyway-core</artifactId>
         </dependency>
 
-        <!-- Flyway PostgreSQL -->
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-database-postgresql</artifactId>
-        </dependency>
 
         <!-- Lombok -->
         <dependency>

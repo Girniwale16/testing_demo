@@ -3,7 +3,7 @@ version: '3.8'
 services:
   db:
     image: postgres:15
-    container_name: vis-postgres
+    container_name: demo-vis-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -22,7 +22,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: vis-backend
+    container_name: demo-vis-backend
     ports:
       - "8080:8080"
     environment:
@@ -37,7 +37,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: vis-frontend
+    container_name: demo-vis-frontend
     ports:
       - "3000:3000"
     environment:

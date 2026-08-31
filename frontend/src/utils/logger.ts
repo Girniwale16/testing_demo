@@ -41,5 +41,3 @@ class Logger {
 }
 
 export const logger = new Logger();
-
-===CODE_END===
