@@ -64,3 +64,32 @@
 |-----------|--------------|-------------------|
 | `backend/src/main/resources/application.yml` | API Error 401 |  |
 
+## `backend/src/main/resources/db/migration`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `backend/src/main/resources/db/migration/V1__create_tables.sql` | API Error 401 |  |
+| `backend/src/main/resources/db/migration/V2__add_auth_columns_to_user_account.sql` | API Error 401 |  |
+| `backend/src/main/resources/db/migration/V3__update_audit_fields.sql` | API Error 401 |  |
+
+## `backend/src/test/java/com/visionary/roster`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `backend/src/test/java/com/visionary/roster/AppTest.java` | API Error 401 |  |
+
+## `backend/target/classes`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `backend/target/classes/application.yml` | API Error 401 |  |
+
+## `backend/target/classes/db/migration`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `backend/target/classes/db/migration/V1__create_tables.sql` | API Error 401 |  |
+| `backend/target/classes/db/migration/V2__add_auth_columns_to_user_account.sql` | API Error 401 |  |
+| `backend/target/classes/db/migration/V3__update_audit_fields.sql` | API Error 401 |  |
+
+## `backend/target/surefire-reports`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `backend/target/surefire-reports/TEST-com.visionary.roster.AppTest.xml` | API Error 401 |  |
+
