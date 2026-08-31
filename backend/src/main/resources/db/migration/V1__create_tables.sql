@@ -41,3 +41,25 @@ COMMENT ON TABLE user_account IS 'Stores user accounts with facility-scoped user
 COMMENT ON COLUMN user_account.password_hash IS 'Hash algorithm TBD per ticket - ensure sufficient length for chosen algorithm';
 COMMENT ON COLUMN facility.timezone IS 'IANA timezone identifier - validation logic TBD per ticket';
 COMMENT ON COLUMN user_account.staff_member_id IS 'Optional - maps STAFF role to staff_member_id per spec';
+
+-- Create staff_member table
+CREATE TABLE staff_member (
+    staff_member_id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    contact VARCHAR(255) NOT NULL,
+    role VARCHAR(100) NOT NULL,
+    employment_status VARCHAR(20) NOT NULL CHECK (employment_status IN ('ACTIVE', 'INACTIVE', 'TERMINATED')),
+    facility_id BIGINT NOT NULL,
+    start_date DATE,
+    end_date DATE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_staff_member_facility FOREIGN KEY (facility_id) REFERENCES facility(facility_id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT chk_staff_member_dates CHECK (end_date IS NULL OR end_date >= start_date)
+);
+
+-- Create indexes for staff_member
+CREATE INDEX idx_staff_member_facility_status ON staff_member(facility_id, employment_status);
+CREATE INDEX idx_staff_member_facility_name ON staff_member(facility_id, name);
+
+-- Soft-delete implemented via employment_status transition and end_date population
