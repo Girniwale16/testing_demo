@@ -5,7 +5,7 @@
 
 -- Create facility table
 CREATE TABLE facility (
-    facility_id BIGSERIAL PRIMARY KEY,
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
     timezone VARCHAR(100) NOT NULL,
     region_code VARCHAR(50),
     is_active BOOLEAN DEFAULT TRUE,
@@ -27,7 +27,7 @@ CREATE TABLE user_account (
     created_by BIGINT,
     updated_at TIMESTAMP,
     updated_by BIGINT,
-    CONSTRAINT fk_user_account_facility FOREIGN KEY (facility_id) REFERENCES facility(facility_id),
+    CONSTRAINT fk_user_account_facility FOREIGN KEY (facility_id) REFERENCES facility(id),
     CONSTRAINT uk_facility_username UNIQUE (facility_id, username)
 );
 
@@ -44,22 +44,17 @@ COMMENT ON COLUMN user_account.staff_member_id IS 'Optional - maps STAFF role to
 
 -- Create staff_member table
 CREATE TABLE staff_member (
-    staff_member_id BIGSERIAL PRIMARY KEY,
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     contact VARCHAR(255) NOT NULL,
     role VARCHAR(100) NOT NULL,
-    employment_status VARCHAR(20) NOT NULL CHECK (employment_status IN ('ACTIVE', 'INACTIVE', 'TERMINATED')),
+    employment_status VARCHAR(50) NOT NULL,
+    start_date DATE NULL,
+    end_date DATE NULL,
     facility_id BIGINT NOT NULL,
-    start_date DATE,
-    end_date DATE,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_staff_member_facility FOREIGN KEY (facility_id) REFERENCES facility(facility_id) ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT chk_staff_member_dates CHECK (end_date IS NULL OR end_date >= start_date)
+    FOREIGN KEY (facility_id) REFERENCES facility(id) ON DELETE CASCADE
 );
 
 -- Create indexes for staff_member
-CREATE INDEX idx_staff_member_facility_status ON staff_member(facility_id, employment_status);
-CREATE INDEX idx_staff_member_facility_name ON staff_member(facility_id, name);
-
--- Soft-delete implemented via employment_status transition and end_date population
+CREATE INDEX idx_staff_facility ON staff_member(facility_id);
+CREATE INDEX idx_staff_employment_status ON staff_member(employment_status);
