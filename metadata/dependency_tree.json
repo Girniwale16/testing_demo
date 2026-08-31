@@ -1,0 +1,22 @@
+{
+    "backend/src/main/java/com/visionary/roster/VisApplication.java": [],
+    "backend/src/main/java/com/visionary/roster/controller/AuthController.java": [],
+    "backend/src/main/java/com/visionary/roster/dto/SessionResponse.java": [],
+    "backend/src/main/java/com/visionary/roster/exception/ForbiddenAccessException.java": [],
+    "backend/src/main/java/com/visionary/roster/dto/LoginResponse.java": [],
+    "backend/src/main/java/com/visionary/roster/dto/ErrorResponse.java": [],
+    "backend/src/main/java/com/visionary/roster/dto/LoginRequest.java": [],
+    "backend/src/main/java/com/visionary/roster/config/SecurityConfig.java": [],
+    "backend/pom.xml": [],
+    "backend/src/main/java/com/visionary/roster/config/CorrelationIdFilter.java": [],
+    "backend/src/main/java/com/visionary/roster/exception/GlobalExceptionHandler.java": [],
+    "backend/src/main/java/com/visionary/roster/exception/InactiveAccountException.java": [],
+    "backend/src/main/java/com/visionary/roster/model/UserAccount.java": [],
+    "backend/src/main/java/com/visionary/roster/exception/InvalidCredentialsException.java": [],
+    "backend/src/main/java/com/visionary/roster/model/Facility.java": [],
+    "backend/src/main/java/com/visionary/roster/repository/UserAccountRepository.java": [],
+    "backend/src/main/java/com/visionary/roster/security/FacilityScopingService.java": [],
+    "backend/src/main/java/com/visionary/roster/security/RoleAuthorizationService.java": [],
+    "backend/src/main/java/com/visionary/roster/service/AuthService.java": [],
+    "backend/src/main/resources/application.yml": []
+}
