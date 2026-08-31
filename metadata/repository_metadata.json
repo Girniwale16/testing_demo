@@ -1,0 +1,82 @@
+{
+    "backend/src/main/java/com/visionary/roster/VisApplication.java": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/controller/AuthController.java": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/dto/SessionResponse.java": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/exception/ForbiddenAccessException.java": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/dto/LoginResponse.java": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/dto/ErrorResponse.java": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/dto/LoginRequest.java": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/config/SecurityConfig.java": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "backend/pom.xml": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/config/CorrelationIdFilter.java": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/exception/GlobalExceptionHandler.java": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/exception/InactiveAccountException.java": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/model/UserAccount.java": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/exception/InvalidCredentialsException.java": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/model/Facility.java": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/repository/UserAccountRepository.java": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/security/FacilityScopingService.java": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/security/RoleAuthorizationService.java": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/service/AuthService.java": {
+        "purpose": "API Error 401",
+        "functions": []
+    },
+    "backend/src/main/resources/application.yml": {
+        "purpose": "API Error 401",
+        "functions": []
+    }
+}
