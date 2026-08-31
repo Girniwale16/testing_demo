@@ -1,8 +1,7 @@
 package com.visionary.roster.controller;
 
-import com.visionary.roster.dto.CreateStaffRequest;
 import com.visionary.roster.dto.StaffResponse;
-import com.visionary.roster.exception.ForbiddenAccessException;
+import com.visionary.roster.dto.StaffUpdateRequest;
 import com.visionary.roster.service.StaffService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,21 +11,18 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for StaffController.
- * 
- * <p>This test class ensures 100% coverage of the StaffController business logic,
- * including successful operations and exception handling scenarios.</p>
+ * Tests all REST endpoints for staff management operations.
  */
 @ExtendWith(MockitoExtension.class)
 class StaffControllerTest {
@@ -34,316 +30,330 @@ class StaffControllerTest {
     @Mock
     private StaffService staffService;
 
+    @Mock
+    private UserDetails userDetails;
+
     @InjectMocks
     private StaffController staffController;
 
-    private CreateStaffRequest validCreateRequest;
     private StaffResponse mockStaffResponse;
+    private StaffUpdateRequest mockUpdateRequest;
+    private static final Long STAFF_ID = 1L;
+    private static final Long FACILITY_ID = 100L;
+    private static final String REQUESTING_USER_ID = "user123";
 
     @BeforeEach
     void setUp() {
-        validCreateRequest = new CreateStaffRequest();
-        // Set up valid request fields as needed
-        
         mockStaffResponse = new StaffResponse();
-        mockStaffResponse.setId(1L);
-        mockStaffResponse.setFirstName("John");
-        mockStaffResponse.setLastName("Doe");
-        mockStaffResponse.setEmploymentStatus("active");
+        mockStaffResponse.setId(STAFF_ID);
+        mockStaffResponse.setName("John Doe");
+        mockStaffResponse.setActive(true);
+
+        mockUpdateRequest = new StaffUpdateRequest();
+        mockUpdateRequest.setName("John Doe Updated");
+        mockUpdateRequest.setEmail("john.doe@example.com");
+
+        when(userDetails.getUsername()).thenReturn(REQUESTING_USER_ID);
     }
 
-    // ==================== Constructor Tests ====================
+    // ==================== updateStaff Tests ====================
 
     @Test
-    void testConstructor_WithValidStaffService_ShouldInitializeController() {
+    void updateStaff_Success_ReturnsOkWithStaffResponse() {
         // Arrange
-        StaffService service = mock(StaffService.class);
-        
-        // Act
-        StaffController controller = new StaffController(service);
-        
-        // Assert
-        assertNotNull(controller);
-    }
+        when(staffService.updateStaff(eq(STAFF_ID), eq(mockUpdateRequest), eq(REQUESTING_USER_ID)))
+                .thenReturn(mockStaffResponse);
 
-    // ==================== createStaff() Tests ====================
-
-    @Test
-    void testCreateStaff_WithValidRequest_ShouldReturnCreatedStatus() {
-        // Arrange
-        when(staffService.createStaff(any(CreateStaffRequest.class))).thenReturn(mockStaffResponse);
-        
         // Act
-        ResponseEntity<StaffResponse> response = staffController.createStaff(validCreateRequest);
-        
+        ResponseEntity<StaffResponse> response = staffController.updateStaff(STAFF_ID, mockUpdateRequest, userDetails);
+
         // Assert
         assertNotNull(response);
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(mockStaffResponse.getId(), response.getBody().getId());
-        assertEquals(mockStaffResponse.getFirstName(), response.getBody().getFirstName());
-        assertEquals(mockStaffResponse.getLastName(), response.getBody().getLastName());
-        verify(staffService, times(1)).createStaff(validCreateRequest);
+        assertEquals(STAFF_ID, response.getBody().getId());
+        assertEquals("John Doe", response.getBody().getName());
+        verify(staffService, times(1)).updateStaff(eq(STAFF_ID), eq(mockUpdateRequest), eq(REQUESTING_USER_ID));
+        verify(userDetails, times(1)).getUsername();
     }
 
     @Test
-    void testCreateStaff_WithValidRequest_ShouldDelegateToService() {
+    void updateStaff_ExtractsCorrectUserIdFromUserDetails() {
         // Arrange
-        when(staffService.createStaff(any(CreateStaffRequest.class))).thenReturn(mockStaffResponse);
-        
+        when(staffService.updateStaff(anyLong(), any(StaffUpdateRequest.class), anyString()))
+                .thenReturn(mockStaffResponse);
+
         // Act
-        staffController.createStaff(validCreateRequest);
-        
+        staffController.updateStaff(STAFF_ID, mockUpdateRequest, userDetails);
+
         // Assert
-        verify(staffService, times(1)).createStaff(validCreateRequest);
+        verify(userDetails, times(1)).getUsername();
+        verify(staffService, times(1)).updateStaff(eq(STAFF_ID), eq(mockUpdateRequest), eq(REQUESTING_USER_ID));
     }
 
     @Test
-    void testCreateStaff_WithValidRequest_ShouldReturnStaffResponseInBody() {
+    void updateStaff_CallsServiceWithCorrectParameters() {
         // Arrange
-        when(staffService.createStaff(any(CreateStaffRequest.class))).thenReturn(mockStaffResponse);
-        
+        when(staffService.updateStaff(eq(STAFF_ID), eq(mockUpdateRequest), eq(REQUESTING_USER_ID)))
+                .thenReturn(mockStaffResponse);
+
         // Act
-        ResponseEntity<StaffResponse> response = staffController.createStaff(validCreateRequest);
-        
+        staffController.updateStaff(STAFF_ID, mockUpdateRequest, userDetails);
+
         // Assert
-        assertNotNull(response.getBody());
-        assertEquals(mockStaffResponse, response.getBody());
+        verify(staffService, times(1)).updateStaff(
+                eq(STAFF_ID),
+                eq(mockUpdateRequest),
+                eq(REQUESTING_USER_ID)
+        );
     }
 
     @Test
-    void testCreateStaff_WhenServiceThrowsForbiddenAccessException_ShouldPropagateException() {
+    void updateStaff_ServiceThrowsException_ExceptionPropagates() {
         // Arrange
-        when(staffService.createStaff(any(CreateStaffRequest.class)))
-                .thenThrow(new ForbiddenAccessException("Manager access required"));
-        
+        when(staffService.updateStaff(anyLong(), any(StaffUpdateRequest.class), anyString()))
+                .thenThrow(new RuntimeException("Service error"));
+
         // Act & Assert
-        assertThrows(ForbiddenAccessException.class, () -> {
-            staffController.createStaff(validCreateRequest);
+        assertThrows(RuntimeException.class, () -> {
+            staffController.updateStaff(STAFF_ID, mockUpdateRequest, userDetails);
         });
-        verify(staffService, times(1)).createStaff(validCreateRequest);
+        verify(staffService, times(1)).updateStaff(eq(STAFF_ID), eq(mockUpdateRequest), eq(REQUESTING_USER_ID));
+    }
+
+    // ==================== deactivateStaff Tests ====================
+
+    @Test
+    void deactivateStaff_Success_ReturnsOkWithNoContent() {
+        // Arrange
+        doNothing().when(staffService).deactivateStaff(eq(STAFF_ID), eq(REQUESTING_USER_ID));
+
+        // Act
+        ResponseEntity<Void> response = staffController.deactivateStaff(STAFF_ID, userDetails);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNull(response.getBody());
+        verify(staffService, times(1)).deactivateStaff(eq(STAFF_ID), eq(REQUESTING_USER_ID));
+        verify(userDetails, times(1)).getUsername();
     }
 
     @Test
-    void testCreateStaff_WhenServiceThrowsIllegalArgumentException_ShouldPropagateException() {
+    void deactivateStaff_ExtractsCorrectUserIdFromUserDetails() {
         // Arrange
-        when(staffService.createStaff(any(CreateStaffRequest.class)))
-                .thenThrow(new IllegalArgumentException("Invalid date format"));
-        
+        doNothing().when(staffService).deactivateStaff(anyLong(), anyString());
+
+        // Act
+        staffController.deactivateStaff(STAFF_ID, userDetails);
+
+        // Assert
+        verify(userDetails, times(1)).getUsername();
+        verify(staffService, times(1)).deactivateStaff(eq(STAFF_ID), eq(REQUESTING_USER_ID));
+    }
+
+    @Test
+    void deactivateStaff_CallsServiceWithCorrectParameters() {
+        // Arrange
+        doNothing().when(staffService).deactivateStaff(eq(STAFF_ID), eq(REQUESTING_USER_ID));
+
+        // Act
+        staffController.deactivateStaff(STAFF_ID, userDetails);
+
+        // Assert
+        verify(staffService, times(1)).deactivateStaff(eq(STAFF_ID), eq(REQUESTING_USER_ID));
+    }
+
+    @Test
+    void deactivateStaff_IdempotentOperation_ReturnsOk() {
+        // Arrange - Service handles idempotency, controller just returns OK
+        doNothing().when(staffService).deactivateStaff(eq(STAFF_ID), eq(REQUESTING_USER_ID));
+
+        // Act
+        ResponseEntity<Void> response = staffController.deactivateStaff(STAFF_ID, userDetails);
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(staffService, times(1)).deactivateStaff(eq(STAFF_ID), eq(REQUESTING_USER_ID));
+    }
+
+    @Test
+    void deactivateStaff_ServiceThrowsException_ExceptionPropagates() {
+        // Arrange
+        doThrow(new RuntimeException("Deactivation error"))
+                .when(staffService).deactivateStaff(anyLong(), anyString());
+
         // Act & Assert
-        assertThrows(IllegalArgumentException.class, () -> {
-            staffController.createStaff(validCreateRequest);
+        assertThrows(RuntimeException.class, () -> {
+            staffController.deactivateStaff(STAFF_ID, userDetails);
         });
-        verify(staffService, times(1)).createStaff(validCreateRequest);
+        verify(staffService, times(1)).deactivateStaff(eq(STAFF_ID), eq(REQUESTING_USER_ID));
     }
 
-    @Test
-    void testCreateStaff_WithNullRequest_ShouldStillCallService() {
-        // Arrange
-        when(staffService.createStaff(null)).thenReturn(mockStaffResponse);
-        
-        // Act
-        ResponseEntity<StaffResponse> response = staffController.createStaff(null);
-        
-        // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        verify(staffService, times(1)).createStaff(null);
-    }
-
-    // ==================== listStaff() Tests ====================
+    // ==================== getStaff Tests ====================
 
     @Test
-    void testListStaff_WithDefaultEmploymentStatus_ShouldReturnOkStatus() {
+    void getStaff_Success_ReturnsOkWithStaffResponse() {
         // Arrange
-        List<StaffResponse> mockStaffList = Arrays.asList(mockStaffResponse);
-        when(staffService.listStaff(eq("active"))).thenReturn(mockStaffList);
-        
+        when(staffService.getStaff(eq(STAFF_ID))).thenReturn(mockStaffResponse);
+
         // Act
-        ResponseEntity<List<StaffResponse>> response = staffController.listStaff("active");
-        
+        ResponseEntity<StaffResponse> response = staffController.getStaff(STAFF_ID, userDetails);
+
         // Assert
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(1, response.getBody().size());
-        verify(staffService, times(1)).listStaff("active");
+        assertEquals(STAFF_ID, response.getBody().getId());
+        assertEquals("John Doe", response.getBody().getName());
+        assertTrue(response.getBody().isActive());
+        verify(staffService, times(1)).getStaff(eq(STAFF_ID));
     }
 
     @Test
-    void testListStaff_WithActiveStatus_ShouldDelegateToService() {
+    void getStaff_CallsServiceWithCorrectId() {
         // Arrange
-        List<StaffResponse> mockStaffList = Arrays.asList(mockStaffResponse);
-        when(staffService.listStaff(eq("active"))).thenReturn(mockStaffList);
-        
+        when(staffService.getStaff(eq(STAFF_ID))).thenReturn(mockStaffResponse);
+
         // Act
-        staffController.listStaff("active");
-        
+        staffController.getStaff(STAFF_ID, userDetails);
+
         // Assert
-        verify(staffService, times(1)).listStaff("active");
+        verify(staffService, times(1)).getStaff(eq(STAFF_ID));
     }
 
     @Test
-    void testListStaff_WithInactiveStatus_ShouldReturnInactiveStaff() {
+    void getStaff_ServiceThrowsException_ExceptionPropagates() {
         // Arrange
-        StaffResponse inactiveStaff = new StaffResponse();
-        inactiveStaff.setId(2L);
-        inactiveStaff.setEmploymentStatus("inactive");
-        List<StaffResponse> mockStaffList = Arrays.asList(inactiveStaff);
-        when(staffService.listStaff(eq("inactive"))).thenReturn(mockStaffList);
-        
+        when(staffService.getStaff(anyLong()))
+                .thenThrow(new RuntimeException("Staff not found"));
+
+        // Act & Assert
+        assertThrows(RuntimeException.class, () -> {
+            staffController.getStaff(STAFF_ID, userDetails);
+        });
+        verify(staffService, times(1)).getStaff(eq(STAFF_ID));
+    }
+
+    @Test
+    void getStaff_UserDetailsProvided_DoesNotAffectRetrieval() {
+        // Arrange
+        when(staffService.getStaff(eq(STAFF_ID))).thenReturn(mockStaffResponse);
+
         // Act
-        ResponseEntity<List<StaffResponse>> response = staffController.listStaff("inactive");
-        
+        ResponseEntity<StaffResponse> response = staffController.getStaff(STAFF_ID, userDetails);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(staffService, times(1)).getStaff(eq(STAFF_ID));
+        verify(userDetails, never()).getUsername();
+    }
+
+    // ==================== listActiveStaff Tests ====================
+
+    @Test
+    void listActiveStaff_Success_ReturnsOkWithStaffList() {
+        // Arrange
+        StaffResponse staff1 = new StaffResponse();
+        staff1.setId(1L);
+        staff1.setName("Staff One");
+        staff1.setActive(true);
+
+        StaffResponse staff2 = new StaffResponse();
+        staff2.setId(2L);
+        staff2.setName("Staff Two");
+        staff2.setActive(true);
+
+        List<StaffResponse> staffList = Arrays.asList(staff1, staff2);
+        when(staffService.listActiveStaff(eq(FACILITY_ID))).thenReturn(staffList);
+
+        // Act
+        ResponseEntity<List<StaffResponse>> response = staffController.listActiveStaff(FACILITY_ID, userDetails);
+
         // Assert
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(1, response.getBody().size());
-        assertEquals("inactive", response.getBody().get(0).getEmploymentStatus());
-        verify(staffService, times(1)).listStaff("inactive");
+        assertEquals(2, response.getBody().size());
+        assertEquals("Staff One", response.getBody().get(0).getName());
+        assertEquals("Staff Two", response.getBody().get(1).getName());
+        verify(staffService, times(1)).listActiveStaff(eq(FACILITY_ID));
     }
 
     @Test
-    void testListStaff_WithCustomStatus_ShouldPassStatusToService() {
+    void listActiveStaff_EmptyList_ReturnsOkWithEmptyList() {
         // Arrange
-        String customStatus = "on_leave";
-        List<StaffResponse> mockStaffList = Collections.emptyList();
-        when(staffService.listStaff(eq(customStatus))).thenReturn(mockStaffList);
-        
-        // Act
-        ResponseEntity<List<StaffResponse>> response = staffController.listStaff(customStatus);
-        
-        // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(staffService, times(1)).listStaff(customStatus);
-    }
+        when(staffService.listActiveStaff(eq(FACILITY_ID))).thenReturn(Arrays.asList());
 
-    @Test
-    void testListStaff_WhenServiceReturnsEmptyList_ShouldReturnEmptyList() {
-        // Arrange
-        when(staffService.listStaff(eq("active"))).thenReturn(Collections.emptyList());
-        
         // Act
-        ResponseEntity<List<StaffResponse>> response = staffController.listStaff("active");
-        
+        ResponseEntity<List<StaffResponse>> response = staffController.listActiveStaff(FACILITY_ID, userDetails);
+
         // Assert
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertTrue(response.getBody().isEmpty());
-        verify(staffService, times(1)).listStaff("active");
+        verify(staffService, times(1)).listActiveStaff(eq(FACILITY_ID));
     }
 
     @Test
-    void testListStaff_WhenServiceReturnsMultipleStaff_ShouldReturnAllStaff() {
+    void listActiveStaff_CallsServiceWithCorrectFacilityId() {
         // Arrange
-        StaffResponse staff1 = new StaffResponse();
-        staff1.setId(1L);
-        staff1.setFirstName("John");
-        
-        StaffResponse staff2 = new StaffResponse();
-        staff2.setId(2L);
-        staff2.setFirstName("Jane");
-        
-        StaffResponse staff3 = new StaffResponse();
-        staff3.setId(3L);
-        staff3.setFirstName("Bob");
-        
-        List<StaffResponse> mockStaffList = Arrays.asList(staff1, staff2, staff3);
-        when(staffService.listStaff(eq("active"))).thenReturn(mockStaffList);
-        
+        when(staffService.listActiveStaff(eq(FACILITY_ID))).thenReturn(Arrays.asList());
+
         // Act
-        ResponseEntity<List<StaffResponse>> response = staffController.listStaff("active");
-        
+        staffController.listActiveStaff(FACILITY_ID, userDetails);
+
         // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(3, response.getBody().size());
-        assertEquals("John", response.getBody().get(0).getFirstName());
-        assertEquals("Jane", response.getBody().get(1).getFirstName());
-        assertEquals("Bob", response.getBody().get(2).getFirstName());
-        verify(staffService, times(1)).listStaff("active");
+        verify(staffService, times(1)).listActiveStaff(eq(FACILITY_ID));
     }
 
     @Test
-    void testListStaff_WhenServiceThrowsForbiddenAccessException_ShouldPropagateException() {
+    void listActiveStaff_ServiceThrowsException_ExceptionPropagates() {
         // Arrange
-        when(staffService.listStaff(any(String.class)))
-                .thenThrow(new ForbiddenAccessException("Insufficient permissions"));
-        
+        when(staffService.listActiveStaff(anyLong()))
+                .thenThrow(new RuntimeException("Facility not found"));
+
         // Act & Assert
-        assertThrows(ForbiddenAccessException.class, () -> {
-            staffController.listStaff("active");
+        assertThrows(RuntimeException.class, () -> {
+            staffController.listActiveStaff(FACILITY_ID, userDetails);
         });
-        verify(staffService, times(1)).listStaff("active");
+        verify(staffService, times(1)).listActiveStaff(eq(FACILITY_ID));
     }
 
     @Test
-    void testListStaff_WithNullEmploymentStatus_ShouldPassNullToService() {
+    void listActiveStaff_UserDetailsProvided_DoesNotAffectListing() {
         // Arrange
-        List<StaffResponse> mockStaffList = Arrays.asList(mockStaffResponse);
-        when(staffService.listStaff(null)).thenReturn(mockStaffList);
-        
+        when(staffService.listActiveStaff(eq(FACILITY_ID))).thenReturn(Arrays.asList());
+
         // Act
-        ResponseEntity<List<StaffResponse>> response = staffController.listStaff(null);
-        
+        ResponseEntity<List<StaffResponse>> response = staffController.listActiveStaff(FACILITY_ID, userDetails);
+
         // Assert
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(staffService, times(1)).listStaff(null);
+        verify(staffService, times(1)).listActiveStaff(eq(FACILITY_ID));
+        verify(userDetails, never()).getUsername();
+    }
+
+    // ==================== Constructor Tests ====================
+
+    @Test
+    void constructor_InjectsStaffServiceCorrectly() {
+        // Arrange & Act
+        StaffController controller = new StaffController(staffService);
+
+        // Assert
+        assertNotNull(controller);
     }
 
     @Test
-    void testListStaff_WithEmptyStringStatus_ShouldPassEmptyStringToService() {
-        // Arrange
-        List<StaffResponse> mockStaffList = Collections.emptyList();
-        when(staffService.listStaff(eq(""))).thenReturn(mockStaffList);
-        
-        // Act
-        ResponseEntity<List<StaffResponse>> response = staffController.listStaff("");
-        
-        // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(staffService, times(1)).listStaff("");
-    }
+    void constructor_NullStaffService_AllowsInstantiation() {
+        // Arrange & Act
+        StaffController controller = new StaffController(null);
 
-    @Test
-    void testListStaff_ShouldReturnListInResponseBody() {
-        // Arrange
-        List<StaffResponse> mockStaffList = Arrays.asList(mockStaffResponse);
-        when(staffService.listStaff(eq("active"))).thenReturn(mockStaffList);
-        
-        // Act
-        ResponseEntity<List<StaffResponse>> response = staffController.listStaff("active");
-        
         // Assert
-        assertNotNull(response.getBody());
-        assertEquals(mockStaffList, response.getBody());
-    }
-
-    // ==================== Annotation Coverage Tests ====================
-
-    @Test
-    void testControllerAnnotations_ShouldHaveRestControllerAnnotation() {
-        // Assert
-        assertTrue(StaffController.class.isAnnotationPresent(RestController.class));
-    }
-
-    @Test
-    void testControllerAnnotations_ShouldHaveRequestMappingAnnotation() {
-        // Assert
-        assertTrue(StaffController.class.isAnnotationPresent(RequestMapping.class));
-        RequestMapping mapping = StaffController.class.getAnnotation(RequestMapping.class);
-        assertEquals("/api/v1/staff", mapping.value()[0]);
-    }
-
-    @Test
-    void testControllerAnnotations_ShouldHaveCrossOriginAnnotation() {
-        // Assert
-        assertTrue(StaffController.class.isAnnotationPresent(CrossOrigin.class));
+        assertNotNull(controller);
     }
 }

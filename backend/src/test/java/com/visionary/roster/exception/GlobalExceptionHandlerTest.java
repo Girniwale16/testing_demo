@@ -18,12 +18,11 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import javax.persistence.EntityNotFoundException;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -51,8 +50,11 @@ class GlobalExceptionHandlerTest {
     @Test
     void handleValidationException_shouldReturn422WithFieldErrors() {
         // Arrange
-        FieldError fieldError1 = new FieldError("user", "email", "Email is required");
-        FieldError fieldError2 = new FieldError("user", "name", "Name must not be blank");
+        String correlationId = "test-correlation-id";
+        MDC.put("correlationId", correlationId);
+
+        FieldError fieldError1 = new FieldError("user", "username", "must not be blank");
+        FieldError fieldError2 = new FieldError("user", "email", "must be a valid email");
         List<FieldError> fieldErrors = Arrays.asList(fieldError1, fieldError2);
 
         when(methodArgumentNotValidException.getBindingResult()).thenReturn(bindingResult);
@@ -62,412 +64,24 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleValidationException(methodArgumentNotValidException);
 
         // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatusCode());
-        assertEquals(422, response.getStatusCode().value());
-        
-        ErrorResponse errorResponse = response.getBody();
-        assertNotNull(errorResponse);
-        assertEquals(422, errorResponse.getStatus());
-        assertEquals("VALIDATION_ERROR", errorResponse.getErrorCode());
-        assertEquals("Request validation failed", errorResponse.getMessage());
-        assertNotNull(errorResponse.getTimestamp());
-        assertNotNull(errorResponse.getCorrelationId());
-        
-        Map<String, String> fieldErrorsMap = errorResponse.getFieldErrors();
-        assertNotNull(fieldErrorsMap);
-        assertEquals(2, fieldErrorsMap.size());
-        assertEquals("Email is required", fieldErrorsMap.get("email"));
-        assertEquals("Name must not be blank", fieldErrorsMap.get("name"));
-        
-        assertTrue(errorResponse.getDetails().contains("Email is required"));
-        assertTrue(errorResponse.getDetails().contains("Name must not be blank"));
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getCorrelationId()).isEqualTo(correlationId);
+        assertThat(response.getBody().getErrorCode()).isEqualTo("VALIDATION_ERROR");
+        assertThat(response.getBody().getMessage()).isEqualTo("Request validation failed");
+        assertThat(response.getBody().getStatus()).isEqualTo(422);
+        assertThat(response.getBody().getFieldErrors()).hasSize(2);
+        assertThat(response.getBody().getFieldErrors()).containsEntry("username", "must not be blank");
+        assertThat(response.getBody().getFieldErrors()).containsEntry("email", "must be a valid email");
+        assertThat(response.getBody().getDetails()).contains("username: must not be blank");
+        assertThat(response.getBody().getDetails()).contains("email: must be a valid email");
     }
 
     @Test
-    void handleValidationException_shouldIncludeTimestamp() {
+    void handleValidationException_shouldGenerateCorrelationIdWhenNotPresent() {
         // Arrange
-        FieldError fieldError = new FieldError("user", "email", "Email is required");
-        when(methodArgumentNotValidException.getBindingResult()).thenReturn(bindingResult);
-        when(bindingResult.getFieldErrors()).thenReturn(Arrays.asList(fieldError));
-
-        LocalDateTime beforeCall = LocalDateTime.now();
-
-        // Act
-        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleValidationException(methodArgumentNotValidException);
-
-        LocalDateTime afterCall = LocalDateTime.now();
-
-        // Assert
-        ErrorResponse errorResponse = response.getBody();
-        assertNotNull(errorResponse);
-        assertNotNull(errorResponse.getTimestamp());
-        assertTrue(!errorResponse.getTimestamp().isBefore(beforeCall));
-        assertTrue(!errorResponse.getTimestamp().isAfter(afterCall));
-    }
-
-    @Test
-    void handleValidationException_shouldIncludeStatusCode() {
-        // Arrange
-        FieldError fieldError = new FieldError("user", "email", "Email is required");
-        when(methodArgumentNotValidException.getBindingResult()).thenReturn(bindingResult);
-        when(bindingResult.getFieldErrors()).thenReturn(Arrays.asList(fieldError));
-
-        // Act
-        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleValidationException(methodArgumentNotValidException);
-
-        // Assert
-        ErrorResponse errorResponse = response.getBody();
-        assertNotNull(errorResponse);
-        assertEquals(422, errorResponse.getStatus());
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY.value(), errorResponse.getStatus());
-    }
-
-    @Test
-    void handleForbiddenAccessException_shouldReturn403WithStandardizedErrorResponse() {
-        // Arrange
-        ForbiddenAccessException exception = new ForbiddenAccessException(
-            "User does not have access to this facility",
-            123L,
-            456L,
-            "Facility",
-            "User not assigned to facility"
-        );
-
-        // Act
-        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleForbiddenAccessException(exception);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
-        assertEquals(403, response.getStatusCode().value());
-        
-        ErrorResponse errorResponse = response.getBody();
-        assertNotNull(errorResponse);
-        assertEquals(403, errorResponse.getStatus());
-        assertEquals("FORBIDDEN_ACCESS", errorResponse.getErrorCode());
-        assertEquals("User does not have access to this facility", errorResponse.getMessage());
-        assertNotNull(errorResponse.getTimestamp());
-        assertNotNull(errorResponse.getCorrelationId());
-    }
-
-    @Test
-    void handleForbiddenAccessException_shouldIncludeTimestampAndStatus() {
-        // Arrange
-        ForbiddenAccessException exception = new ForbiddenAccessException(
-            "Access denied",
-            123L,
-            456L,
-            "Resource",
-            "Insufficient permissions"
-        );
-
-        LocalDateTime beforeCall = LocalDateTime.now();
-
-        // Act
-        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleForbiddenAccessException(exception);
-
-        LocalDateTime afterCall = LocalDateTime.now();
-
-        // Assert
-        ErrorResponse errorResponse = response.getBody();
-        assertNotNull(errorResponse);
-        assertNotNull(errorResponse.getTimestamp());
-        assertTrue(!errorResponse.getTimestamp().isBefore(beforeCall));
-        assertTrue(!errorResponse.getTimestamp().isAfter(afterCall));
-        assertEquals(403, errorResponse.getStatus());
-    }
-
-    @Test
-    void handleIllegalArgumentException_shouldReturn400ForMalformedPayloads() {
-        // Arrange
-        IllegalArgumentException exception = new IllegalArgumentException("Invalid date format");
-
-        // Act
-        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleIllegalArgumentException(exception);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals(400, response.getStatusCode().value());
-        
-        ErrorResponse errorResponse = response.getBody();
-        assertNotNull(errorResponse);
-        assertEquals(400, errorResponse.getStatus());
-        assertEquals("BAD_REQUEST", errorResponse.getErrorCode());
-        assertEquals("Invalid date format", errorResponse.getMessage());
-        assertNotNull(errorResponse.getTimestamp());
-        assertNotNull(errorResponse.getCorrelationId());
-    }
-
-    @Test
-    void handleIllegalArgumentException_shouldIncludeTimestampAndStatus() {
-        // Arrange
-        IllegalArgumentException exception = new IllegalArgumentException("Malformed request");
-
-        LocalDateTime beforeCall = LocalDateTime.now();
-
-        // Act
-        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleIllegalArgumentException(exception);
-
-        LocalDateTime afterCall = LocalDateTime.now();
-
-        // Assert
-        ErrorResponse errorResponse = response.getBody();
-        assertNotNull(errorResponse);
-        assertNotNull(errorResponse.getTimestamp());
-        assertTrue(!errorResponse.getTimestamp().isBefore(beforeCall));
-        assertTrue(!errorResponse.getTimestamp().isAfter(afterCall));
-        assertEquals(400, errorResponse.getStatus());
-    }
-
-    @Test
-    void handleEntityNotFoundException_shouldReturn404WithStandardizedErrorResponse() {
-        // Arrange
-        EntityNotFoundException exception = new EntityNotFoundException("User with ID 123 not found");
-
-        // Act
-        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleEntityNotFoundException(exception);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertEquals(404, response.getStatusCode().value());
-        
-        ErrorResponse errorResponse = response.getBody();
-        assertNotNull(errorResponse);
-        assertEquals(404, errorResponse.getStatus());
-        assertEquals("NOT_FOUND", errorResponse.getErrorCode());
-        assertEquals("User with ID 123 not found", errorResponse.getMessage());
-        assertNotNull(errorResponse.getTimestamp());
-        assertNotNull(errorResponse.getCorrelationId());
-        assertEquals("The requested resource could not be found", errorResponse.getRemediation());
-    }
-
-    @Test
-    void handleEntityNotFoundException_shouldIncludeTimestampAndStatus() {
-        // Arrange
-        EntityNotFoundException exception = new EntityNotFoundException("Resource not found");
-
-        LocalDateTime beforeCall = LocalDateTime.now();
-
-        // Act
-        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleEntityNotFoundException(exception);
-
-        LocalDateTime afterCall = LocalDateTime.now();
-
-        // Assert
-        ErrorResponse errorResponse = response.getBody();
-        assertNotNull(errorResponse);
-        assertNotNull(errorResponse.getTimestamp());
-        assertTrue(!errorResponse.getTimestamp().isBefore(beforeCall));
-        assertTrue(!errorResponse.getTimestamp().isAfter(afterCall));
-        assertEquals(404, errorResponse.getStatus());
-    }
-
-    @Test
-    void handleInvalidCredentialsException_shouldReturn401() {
-        // Arrange
-        InvalidCredentialsException exception = new InvalidCredentialsException("Invalid username or password");
-
-        // Act
-        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleInvalidCredentialsException(exception);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        
-        ErrorResponse errorResponse = response.getBody();
-        assertNotNull(errorResponse);
-        assertEquals(401, errorResponse.getStatus());
-        assertEquals("INVALID_CREDENTIALS", errorResponse.getErrorCode());
-        assertNotNull(errorResponse.getTimestamp());
-    }
-
-    @Test
-    void handleInactiveAccountException_shouldReturn403() {
-        // Arrange
-        InactiveAccountException exception = new InactiveAccountException("Account is inactive", 123L);
-
-        // Act
-        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleInactiveAccountException(exception);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
-        
-        ErrorResponse errorResponse = response.getBody();
-        assertNotNull(errorResponse);
-        assertEquals(403, errorResponse.getStatus());
-        assertEquals("ACCOUNT_INACTIVE", errorResponse.getErrorCode());
-        assertNotNull(errorResponse.getTimestamp());
-    }
-
-    @Test
-    void handleAuthenticationException_shouldReturn401() {
-        // Arrange
-        AuthenticationException exception = mock(AuthenticationException.class);
-        when(exception.getMessage()).thenReturn("Authentication failed");
-
-        // Act
-        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleAuthenticationException(exception);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        
-        ErrorResponse errorResponse = response.getBody();
-        assertNotNull(errorResponse);
-        assertEquals(401, errorResponse.getStatus());
-        assertEquals("AUTHENTICATION_FAILED", errorResponse.getErrorCode());
-        assertNotNull(errorResponse.getTimestamp());
-    }
-
-    @Test
-    void handleAccessDeniedException_shouldReturn403() {
-        // Arrange
-        AccessDeniedException exception = new AccessDeniedException("Access denied");
-
-        // Act
-        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleAccessDeniedException(exception);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
-        
-        ErrorResponse errorResponse = response.getBody();
-        assertNotNull(errorResponse);
-        assertEquals(403, errorResponse.getStatus());
-        assertEquals("ACCESS_DENIED", errorResponse.getErrorCode());
-        assertNotNull(errorResponse.getTimestamp());
-    }
-
-    @Test
-    void handleGenericException_shouldReturn500() {
-        // Arrange
-        Exception exception = new Exception("Unexpected error");
-
-        // Act
-        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleGenericException(exception);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        
-        ErrorResponse errorResponse = response.getBody();
-        assertNotNull(errorResponse);
-        assertEquals(500, errorResponse.getStatus());
-        assertEquals("INTERNAL_SERVER_ERROR", errorResponse.getErrorCode());
-        assertNotNull(errorResponse.getTimestamp());
-    }
-
-    @Test
-    void allExceptionHandlers_shouldMaintainBackwardCompatibilityWithErrorResponseStructure() {
-        // Test that all handlers return ErrorResponse with required fields
-        
-        // Test validation exception
-        FieldError fieldError = new FieldError("user", "email", "Email is required");
-        when(methodArgumentNotValidException.getBindingResult()).thenReturn(bindingResult);
-        when(bindingResult.getFieldErrors()).thenReturn(Arrays.asList(fieldError));
-        
-        ResponseEntity<ErrorResponse> validationResponse = globalExceptionHandler.handleValidationException(methodArgumentNotValidException);
-        assertErrorResponseStructure(validationResponse.getBody());
-        
-        // Test forbidden access exception
-        ForbiddenAccessException forbiddenException = new ForbiddenAccessException("Access denied", 1L, 2L, "Resource", "Reason");
-        ResponseEntity<ErrorResponse> forbiddenResponse = globalExceptionHandler.handleForbiddenAccessException(forbiddenException);
-        assertErrorResponseStructure(forbiddenResponse.getBody());
-        
-        // Test illegal argument exception
-        IllegalArgumentException illegalArgException = new IllegalArgumentException("Bad request");
-        ResponseEntity<ErrorResponse> illegalArgResponse = globalExceptionHandler.handleIllegalArgumentException(illegalArgException);
-        assertErrorResponseStructure(illegalArgResponse.getBody());
-        
-        // Test entity not found exception
-        EntityNotFoundException notFoundException = new EntityNotFoundException("Not found");
-        ResponseEntity<ErrorResponse> notFoundResponse = globalExceptionHandler.handleEntityNotFoundException(notFoundException);
-        assertErrorResponseStructure(notFoundResponse.getBody());
-    }
-
-    @Test
-    void allExceptionHandlers_shouldFollowStandardizedErrorResponseEnvelope() {
-        // Verify all handlers include: errorCode, message, status, timestamp, correlationId
-        
-        FieldError fieldError = new FieldError("user", "email", "Email is required");
-        when(methodArgumentNotValidException.getBindingResult()).thenReturn(bindingResult);
-        when(bindingResult.getFieldErrors()).thenReturn(Arrays.asList(fieldError));
-        
-        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleValidationException(methodArgumentNotValidException);
-        ErrorResponse errorResponse = response.getBody();
-        
-        assertNotNull(errorResponse.getErrorCode());
-        assertNotNull(errorResponse.getMessage());
-        assertNotNull(errorResponse.getStatus());
-        assertNotNull(errorResponse.getTimestamp());
-        assertNotNull(errorResponse.getCorrelationId());
-    }
-
-    @Test
-    void handleValidationException_shouldUseExistingCorrelationIdFromMDC() {
-        // Arrange
-        String existingCorrelationId = "test-correlation-id-123";
-        MDC.put("correlationId", existingCorrelationId);
-        
-        FieldError fieldError = new FieldError("user", "email", "Email is required");
-        when(methodArgumentNotValidException.getBindingResult()).thenReturn(bindingResult);
-        when(bindingResult.getFieldErrors()).thenReturn(Arrays.asList(fieldError));
-
-        // Act
-        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleValidationException(methodArgumentNotValidException);
-
-        // Assert
-        ErrorResponse errorResponse = response.getBody();
-        assertNotNull(errorResponse);
-        assertEquals(existingCorrelationId, errorResponse.getCorrelationId());
-    }
-
-    @Test
-    void handleValidationException_shouldGenerateCorrelationIdWhenNotInMDC() {
-        // Arrange
-        MDC.clear();
-        
-        FieldError fieldError = new FieldError("user", "email", "Email is required");
-        when(methodArgumentNotValidException.getBindingResult()).thenReturn(bindingResult);
-        when(bindingResult.getFieldErrors()).thenReturn(Arrays.asList(fieldError));
-
-        // Act
-        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleValidationException(methodArgumentNotValidException);
-
-        // Assert
-        ErrorResponse errorResponse = response.getBody();
-        assertNotNull(errorResponse);
-        assertNotNull(errorResponse.getCorrelationId());
-        assertFalse(errorResponse.getCorrelationId().isEmpty());
-    }
-
-    @Test
-    void handleValidationException_withEmptyFieldErrors_shouldReturnEmptyFieldErrorsMap() {
-        // Arrange
-        when(methodArgumentNotValidException.getBindingResult()).thenReturn(bindingResult);
-        when(bindingResult.getFieldErrors()).thenReturn(Arrays.asList());
-
-        // Act
-        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleValidationException(methodArgumentNotValidException);
-
-        // Assert
-        ErrorResponse errorResponse = response.getBody();
-        assertNotNull(errorResponse);
-        assertNotNull(errorResponse.getFieldErrors());
-        assertTrue(errorResponse.getFieldErrors().isEmpty());
-    }
-
-    @Test
-    void handleValidationException_withMultipleFieldErrors_shouldIterateThroughAllFieldErrors() {
-        // Arrange
-        FieldError fieldError1 = new FieldError("user", "email", "Email is required");
-        FieldError fieldError2 = new FieldError("user", "password", "Password must be at least 8 characters");
-        FieldError fieldError3 = new FieldError("user", "username", "Username is already taken");
-        List<FieldError> fieldErrors = Arrays.asList(fieldError1, fieldError2, fieldError3);
+        FieldError fieldError = new FieldError("user", "username", "must not be blank");
+        List<FieldError> fieldErrors = Arrays.asList(fieldError);
 
         when(methodArgumentNotValidException.getBindingResult()).thenReturn(bindingResult);
         when(bindingResult.getFieldErrors()).thenReturn(fieldErrors);
@@ -476,22 +90,350 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleValidationException(methodArgumentNotValidException);
 
         // Assert
-        ErrorResponse errorResponse = response.getBody();
-        assertNotNull(errorResponse);
-        
-        Map<String, String> fieldErrorsMap = errorResponse.getFieldErrors();
-        assertEquals(3, fieldErrorsMap.size());
-        assertEquals("Email is required", fieldErrorsMap.get("email"));
-        assertEquals("Password must be at least 8 characters", fieldErrorsMap.get("password"));
-        assertEquals("Username is already taken", fieldErrorsMap.get("username"));
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getCorrelationId()).isNotNull();
+        assertThat(response.getBody().getCorrelationId()).isNotEmpty();
     }
 
-    private void assertErrorResponseStructure(ErrorResponse errorResponse) {
-        assertNotNull(errorResponse, "ErrorResponse should not be null");
-        assertNotNull(errorResponse.getErrorCode(), "errorCode should not be null");
-        assertNotNull(errorResponse.getMessage(), "message should not be null");
-        assertNotNull(errorResponse.getStatus(), "status should not be null");
-        assertNotNull(errorResponse.getTimestamp(), "timestamp should not be null");
-        assertNotNull(errorResponse.getCorrelationId(), "correlationId should not be null");
+    @Test
+    void handleInvalidCredentialsException_shouldReturn401() {
+        // Arrange
+        String correlationId = "test-correlation-id";
+        MDC.put("correlationId", correlationId);
+        InvalidCredentialsException exception = new InvalidCredentialsException("Invalid credentials");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleInvalidCredentialsException(exception);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getCorrelationId()).isEqualTo(correlationId);
+        assertThat(response.getBody().getErrorCode()).isEqualTo("INVALID_CREDENTIALS");
+        assertThat(response.getBody().getMessage()).isEqualTo("Invalid username or password");
+        assertThat(response.getBody().getStatus()).isEqualTo(401);
+    }
+
+    @Test
+    void handleInactiveAccountException_shouldReturn403() {
+        // Arrange
+        String correlationId = "test-correlation-id";
+        MDC.put("correlationId", correlationId);
+        InactiveAccountException exception = new InactiveAccountException(123L, "Account is inactive");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleInactiveAccountException(exception);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getCorrelationId()).isEqualTo(correlationId);
+        assertThat(response.getBody().getErrorCode()).isEqualTo("ACCOUNT_INACTIVE");
+        assertThat(response.getBody().getMessage()).isEqualTo("Account is inactive");
+        assertThat(response.getBody().getStatus()).isEqualTo(403);
+    }
+
+    @Test
+    void handleForbiddenAccessException_shouldReturn403WithDetails() {
+        // Arrange
+        String correlationId = "test-correlation-id";
+        MDC.put("correlationId", correlationId);
+        ForbiddenAccessException exception = new ForbiddenAccessException(
+            123L, 456L, "Staff", "User does not have access to this facility"
+        );
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleForbiddenAccessException(exception);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getCorrelationId()).isEqualTo(correlationId);
+        assertThat(response.getBody().getErrorCode()).isEqualTo("FORBIDDEN_ACCESS");
+        assertThat(response.getBody().getStatus()).isEqualTo(403);
+    }
+
+    @Test
+    void handleResourceNotFoundException_shouldReturn404WithResourceDetails() {
+        // Arrange
+        String correlationId = "test-correlation-id";
+        MDC.put("correlationId", correlationId);
+        ResourceNotFoundException exception = new ResourceNotFoundException("Staff", "123");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleResourceNotFoundException(exception);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getCorrelationId()).isEqualTo(correlationId);
+        assertThat(response.getBody().getErrorCode()).isEqualTo("RESOURCE_NOT_FOUND");
+        assertThat(response.getBody().getMessage()).isEqualTo("Staff with ID 123 not found");
+        assertThat(response.getBody().getStatus()).isEqualTo(404);
+    }
+
+    @Test
+    void handleResourceNotFoundException_shouldHandleNullResourceType() {
+        // Arrange
+        String correlationId = "test-correlation-id";
+        MDC.put("correlationId", correlationId);
+        ResourceNotFoundException exception = new ResourceNotFoundException(null, "123");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleResourceNotFoundException(exception);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).isEqualTo("Resource with ID 123 not found");
+    }
+
+    @Test
+    void handleResourceNotFoundException_shouldHandleNullResourceId() {
+        // Arrange
+        String correlationId = "test-correlation-id";
+        MDC.put("correlationId", correlationId);
+        ResourceNotFoundException exception = new ResourceNotFoundException("Staff", null);
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleResourceNotFoundException(exception);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).isEqualTo("Staff with ID unknown not found");
+    }
+
+    @Test
+    void handleIllegalArgumentException_shouldReturn400() {
+        // Arrange
+        String correlationId = "test-correlation-id";
+        MDC.put("correlationId", correlationId);
+        IllegalArgumentException exception = new IllegalArgumentException("Invalid argument provided");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleIllegalArgumentException(exception);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getCorrelationId()).isEqualTo(correlationId);
+        assertThat(response.getBody().getErrorCode()).isEqualTo("BAD_REQUEST");
+        assertThat(response.getBody().getMessage()).isEqualTo("Invalid argument provided");
+        assertThat(response.getBody().getStatus()).isEqualTo(400);
+    }
+
+    @Test
+    void handleEntityNotFoundException_shouldReturn404() {
+        // Arrange
+        String correlationId = "test-correlation-id";
+        MDC.put("correlationId", correlationId);
+        EntityNotFoundException exception = new EntityNotFoundException("Entity not found");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleEntityNotFoundException(exception);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getCorrelationId()).isEqualTo(correlationId);
+        assertThat(response.getBody().getErrorCode()).isEqualTo("NOT_FOUND");
+        assertThat(response.getBody().getMessage()).isEqualTo("Entity not found");
+        assertThat(response.getBody().getStatus()).isEqualTo(404);
+    }
+
+    @Test
+    void handleAuthenticationException_shouldReturn401() {
+        // Arrange
+        String correlationId = "test-correlation-id";
+        MDC.put("correlationId", correlationId);
+        AuthenticationException exception = mock(AuthenticationException.class);
+        when(exception.getMessage()).thenReturn("Authentication failed");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleAuthenticationException(exception);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getCorrelationId()).isEqualTo(correlationId);
+        assertThat(response.getBody().getErrorCode()).isEqualTo("AUTHENTICATION_FAILED");
+        assertThat(response.getBody().getMessage()).isEqualTo("Authentication required");
+        assertThat(response.getBody().getStatus()).isEqualTo(401);
+    }
+
+    @Test
+    void handleAccessDeniedException_shouldReturn403() {
+        // Arrange
+        String correlationId = "test-correlation-id";
+        MDC.put("correlationId", correlationId);
+        AccessDeniedException exception = new AccessDeniedException("Access denied");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleAccessDeniedException(exception);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getCorrelationId()).isEqualTo(correlationId);
+        assertThat(response.getBody().getErrorCode()).isEqualTo("ACCESS_DENIED");
+        assertThat(response.getBody().getMessage()).isEqualTo("Access denied");
+        assertThat(response.getBody().getStatus()).isEqualTo(403);
+    }
+
+    @Test
+    void handleGenericException_shouldReturn500() {
+        // Arrange
+        String correlationId = "test-correlation-id";
+        MDC.put("correlationId", correlationId);
+        Exception exception = new Exception("Unexpected error");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleGenericException(exception);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getCorrelationId()).isEqualTo(correlationId);
+        assertThat(response.getBody().getErrorCode()).isEqualTo("INTERNAL_SERVER_ERROR");
+        assertThat(response.getBody().getMessage()).isEqualTo("An unexpected error occurred");
+        assertThat(response.getBody().getStatus()).isEqualTo(500);
+    }
+
+    @Test
+    void allExceptionHandlers_shouldIncludeCorrelationIdInResponse() {
+        // Test that all handlers include correlation ID
+        String correlationId = "test-correlation-id";
+        MDC.put("correlationId", correlationId);
+
+        // Test multiple exception handlers
+        ResponseEntity<ErrorResponse> response1 = globalExceptionHandler.handleIllegalArgumentException(
+            new IllegalArgumentException("test")
+        );
+        ResponseEntity<ErrorResponse> response2 = globalExceptionHandler.handleGenericException(
+            new Exception("test")
+        );
+        ResponseEntity<ErrorResponse> response3 = globalExceptionHandler.handleAccessDeniedException(
+            new AccessDeniedException("test")
+        );
+
+        assertThat(response1.getBody().getCorrelationId()).isEqualTo(correlationId);
+        assertThat(response2.getBody().getCorrelationId()).isEqualTo(correlationId);
+        assertThat(response3.getBody().getCorrelationId()).isEqualTo(correlationId);
+    }
+
+    @Test
+    void allExceptionHandlers_shouldGenerateCorrelationIdWhenMissing() {
+        // Ensure MDC is clear
+        MDC.clear();
+
+        // Test multiple exception handlers
+        ResponseEntity<ErrorResponse> response1 = globalExceptionHandler.handleIllegalArgumentException(
+            new IllegalArgumentException("test")
+        );
+        ResponseEntity<ErrorResponse> response2 = globalExceptionHandler.handleGenericException(
+            new Exception("test")
+        );
+
+        assertThat(response1.getBody().getCorrelationId()).isNotNull();
+        assertThat(response1.getBody().getCorrelationId()).isNotEmpty();
+        assertThat(response2.getBody().getCorrelationId()).isNotNull();
+        assertThat(response2.getBody().getCorrelationId()).isNotEmpty();
+    }
+
+    @Test
+    void allExceptionHandlers_shouldIncludeTimestamp() {
+        // Test that all handlers include timestamp
+        ResponseEntity<ErrorResponse> response1 = globalExceptionHandler.handleIllegalArgumentException(
+            new IllegalArgumentException("test")
+        );
+        ResponseEntity<ErrorResponse> response2 = globalExceptionHandler.handleGenericException(
+            new Exception("test")
+        );
+
+        assertThat(response1.getBody().getTimestamp()).isNotNull();
+        assertThat(response2.getBody().getTimestamp()).isNotNull();
+    }
+
+    @Test
+    void allExceptionHandlers_shouldIncludeRemediation() {
+        // Test that all handlers include remediation
+        ResponseEntity<ErrorResponse> response1 = globalExceptionHandler.handleIllegalArgumentException(
+            new IllegalArgumentException("test")
+        );
+        ResponseEntity<ErrorResponse> response2 = globalExceptionHandler.handleInvalidCredentialsException(
+            new InvalidCredentialsException("test")
+        );
+        ResponseEntity<ErrorResponse> response3 = globalExceptionHandler.handleResourceNotFoundException(
+            new ResourceNotFoundException("Staff", "123")
+        );
+
+        assertThat(response1.getBody().getRemediation()).isNotNull();
+        assertThat(response1.getBody().getRemediation()).isNotEmpty();
+        assertThat(response2.getBody().getRemediation()).isNotNull();
+        assertThat(response2.getBody().getRemediation()).isNotEmpty();
+        assertThat(response3.getBody().getRemediation()).isNotNull();
+        assertThat(response3.getBody().getRemediation()).isNotEmpty();
+    }
+
+    @Test
+    void handleValidationException_shouldHandleEmptyFieldErrors() {
+        // Arrange
+        when(methodArgumentNotValidException.getBindingResult()).thenReturn(bindingResult);
+        when(bindingResult.getFieldErrors()).thenReturn(Arrays.asList());
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleValidationException(methodArgumentNotValidException);
+
+        // Assert
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getFieldErrors()).isEmpty();
+        assertThat(response.getBody().getDetails()).isEmpty();
+    }
+
+    @Test
+    void handleResourceNotFoundException_shouldIncludeDetailsFromException() {
+        // Arrange
+        String correlationId = "test-correlation-id";
+        MDC.put("correlationId", correlationId);
+        ResourceNotFoundException exception = new ResourceNotFoundException("Staff", "123", "Additional details");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleResourceNotFoundException(exception);
+
+        // Assert
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getDetails()).isEqualTo(exception.getMessage());
+    }
+
+    @Test
+    void getOrGenerateCorrelationId_shouldReturnExistingCorrelationId() {
+        // Arrange
+        String existingCorrelationId = "existing-correlation-id";
+        MDC.put("correlationId", existingCorrelationId);
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleIllegalArgumentException(
+            new IllegalArgumentException("test")
+        );
+
+        // Assert
+        assertThat(response.getBody().getCorrelationId()).isEqualTo(existingCorrelationId);
+    }
+
+    @Test
+    void getOrGenerateCorrelationId_shouldGenerateNewCorrelationIdWhenEmpty() {
+        // Arrange
+        MDC.put("correlationId", "");
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleIllegalArgumentException(
+            new IllegalArgumentException("test")
+        );
+
+        // Assert
+        assertThat(response.getBody().getCorrelationId()).isNotEmpty();
+        assertThat(response.getBody().getCorrelationId()).isNotEqualTo("");
     }
 }

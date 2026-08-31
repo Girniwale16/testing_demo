@@ -1,6 +1,6 @@
 package com.visionary.roster.repository;
 
-import com.visionary.roster.entity.StaffMember;
+import com.visionary.roster.entity.Staff;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
@@ -15,14 +15,12 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Unit tests for StaffRepository.
- * 
- * <p>This test class verifies all custom query methods in StaffRepository,
- * with emphasis on facility-scoped multi-tenancy enforcement and employment status filtering.
+ * Unit tests for StaffRepository interface.
+ * Tests all custom query methods for staff management operations.
  */
 @DataJpaTest
 @ActiveProfiles("test")
-@DisplayName("StaffRepository Unit Tests")
+@DisplayName("StaffRepository Tests")
 class StaffRepositoryTest {
 
     @Autowired
@@ -31,82 +29,160 @@ class StaffRepositoryTest {
     @Autowired
     private StaffRepository staffRepository;
 
-    private StaffMember activeStaffFacility1;
-    private StaffMember inactiveStaffFacility1;
-    private StaffMember activeStaffFacility2;
-    private StaffMember terminatedStaffFacility1;
+    private Staff activeStaff1;
+    private Staff activeStaff2;
+    private Staff inactiveStaff;
+    private Staff differentFacilityStaff;
 
     @BeforeEach
     void setUp() {
+        // Clear any existing data
+        staffRepository.deleteAll();
+        entityManager.flush();
+        entityManager.clear();
+
         // Setup test data for facility 1
-        activeStaffFacility1 = new StaffMember();
-        activeStaffFacility1.setFacilityId(1L);
-        activeStaffFacility1.setEmploymentStatus("active");
-        activeStaffFacility1.setFirstName("John");
-        activeStaffFacility1.setLastName("Doe");
-        entityManager.persist(activeStaffFacility1);
+        activeStaff1 = new Staff();
+        activeStaff1.setFacilityId(1L);
+        activeStaff1.setEmploymentStatus("ACTIVE");
+        activeStaff1.setEmail("active1@example.com");
+        activeStaff1.setFirstName("John");
+        activeStaff1.setLastName("Doe");
+        activeStaff1 = entityManager.persistAndFlush(activeStaff1);
 
-        inactiveStaffFacility1 = new StaffMember();
-        inactiveStaffFacility1.setFacilityId(1L);
-        inactiveStaffFacility1.setEmploymentStatus("inactive");
-        inactiveStaffFacility1.setFirstName("Jane");
-        inactiveStaffFacility1.setLastName("Smith");
-        entityManager.persist(inactiveStaffFacility1);
+        activeStaff2 = new Staff();
+        activeStaff2.setFacilityId(1L);
+        activeStaff2.setEmploymentStatus("ACTIVE");
+        activeStaff2.setEmail("active2@example.com");
+        activeStaff2.setFirstName("Jane");
+        activeStaff2.setLastName("Smith");
+        activeStaff2 = entityManager.persistAndFlush(activeStaff2);
 
-        terminatedStaffFacility1 = new StaffMember();
-        terminatedStaffFacility1.setFacilityId(1L);
-        terminatedStaffFacility1.setEmploymentStatus("terminated");
-        terminatedStaffFacility1.setFirstName("Bob");
-        terminatedStaffFacility1.setLastName("Johnson");
-        entityManager.persist(terminatedStaffFacility1);
+        inactiveStaff = new Staff();
+        inactiveStaff.setFacilityId(1L);
+        inactiveStaff.setEmploymentStatus("INACTIVE");
+        inactiveStaff.setEmail("inactive@example.com");
+        inactiveStaff.setFirstName("Bob");
+        inactiveStaff.setLastName("Johnson");
+        inactiveStaff = entityManager.persistAndFlush(inactiveStaff);
 
         // Setup test data for facility 2
-        activeStaffFacility2 = new StaffMember();
-        activeStaffFacility2.setFacilityId(2L);
-        activeStaffFacility2.setEmploymentStatus("active");
-        activeStaffFacility2.setFirstName("Alice");
-        activeStaffFacility2.setLastName("Williams");
-        entityManager.persist(activeStaffFacility2);
+        differentFacilityStaff = new Staff();
+        differentFacilityStaff.setFacilityId(2L);
+        differentFacilityStaff.setEmploymentStatus("ACTIVE");
+        differentFacilityStaff.setEmail("facility2@example.com");
+        differentFacilityStaff.setFirstName("Alice");
+        differentFacilityStaff.setLastName("Williams");
+        differentFacilityStaff = entityManager.persistAndFlush(differentFacilityStaff);
 
-        entityManager.flush();
+        entityManager.clear();
     }
 
     @Test
-    @DisplayName("findByFacilityId should return all staff members for a specific facility")
-    void testFindByFacilityId_ReturnsAllStaffForFacility() {
+    @DisplayName("Should find active staff by facility ID and employment status")
+    void testFindByFacilityIdAndEmploymentStatus_ActiveStaff() {
         // When
-        List<StaffMember> result = staffRepository.findByFacilityId(1L);
+        List<Staff> result = staffRepository.findByFacilityIdAndEmploymentStatus(1L, "ACTIVE");
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result).hasSize(2);
+        assertThat(result).extracting(Staff::getEmail)
+                .containsExactlyInAnyOrder("active1@example.com", "active2@example.com");
+        assertThat(result).allMatch(staff -> staff.getFacilityId().equals(1L));
+        assertThat(result).allMatch(staff -> staff.getEmploymentStatus().equals("ACTIVE"));
+    }
+
+    @Test
+    @DisplayName("Should find inactive staff by facility ID and employment status")
+    void testFindByFacilityIdAndEmploymentStatus_InactiveStaff() {
+        // When
+        List<Staff> result = staffRepository.findByFacilityIdAndEmploymentStatus(1L, "INACTIVE");
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getEmail()).isEqualTo("inactive@example.com");
+        assertThat(result.get(0).getFacilityId()).isEqualTo(1L);
+        assertThat(result.get(0).getEmploymentStatus()).isEqualTo("INACTIVE");
+    }
+
+    @Test
+    @DisplayName("Should return empty list when no staff matches facility and status")
+    void testFindByFacilityIdAndEmploymentStatus_NoMatch() {
+        // When
+        List<Staff> result = staffRepository.findByFacilityIdAndEmploymentStatus(999L, "ACTIVE");
+
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Should find staff by ID and facility ID")
+    void testFindByIdAndFacilityId_Found() {
+        // When
+        Optional<Staff> result = staffRepository.findByIdAndFacilityId(activeStaff1.getId(), 1L);
+
+        // Then
+        assertThat(result).isPresent();
+        assertThat(result.get().getId()).isEqualTo(activeStaff1.getId());
+        assertThat(result.get().getFacilityId()).isEqualTo(1L);
+        assertThat(result.get().getEmail()).isEqualTo("active1@example.com");
+    }
+
+    @Test
+    @DisplayName("Should return empty when staff ID exists but facility ID does not match")
+    void testFindByIdAndFacilityId_WrongFacility() {
+        // When
+        Optional<Staff> result = staffRepository.findByIdAndFacilityId(activeStaff1.getId(), 2L);
+
+        // Then
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Should return empty when staff ID does not exist")
+    void testFindByIdAndFacilityId_NotFound() {
+        // When
+        Optional<Staff> result = staffRepository.findByIdAndFacilityId(999L, 1L);
+
+        // Then
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Should find all active staff across all facilities")
+    void testFindByEmploymentStatus_Active() {
+        // When
+        List<Staff> result = staffRepository.findByEmploymentStatus("ACTIVE");
 
         // Then
         assertThat(result).isNotNull();
         assertThat(result).hasSize(3);
-        assertThat(result).extracting(StaffMember::getFacilityId)
-                .containsOnly(1L);
-        assertThat(result).extracting(StaffMember::getEmploymentStatus)
-                .containsExactlyInAnyOrder("active", "inactive", "terminated");
+        assertThat(result).extracting(Staff::getEmail)
+                .containsExactlyInAnyOrder("active1@example.com", "active2@example.com", "facility2@example.com");
+        assertThat(result).allMatch(staff -> staff.getEmploymentStatus().equals("ACTIVE"));
     }
 
     @Test
-    @DisplayName("findByFacilityId should enforce facility-scoped multi-tenancy")
-    void testFindByFacilityId_EnforcesFacilityScoping() {
+    @DisplayName("Should find all inactive staff across all facilities")
+    void testFindByEmploymentStatus_Inactive() {
         // When
-        List<StaffMember> facility1Staff = staffRepository.findByFacilityId(1L);
-        List<StaffMember> facility2Staff = staffRepository.findByFacilityId(2L);
+        List<Staff> result = staffRepository.findByEmploymentStatus("INACTIVE");
 
         // Then
-        assertThat(facility1Staff).hasSize(3);
-        assertThat(facility2Staff).hasSize(1);
-        assertThat(facility1Staff).extracting(StaffMember::getFacilityId)
-                .containsOnly(1L);
-        assertThat(facility2Staff).extracting(StaffMember::getFacilityId)
-                .containsOnly(2L);
+        assertThat(result).isNotNull();
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getEmail()).isEqualTo("inactive@example.com");
+        assertThat(result.get(0).getEmploymentStatus()).isEqualTo("INACTIVE");
     }
 
     @Test
-    @DisplayName("findByFacilityId should return empty list when no staff exists for facility")
-    void testFindByFacilityId_ReturnsEmptyListWhenNoStaffExists() {
+    @DisplayName("Should return empty list when no staff has the specified employment status")
+    void testFindByEmploymentStatus_NoMatch() {
         // When
-        List<StaffMember> result = staffRepository.findByFacilityId(999L);
+        List<Staff> result = staffRepository.findByEmploymentStatus("TERMINATED");
 
         // Then
         assertThat(result).isNotNull();
@@ -114,257 +190,145 @@ class StaffRepositoryTest {
     }
 
     @Test
-    @DisplayName("findByFacilityId should handle null facilityId gracefully")
-    void testFindByFacilityId_HandlesNullFacilityId() {
+    @DisplayName("Should return true when email exists for a different staff member")
+    void testExistsByEmailAndIdNot_EmailExists() {
         // When
-        List<StaffMember> result = staffRepository.findByFacilityId(null);
+        boolean result = staffRepository.existsByEmailAndIdNot("active2@example.com", activeStaff1.getId());
 
         // Then
-        assertThat(result).isNotNull();
-        assertThat(result).isEmpty();
+        assertThat(result).isTrue();
     }
 
     @Test
-    @DisplayName("findByFacilityIdAndEmploymentStatus should return staff filtered by status")
-    void testFindByFacilityIdAndEmploymentStatus_ReturnsFilteredStaff() {
+    @DisplayName("Should return false when email belongs to the same staff member")
+    void testExistsByEmailAndIdNot_SameStaff() {
         // When
-        List<StaffMember> activeStaff = staffRepository.findByFacilityIdAndEmploymentStatus(1L, "active");
+        boolean result = staffRepository.existsByEmailAndIdNot("active1@example.com", activeStaff1.getId());
 
         // Then
-        assertThat(activeStaff).isNotNull();
-        assertThat(activeStaff).hasSize(1);
-        assertThat(activeStaff.get(0).getEmploymentStatus()).isEqualTo("active");
-        assertThat(activeStaff.get(0).getFacilityId()).isEqualTo(1L);
-        assertThat(activeStaff.get(0).getFirstName()).isEqualTo("John");
+        assertThat(result).isFalse();
     }
 
     @Test
-    @DisplayName("findByFacilityIdAndEmploymentStatus should enforce facility-scoped multi-tenancy")
-    void testFindByFacilityIdAndEmploymentStatus_EnforcesFacilityScoping() {
+    @DisplayName("Should return false when email does not exist")
+    void testExistsByEmailAndIdNot_EmailDoesNotExist() {
         // When
-        List<StaffMember> facility1Active = staffRepository.findByFacilityIdAndEmploymentStatus(1L, "active");
-        List<StaffMember> facility2Active = staffRepository.findByFacilityIdAndEmploymentStatus(2L, "active");
+        boolean result = staffRepository.existsByEmailAndIdNot("nonexistent@example.com", activeStaff1.getId());
 
         // Then
-        assertThat(facility1Active).hasSize(1);
-        assertThat(facility2Active).hasSize(1);
-        assertThat(facility1Active.get(0).getFacilityId()).isEqualTo(1L);
-        assertThat(facility2Active.get(0).getFacilityId()).isEqualTo(2L);
-        assertThat(facility1Active.get(0).getFirstName()).isEqualTo("John");
-        assertThat(facility2Active.get(0).getFirstName()).isEqualTo("Alice");
+        assertThat(result).isFalse();
     }
 
     @Test
-    @DisplayName("findByFacilityIdAndEmploymentStatus should return inactive staff")
-    void testFindByFacilityIdAndEmploymentStatus_ReturnsInactiveStaff() {
+    @DisplayName("Should return true when checking email uniqueness for new staff (ID is null)")
+    void testExistsByEmailAndIdNot_NewStaffWithExistingEmail() {
         // When
-        List<StaffMember> inactiveStaff = staffRepository.findByFacilityIdAndEmploymentStatus(1L, "inactive");
+        boolean result = staffRepository.existsByEmailAndIdNot("active1@example.com", null);
 
         // Then
-        assertThat(inactiveStaff).isNotNull();
-        assertThat(inactiveStaff).hasSize(1);
-        assertThat(inactiveStaff.get(0).getEmploymentStatus()).isEqualTo("inactive");
-        assertThat(inactiveStaff.get(0).getFirstName()).isEqualTo("Jane");
+        assertThat(result).isTrue();
     }
 
     @Test
-    @DisplayName("findByFacilityIdAndEmploymentStatus should return terminated staff")
-    void testFindByFacilityIdAndEmploymentStatus_ReturnsTerminatedStaff() {
+    @DisplayName("Should find staff by email")
+    void testFindByEmail_Found() {
         // When
-        List<StaffMember> terminatedStaff = staffRepository.findByFacilityIdAndEmploymentStatus(1L, "terminated");
-
-        // Then
-        assertThat(terminatedStaff).isNotNull();
-        assertThat(terminatedStaff).hasSize(1);
-        assertThat(terminatedStaff.get(0).getEmploymentStatus()).isEqualTo("terminated");
-        assertThat(terminatedStaff.get(0).getFirstName()).isEqualTo("Bob");
-    }
-
-    @Test
-    @DisplayName("findByFacilityIdAndEmploymentStatus should return empty list when no match")
-    void testFindByFacilityIdAndEmploymentStatus_ReturnsEmptyListWhenNoMatch() {
-        // When
-        List<StaffMember> result = staffRepository.findByFacilityIdAndEmploymentStatus(1L, "on-leave");
-
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result).isEmpty();
-    }
-
-    @Test
-    @DisplayName("findByFacilityIdAndEmploymentStatus should handle null facilityId")
-    void testFindByFacilityIdAndEmploymentStatus_HandlesNullFacilityId() {
-        // When
-        List<StaffMember> result = staffRepository.findByFacilityIdAndEmploymentStatus(null, "active");
-
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result).isEmpty();
-    }
-
-    @Test
-    @DisplayName("findByFacilityIdAndEmploymentStatus should handle null employmentStatus")
-    void testFindByFacilityIdAndEmploymentStatus_HandlesNullEmploymentStatus() {
-        // When
-        List<StaffMember> result = staffRepository.findByFacilityIdAndEmploymentStatus(1L, null);
-
-        // Then
-        assertThat(result).isNotNull();
-        assertThat(result).isEmpty();
-    }
-
-    @Test
-    @DisplayName("findByFacilityIdAndEmploymentStatus should be case-sensitive for status")
-    void testFindByFacilityIdAndEmploymentStatus_IsCaseSensitive() {
-        // When
-        List<StaffMember> upperCaseResult = staffRepository.findByFacilityIdAndEmploymentStatus(1L, "ACTIVE");
-        List<StaffMember> lowerCaseResult = staffRepository.findByFacilityIdAndEmploymentStatus(1L, "active");
-
-        // Then
-        assertThat(upperCaseResult).isEmpty();
-        assertThat(lowerCaseResult).hasSize(1);
-    }
-
-    @Test
-    @DisplayName("findByIdAndFacilityId should return staff member when found in facility scope")
-    void testFindByIdAndFacilityId_ReturnsStaffMemberWhenFound() {
-        // When
-        Optional<StaffMember> result = staffRepository.findByIdAndFacilityId(
-                activeStaffFacility1.getId(), 1L);
+        Optional<Staff> result = staffRepository.findByEmail("active1@example.com");
 
         // Then
         assertThat(result).isPresent();
-        assertThat(result.get().getId()).isEqualTo(activeStaffFacility1.getId());
-        assertThat(result.get().getFacilityId()).isEqualTo(1L);
+        assertThat(result.get().getId()).isEqualTo(activeStaff1.getId());
+        assertThat(result.get().getEmail()).isEqualTo("active1@example.com");
         assertThat(result.get().getFirstName()).isEqualTo("John");
+        assertThat(result.get().getLastName()).isEqualTo("Doe");
     }
 
     @Test
-    @DisplayName("findByIdAndFacilityId should enforce facility-scoped multi-tenancy")
-    void testFindByIdAndFacilityId_EnforcesFacilityScoping() {
-        // When - Try to access facility 1 staff with facility 2 scope
-        Optional<StaffMember> result = staffRepository.findByIdAndFacilityId(
-                activeStaffFacility1.getId(), 2L);
+    @DisplayName("Should return empty when email does not exist")
+    void testFindByEmail_NotFound() {
+        // When
+        Optional<Staff> result = staffRepository.findByEmail("nonexistent@example.com");
 
         // Then
         assertThat(result).isEmpty();
     }
 
     @Test
-    @DisplayName("findByIdAndFacilityId should return empty when staff member does not exist")
-    void testFindByIdAndFacilityId_ReturnsEmptyWhenNotFound() {
+    @DisplayName("Should handle null email in findByEmail")
+    void testFindByEmail_NullEmail() {
         // When
-        Optional<StaffMember> result = staffRepository.findByIdAndFacilityId(999L, 1L);
+        Optional<Staff> result = staffRepository.findByEmail(null);
 
         // Then
         assertThat(result).isEmpty();
     }
 
     @Test
-    @DisplayName("findByIdAndFacilityId should handle null id")
-    void testFindByIdAndFacilityId_HandlesNullId() {
+    @DisplayName("Should handle case-sensitive email search")
+    void testFindByEmail_CaseSensitive() {
         // When
-        Optional<StaffMember> result = staffRepository.findByIdAndFacilityId(null, 1L);
+        Optional<Staff> result = staffRepository.findByEmail("ACTIVE1@EXAMPLE.COM");
+
+        // Then
+        // Assuming email is stored as lowercase
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Should verify repository is annotated with @Repository")
+    void testRepositoryAnnotation() {
+        // Then
+        assertThat(StaffRepository.class.isAnnotationPresent(Repository.class)).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should verify repository extends JpaRepository")
+    void testRepositoryExtendsJpaRepository() {
+        // Then
+        assertThat(JpaRepository.class.isAssignableFrom(StaffRepository.class)).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should handle multiple staff with same employment status in different facilities")
+    void testFindByEmploymentStatus_MultipleFacilities() {
+        // Given - data already set up in @BeforeEach
+
+        // When
+        List<Staff> activeStaffList = staffRepository.findByEmploymentStatus("ACTIVE");
+
+        // Then
+        assertThat(activeStaffList).hasSize(3);
+        assertThat(activeStaffList).extracting(Staff::getFacilityId)
+                .containsExactlyInAnyOrder(1L, 1L, 2L);
+    }
+
+    @Test
+    @DisplayName("Should handle empty string for employment status")
+    void testFindByEmploymentStatus_EmptyString() {
+        // When
+        List<Staff> result = staffRepository.findByEmploymentStatus("");
 
         // Then
         assertThat(result).isEmpty();
     }
 
     @Test
-    @DisplayName("findByIdAndFacilityId should handle null facilityId")
-    void testFindByIdAndFacilityId_HandlesNullFacilityId() {
+    @DisplayName("Should handle null facility ID in findByFacilityIdAndEmploymentStatus")
+    void testFindByFacilityIdAndEmploymentStatus_NullFacilityId() {
         // When
-        Optional<StaffMember> result = staffRepository.findByIdAndFacilityId(
-                activeStaffFacility1.getId(), null);
+        List<Staff> result = staffRepository.findByFacilityIdAndEmploymentStatus(null, "ACTIVE");
 
         // Then
         assertThat(result).isEmpty();
     }
 
     @Test
-    @DisplayName("findByIdAndFacilityId should handle both null parameters")
-    void testFindByIdAndFacilityId_HandlesBothNullParameters() {
+    @DisplayName("Should handle null employment status in findByFacilityIdAndEmploymentStatus")
+    void testFindByFacilityIdAndEmploymentStatus_NullStatus() {
         // When
-        Optional<StaffMember> result = staffRepository.findByIdAndFacilityId(null, null);
+        List<Staff> result = staffRepository.findByFacilityIdAndEmploymentStatus(1L, null);
 
         // Then
         assertThat(result).isEmpty();
-    }
-
-    @Test
-    @DisplayName("findByIdAndFacilityId should work with different employment statuses")
-    void testFindByIdAndFacilityId_WorksWithDifferentEmploymentStatuses() {
-        // When
-        Optional<StaffMember> activeResult = staffRepository.findByIdAndFacilityId(
-                activeStaffFacility1.getId(), 1L);
-        Optional<StaffMember> inactiveResult = staffRepository.findByIdAndFacilityId(
-                inactiveStaffFacility1.getId(), 1L);
-        Optional<StaffMember> terminatedResult = staffRepository.findByIdAndFacilityId(
-                terminatedStaffFacility1.getId(), 1L);
-
-        // Then
-        assertThat(activeResult).isPresent();
-        assertThat(activeResult.get().getEmploymentStatus()).isEqualTo("active");
-        assertThat(inactiveResult).isPresent();
-        assertThat(inactiveResult.get().getEmploymentStatus()).isEqualTo("inactive");
-        assertThat(terminatedResult).isPresent();
-        assertThat(terminatedResult.get().getEmploymentStatus()).isEqualTo("terminated");
-    }
-
-    @Test
-    @DisplayName("Repository should extend JpaRepository and inherit CRUD operations")
-    void testRepository_ExtendsJpaRepository() {
-        // When
-        StaffMember newStaff = new StaffMember();
-        newStaff.setFacilityId(3L);
-        newStaff.setEmploymentStatus("active");
-        newStaff.setFirstName("Test");
-        newStaff.setLastName("User");
-        
-        StaffMember saved = staffRepository.save(newStaff);
-        Optional<StaffMember> found = staffRepository.findById(saved.getId());
-
-        // Then
-        assertThat(saved.getId()).isNotNull();
-        assertThat(found).isPresent();
-        assertThat(found.get().getFirstName()).isEqualTo("Test");
-    }
-
-    @Test
-    @DisplayName("Repository should support delete operations")
-    void testRepository_SupportsDeleteOperations() {
-        // Given
-        Long staffId = activeStaffFacility1.getId();
-
-        // When
-        staffRepository.deleteById(staffId);
-        Optional<StaffMember> result = staffRepository.findById(staffId);
-
-        // Then
-        assertThat(result).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Repository should support count operations")
-    void testRepository_SupportsCountOperations() {
-        // When
-        long count = staffRepository.count();
-
-        // Then
-        assertThat(count).isEqualTo(4);
-    }
-
-    @Test
-    @DisplayName("Naming convention should follow UserAccountRepository pattern")
-    void testNamingConvention_FollowsEstablishedPattern() {
-        // This test verifies that the method naming follows the pattern:
-        // findByFacilityId() - consistent with UserAccountRepository.findByFacilityId()
-        
-        // When
-        List<StaffMember> result = staffRepository.findByFacilityId(1L);
-
-        // Then - Method exists and works as expected
-        assertThat(result).isNotNull();
-        assertThat(result).isNotEmpty();
     }
 }

@@ -1,6 +1,6 @@
 package com.visionary.roster.repository;
 
-import com.visionary.roster.entity.StaffMember;
+import com.visionary.roster.entity.Staff;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -8,50 +8,53 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository interface for StaffMember entity operations.
- * 
- * <p>This repository provides CRUD operations and custom query methods for StaffMember entities.
- * All finder methods enforce facility-scoped multi-tenancy to ensure data isolation between facilities.
- * 
- * <p>The employmentStatus parameter in query methods should default to 'active' in the service layer
- * when filtering staff members by their current employment status.
- * 
- * @author Visionary Roster System
- * @see StaffMember
- * @see JpaRepository
+ * Repository interface for Staff entity operations.
+ * Provides CRUD operations and custom query methods for staff management.
  */
 @Repository
-public interface StaffRepository extends JpaRepository<StaffMember, Long> {
+public interface StaffRepository extends JpaRepository<Staff, Long> {
 
     /**
-     * Retrieves all staff members associated with a specific facility.
-     * This method enforces facility-scoped multi-tenancy.
-     * 
+     * Retrieves active staff by facility and employment status.
+     *
      * @param facilityId the ID of the facility
-     * @return a list of staff members belonging to the specified facility
+     * @param employmentStatus the employment status (e.g., "ACTIVE", "INACTIVE")
+     * @return list of staff matching the criteria
      */
-    List<StaffMember> findByFacilityId(Long facilityId);
+    List<Staff> findByFacilityIdAndEmploymentStatus(Long facilityId, String employmentStatus);
 
     /**
-     * Retrieves staff members filtered by facility and employment status.
-     * This method enforces facility-scoped multi-tenancy.
-     * 
-     * <p>Note: The employmentStatus parameter should default to 'active' in the service layer
-     * when not explicitly specified by the caller.
-     * 
-     * @param facilityId the ID of the facility
-     * @param employmentStatus the employment status to filter by (e.g., 'active', 'inactive', 'terminated')
-     * @return a list of staff members matching the facility and employment status criteria
+     * Finds a staff member by ID within a specific facility scope.
+     *
+     * @param id the staff ID
+     * @param facilityId the facility ID
+     * @return Optional containing the staff if found
      */
-    List<StaffMember> findByFacilityIdAndEmploymentStatus(Long facilityId, String employmentStatus);
+    Optional<Staff> findByIdAndFacilityId(Long id, Long facilityId);
 
     /**
-     * Retrieves a single staff member by ID within a specific facility scope.
-     * This method enforces facility-scoped multi-tenancy for single record lookup.
-     * 
-     * @param id the ID of the staff member
-     * @param facilityId the ID of the facility
-     * @return an Optional containing the staff member if found within the facility scope, empty otherwise
+     * Retrieves all staff members by employment status.
+     *
+     * @param employmentStatus the employment status
+     * @return list of staff with the specified employment status
      */
-    Optional<StaffMember> findByIdAndFacilityId(Long id, Long facilityId);
+    List<Staff> findByEmploymentStatus(String employmentStatus);
+
+    /**
+     * Checks if an email exists for any staff member except the one with the given ID.
+     * Used for email uniqueness validation during updates.
+     *
+     * @param email the email to check
+     * @param id the ID of the current staff record to exclude
+     * @return true if email exists for another staff member, false otherwise
+     */
+    boolean existsByEmailAndIdNot(String email, Long id);
+
+    /**
+     * Finds a staff member by email address.
+     *
+     * @param email the email address
+     * @return Optional containing the staff if found
+     */
+    Optional<Staff> findByEmail(String email);
 }

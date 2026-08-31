@@ -1,283 +1,288 @@
 package com.visionary.roster.dto;
 
-import com.visionary.roster.entity.StaffMember;
+import com.visionary.roster.entity.Facility;
+import com.visionary.roster.entity.Staff;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@DisplayName("StaffResponse DTO Tests")
+/**
+ * Unit tests for StaffResponse DTO.
+ * Ensures 100% test coverage for all fields, getters, setters, and factory methods.
+ */
 class StaffResponseTest {
 
     @Test
-    @DisplayName("Test no-args constructor creates empty StaffResponse")
-    void testNoArgsConstructor() {
+    @DisplayName("Test default constructor creates empty StaffResponse")
+    void testDefaultConstructor() {
         StaffResponse response = new StaffResponse();
-        
         assertNotNull(response);
         assertNull(response.getId());
-        assertNull(response.getName());
-        assertNull(response.getContact());
+        assertNull(response.getFirstName());
+        assertNull(response.getLastName());
+        assertNull(response.getEmail());
         assertNull(response.getRole());
         assertNull(response.getEmploymentStatus());
-        assertNull(response.getStartDate());
-        assertNull(response.getEndDate());
         assertNull(response.getFacilityId());
-    }
-
-    @Test
-    @DisplayName("Test all-args constructor sets all fields correctly")
-    void testAllArgsConstructor() {
-        Long id = 1L;
-        String name = "John Doe";
-        String contact = "john.doe@example.com";
-        String role = "Nurse";
-        String employmentStatus = "ACTIVE";
-        LocalDate startDate = LocalDate.of(2023, 1, 15);
-        LocalDate endDate = LocalDate.of(2024, 12, 31);
-        Long facilityId = 100L;
-        
-        StaffResponse response = new StaffResponse(id, name, contact, role, employmentStatus, 
-                                                   startDate, endDate, facilityId);
-        
-        assertEquals(id, response.getId());
-        assertEquals(name, response.getName());
-        assertEquals(contact, response.getContact());
-        assertEquals(role, response.getRole());
-        assertEquals(employmentStatus, response.getEmploymentStatus());
-        assertEquals(startDate, response.getStartDate());
-        assertEquals(endDate, response.getEndDate());
-        assertEquals(facilityId, response.getFacilityId());
-    }
-
-    @Test
-    @DisplayName("Test all-args constructor with null dates")
-    void testAllArgsConstructorWithNullDates() {
-        Long id = 2L;
-        String name = "Jane Smith";
-        String contact = "jane.smith@example.com";
-        String role = "Doctor";
-        String employmentStatus = "ACTIVE";
-        Long facilityId = 200L;
-        
-        StaffResponse response = new StaffResponse(id, name, contact, role, employmentStatus, 
-                                                   null, null, facilityId);
-        
-        assertEquals(id, response.getId());
-        assertEquals(name, response.getName());
-        assertEquals(contact, response.getContact());
-        assertEquals(role, response.getRole());
-        assertEquals(employmentStatus, response.getEmploymentStatus());
-        assertNull(response.getStartDate());
+        assertNull(response.getFacilityName());
+        assertNull(response.getCreatedAt());
+        assertNull(response.getUpdatedAt());
         assertNull(response.getEndDate());
-        assertEquals(facilityId, response.getFacilityId());
     }
 
     @Test
-    @DisplayName("Test fromEntity with valid StaffMember entity")
-    void testFromEntityWithValidEntity() {
-        StaffMember entity = new StaffMember();
-        entity.setId(1L);
-        entity.setName("John Doe");
-        entity.setContact("john.doe@example.com");
-        entity.setRole("Nurse");
-        entity.setEmploymentStatus("ACTIVE");
-        entity.setStartDate(LocalDate.of(2023, 1, 15));
-        entity.setEndDate(LocalDate.of(2024, 12, 31));
-        entity.setFacilityId(100L);
-        
-        StaffResponse response = StaffResponse.fromEntity(entity);
-        
-        assertNotNull(response);
-        assertEquals(entity.getId(), response.getId());
-        assertEquals(entity.getName(), response.getName());
-        assertEquals(entity.getContact(), response.getContact());
-        assertEquals(entity.getRole(), response.getRole());
-        assertEquals(entity.getEmploymentStatus(), response.getEmploymentStatus());
-        assertEquals(entity.getStartDate(), response.getStartDate());
-        assertEquals(entity.getEndDate(), response.getEndDate());
-        assertEquals(entity.getFacilityId(), response.getFacilityId());
+    @DisplayName("Test getId and setId")
+    void testIdGetterAndSetter() {
+        StaffResponse response = new StaffResponse();
+        Long expectedId = 123L;
+        response.setId(expectedId);
+        assertEquals(expectedId, response.getId());
     }
 
     @Test
-    @DisplayName("Test fromEntity with null entity returns null")
-    void testFromEntityWithNullEntity() {
+    @DisplayName("Test getFirstName and setFirstName")
+    void testFirstNameGetterAndSetter() {
+        StaffResponse response = new StaffResponse();
+        String expectedFirstName = "John";
+        response.setFirstName(expectedFirstName);
+        assertEquals(expectedFirstName, response.getFirstName());
+    }
+
+    @Test
+    @DisplayName("Test getLastName and setLastName")
+    void testLastNameGetterAndSetter() {
+        StaffResponse response = new StaffResponse();
+        String expectedLastName = "Doe";
+        response.setLastName(expectedLastName);
+        assertEquals(expectedLastName, response.getLastName());
+    }
+
+    @Test
+    @DisplayName("Test getEmail and setEmail")
+    void testEmailGetterAndSetter() {
+        StaffResponse response = new StaffResponse();
+        String expectedEmail = "john.doe@example.com";
+        response.setEmail(expectedEmail);
+        assertEquals(expectedEmail, response.getEmail());
+    }
+
+    @Test
+    @DisplayName("Test getRole and setRole")
+    void testRoleGetterAndSetter() {
+        StaffResponse response = new StaffResponse();
+        String expectedRole = "NURSE";
+        response.setRole(expectedRole);
+        assertEquals(expectedRole, response.getRole());
+    }
+
+    @Test
+    @DisplayName("Test getEmploymentStatus and setEmploymentStatus")
+    void testEmploymentStatusGetterAndSetter() {
+        StaffResponse response = new StaffResponse();
+        String expectedStatus = "ACTIVE";
+        response.setEmploymentStatus(expectedStatus);
+        assertEquals(expectedStatus, response.getEmploymentStatus());
+    }
+
+    @Test
+    @DisplayName("Test getFacilityId and setFacilityId")
+    void testFacilityIdGetterAndSetter() {
+        StaffResponse response = new StaffResponse();
+        Long expectedFacilityId = 456L;
+        response.setFacilityId(expectedFacilityId);
+        assertEquals(expectedFacilityId, response.getFacilityId());
+    }
+
+    @Test
+    @DisplayName("Test getFacilityName and setFacilityName")
+    void testFacilityNameGetterAndSetter() {
+        StaffResponse response = new StaffResponse();
+        String expectedFacilityName = "Central Hospital";
+        response.setFacilityName(expectedFacilityName);
+        assertEquals(expectedFacilityName, response.getFacilityName());
+    }
+
+    @Test
+    @DisplayName("Test getCreatedAt and setCreatedAt")
+    void testCreatedAtGetterAndSetter() {
+        StaffResponse response = new StaffResponse();
+        LocalDateTime expectedCreatedAt = LocalDateTime.of(2023, 1, 15, 10, 30);
+        response.setCreatedAt(expectedCreatedAt);
+        assertEquals(expectedCreatedAt, response.getCreatedAt());
+    }
+
+    @Test
+    @DisplayName("Test getUpdatedAt and setUpdatedAt")
+    void testUpdatedAtGetterAndSetter() {
+        StaffResponse response = new StaffResponse();
+        LocalDateTime expectedUpdatedAt = LocalDateTime.of(2023, 6, 20, 14, 45);
+        response.setUpdatedAt(expectedUpdatedAt);
+        assertEquals(expectedUpdatedAt, response.getUpdatedAt());
+    }
+
+    @Test
+    @DisplayName("Test getEndDate and setEndDate")
+    void testEndDateGetterAndSetter() {
+        StaffResponse response = new StaffResponse();
+        LocalDate expectedEndDate = LocalDate.of(2023, 12, 31);
+        response.setEndDate(expectedEndDate);
+        assertEquals(expectedEndDate, response.getEndDate());
+    }
+
+    @Test
+    @DisplayName("Test fromEntity returns null when staff is null")
+    void testFromEntityWithNullStaff() {
         StaffResponse response = StaffResponse.fromEntity(null);
-        
         assertNull(response);
     }
 
     @Test
-    @DisplayName("Test fromEntity handles null startDate gracefully")
-    void testFromEntityWithNullStartDate() {
-        StaffMember entity = new StaffMember();
-        entity.setId(2L);
-        entity.setName("Jane Smith");
-        entity.setContact("jane.smith@example.com");
-        entity.setRole("Doctor");
-        entity.setEmploymentStatus("ACTIVE");
-        entity.setStartDate(null);
-        entity.setEndDate(LocalDate.of(2024, 12, 31));
-        entity.setFacilityId(200L);
-        
-        StaffResponse response = StaffResponse.fromEntity(entity);
-        
+    @DisplayName("Test fromEntity maps all staff fields correctly with facility")
+    void testFromEntityWithCompleteStaffAndFacility() {
+        // Create mock Facility
+        Facility facility = new Facility();
+        facility.setId(789L);
+        facility.setName("General Hospital");
+
+        // Create mock Staff
+        Staff staff = new Staff();
+        staff.setId(100L);
+        staff.setFirstName("Jane");
+        staff.setLastName("Smith");
+        staff.setEmail("jane.smith@example.com");
+        staff.setRole("DOCTOR");
+        staff.setEmploymentStatus("ACTIVE");
+        staff.setCreatedAt(LocalDateTime.of(2022, 3, 10, 8, 0));
+        staff.setUpdatedAt(LocalDateTime.of(2023, 7, 15, 16, 30));
+        staff.setEndDate(LocalDate.of(2024, 12, 31));
+        staff.setFacility(facility);
+
+        // Execute fromEntity
+        StaffResponse response = StaffResponse.fromEntity(staff);
+
+        // Verify all fields
         assertNotNull(response);
-        assertEquals(entity.getId(), response.getId());
-        assertEquals(entity.getName(), response.getName());
-        assertNull(response.getStartDate());
-        assertEquals(entity.getEndDate(), response.getEndDate());
+        assertEquals(100L, response.getId());
+        assertEquals("Jane", response.getFirstName());
+        assertEquals("Smith", response.getLastName());
+        assertEquals("jane.smith@example.com", response.getEmail());
+        assertEquals("DOCTOR", response.getRole());
+        assertEquals("ACTIVE", response.getEmploymentStatus());
+        assertEquals(LocalDateTime.of(2022, 3, 10, 8, 0), response.getCreatedAt());
+        assertEquals(LocalDateTime.of(2023, 7, 15, 16, 30), response.getUpdatedAt());
+        assertEquals(LocalDate.of(2024, 12, 31), response.getEndDate());
+        assertEquals(789L, response.getFacilityId());
+        assertEquals("General Hospital", response.getFacilityName());
     }
 
     @Test
-    @DisplayName("Test fromEntity handles null endDate gracefully")
+    @DisplayName("Test fromEntity with staff having null facility")
+    void testFromEntityWithNullFacility() {
+        // Create mock Staff without facility
+        Staff staff = new Staff();
+        staff.setId(200L);
+        staff.setFirstName("Bob");
+        staff.setLastName("Johnson");
+        staff.setEmail("bob.johnson@example.com");
+        staff.setRole("ADMIN");
+        staff.setEmploymentStatus("INACTIVE");
+        staff.setCreatedAt(LocalDateTime.of(2021, 5, 20, 9, 15));
+        staff.setUpdatedAt(LocalDateTime.of(2023, 8, 25, 11, 45));
+        staff.setEndDate(LocalDate.of(2023, 9, 1));
+        staff.setFacility(null);
+
+        // Execute fromEntity
+        StaffResponse response = StaffResponse.fromEntity(staff);
+
+        // Verify all fields
+        assertNotNull(response);
+        assertEquals(200L, response.getId());
+        assertEquals("Bob", response.getFirstName());
+        assertEquals("Johnson", response.getLastName());
+        assertEquals("bob.johnson@example.com", response.getEmail());
+        assertEquals("ADMIN", response.getRole());
+        assertEquals("INACTIVE", response.getEmploymentStatus());
+        assertEquals(LocalDateTime.of(2021, 5, 20, 9, 15), response.getCreatedAt());
+        assertEquals(LocalDateTime.of(2023, 8, 25, 11, 45), response.getUpdatedAt());
+        assertEquals(LocalDate.of(2023, 9, 1), response.getEndDate());
+        assertNull(response.getFacilityId());
+        assertNull(response.getFacilityName());
+    }
+
+    @Test
+    @DisplayName("Test fromEntity with staff having null endDate")
     void testFromEntityWithNullEndDate() {
-        StaffMember entity = new StaffMember();
-        entity.setId(3L);
-        entity.setName("Bob Johnson");
-        entity.setContact("bob.johnson@example.com");
-        entity.setRole("Technician");
-        entity.setEmploymentStatus("ACTIVE");
-        entity.setStartDate(LocalDate.of(2023, 6, 1));
-        entity.setEndDate(null);
-        entity.setFacilityId(300L);
-        
-        StaffResponse response = StaffResponse.fromEntity(entity);
-        
+        // Create mock Facility
+        Facility facility = new Facility();
+        facility.setId(999L);
+        facility.setName("City Clinic");
+
+        // Create mock Staff with null endDate
+        Staff staff = new Staff();
+        staff.setId(300L);
+        staff.setFirstName("Alice");
+        staff.setLastName("Williams");
+        staff.setEmail("alice.williams@example.com");
+        staff.setRole("NURSE");
+        staff.setEmploymentStatus("ACTIVE");
+        staff.setCreatedAt(LocalDateTime.of(2023, 1, 1, 7, 0));
+        staff.setUpdatedAt(LocalDateTime.of(2023, 9, 1, 12, 0));
+        staff.setEndDate(null);
+        staff.setFacility(facility);
+
+        // Execute fromEntity
+        StaffResponse response = StaffResponse.fromEntity(staff);
+
+        // Verify all fields
         assertNotNull(response);
-        assertEquals(entity.getId(), response.getId());
-        assertEquals(entity.getName(), response.getName());
-        assertEquals(entity.getStartDate(), response.getStartDate());
+        assertEquals(300L, response.getId());
+        assertEquals("Alice", response.getFirstName());
+        assertEquals("Williams", response.getLastName());
+        assertEquals("alice.williams@example.com", response.getEmail());
+        assertEquals("NURSE", response.getRole());
+        assertEquals("ACTIVE", response.getEmploymentStatus());
+        assertEquals(LocalDateTime.of(2023, 1, 1, 7, 0), response.getCreatedAt());
+        assertEquals(LocalDateTime.of(2023, 9, 1, 12, 0), response.getUpdatedAt());
         assertNull(response.getEndDate());
+        assertEquals(999L, response.getFacilityId());
+        assertEquals("City Clinic", response.getFacilityName());
     }
 
     @Test
-    @DisplayName("Test fromEntity handles both null startDate and endDate gracefully")
-    void testFromEntityWithBothDatesNull() {
-        StaffMember entity = new StaffMember();
-        entity.setId(4L);
-        entity.setName("Alice Williams");
-        entity.setContact("alice.williams@example.com");
-        entity.setRole("Administrator");
-        entity.setEmploymentStatus("PENDING");
-        entity.setStartDate(null);
-        entity.setEndDate(null);
-        entity.setFacilityId(400L);
-        
-        StaffResponse response = StaffResponse.fromEntity(entity);
-        
+    @DisplayName("Test fromEntity with minimal staff data")
+    void testFromEntityWithMinimalStaffData() {
+        // Create mock Staff with only required fields
+        Staff staff = new Staff();
+        staff.setId(400L);
+        staff.setFirstName("Charlie");
+        staff.setLastName("Brown");
+        staff.setEmail("charlie.brown@example.com");
+        staff.setRole("TECHNICIAN");
+        staff.setEmploymentStatus("ACTIVE");
+        staff.setCreatedAt(null);
+        staff.setUpdatedAt(null);
+        staff.setEndDate(null);
+        staff.setFacility(null);
+
+        // Execute fromEntity
+        StaffResponse response = StaffResponse.fromEntity(staff);
+
+        // Verify all fields
         assertNotNull(response);
-        assertEquals(entity.getId(), response.getId());
-        assertEquals(entity.getName(), response.getName());
-        assertNull(response.getStartDate());
-        assertNull(response.getEndDate());
-    }
-
-    @Test
-    @DisplayName("Test setters and getters for id field")
-    void testIdSetterAndGetter() {
-        StaffResponse response = new StaffResponse();
-        Long id = 10L;
-        
-        response.setId(id);
-        
-        assertEquals(id, response.getId());
-    }
-
-    @Test
-    @DisplayName("Test setters and getters for name field")
-    void testNameSetterAndGetter() {
-        StaffResponse response = new StaffResponse();
-        String name = "Test Name";
-        
-        response.setName(name);
-        
-        assertEquals(name, response.getName());
-    }
-
-    @Test
-    @DisplayName("Test setters and getters for contact field")
-    void testContactSetterAndGetter() {
-        StaffResponse response = new StaffResponse();
-        String contact = "test@example.com";
-        
-        response.setContact(contact);
-        
-        assertEquals(contact, response.getContact());
-    }
-
-    @Test
-    @DisplayName("Test setters and getters for role field")
-    void testRoleSetterAndGetter() {
-        StaffResponse response = new StaffResponse();
-        String role = "Manager";
-        
-        response.setRole(role);
-        
-        assertEquals(role, response.getRole());
-    }
-
-    @Test
-    @DisplayName("Test setters and getters for employmentStatus field")
-    void testEmploymentStatusSetterAndGetter() {
-        StaffResponse response = new StaffResponse();
-        String status = "INACTIVE";
-        
-        response.setEmploymentStatus(status);
-        
-        assertEquals(status, response.getEmploymentStatus());
-    }
-
-    @Test
-    @DisplayName("Test setters and getters for startDate field")
-    void testStartDateSetterAndGetter() {
-        StaffResponse response = new StaffResponse();
-        LocalDate startDate = LocalDate.of(2023, 3, 15);
-        
-        response.setStartDate(startDate);
-        
-        assertEquals(startDate, response.getStartDate());
-    }
-
-    @Test
-    @DisplayName("Test setters and getters for endDate field")
-    void testEndDateSetterAndGetter() {
-        StaffResponse response = new StaffResponse();
-        LocalDate endDate = LocalDate.of(2024, 6, 30);
-        
-        response.setEndDate(endDate);
-        
-        assertEquals(endDate, response.getEndDate());
-    }
-
-    @Test
-    @DisplayName("Test setters and getters for facilityId field")
-    void testFacilityIdSetterAndGetter() {
-        StaffResponse response = new StaffResponse();
-        Long facilityId = 500L;
-        
-        response.setFacilityId(facilityId);
-        
-        assertEquals(facilityId, response.getFacilityId());
-    }
-
-    @Test
-    @DisplayName("Test fromEntity with entity having all null fields except id")
-    void testFromEntityWithMinimalData() {
-        StaffMember entity = new StaffMember();
-        entity.setId(5L);
-        
-        StaffResponse response = StaffResponse.fromEntity(entity);
-        
-        assertNotNull(response);
-        assertEquals(5L, response.getId());
-        assertNull(response.getName());
-        assertNull(response.getContact());
-        assertNull(response.getRole());
-        assertNull(response.getEmploymentStatus());
-        assertNull(response.getStartDate());
+        assertEquals(400L, response.getId());
+        assertEquals("Charlie", response.getFirstName());
+        assertEquals("Brown", response.getLastName());
+        assertEquals("charlie.brown@example.com", response.getEmail());
+        assertEquals("TECHNICIAN", response.getRole());
+        assertEquals("ACTIVE", response.getEmploymentStatus());
+        assertNull(response.getCreatedAt());
+        assertNull(response.getUpdatedAt());
         assertNull(response.getEndDate());
         assertNull(response.getFacilityId());
+        assertNull(response.getFacilityName());
     }
 }
