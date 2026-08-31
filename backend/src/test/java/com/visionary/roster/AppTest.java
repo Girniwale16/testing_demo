@@ -3,7 +3,10 @@ package com.visionary.roster;
 import com.visionary.roster.dto.ErrorResponse;
 import com.visionary.roster.exception.ForbiddenAccessException;
 import com.visionary.roster.model.Facility;
+import com.visionary.roster.model.Staff;
 import com.visionary.roster.model.UserAccount;
+import com.visionary.roster.repository.FacilityRepository;
+import com.visionary.roster.repository.StaffRepository;
 import com.visionary.roster.repository.UserAccountRepository;
 import com.visionary.roster.security.FacilityScopingService;
 import com.visionary.roster.security.RoleAuthorizationService;
@@ -13,17 +16,26 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
 class AppTest {
@@ -257,5 +269,218 @@ class AppTest {
         assertEquals(facilityId, exception.getFacilityId());
         assertEquals(resource, exception.getResource());
         assertEquals(reason, exception.getReason());
+    }
+}
+
+@SpringBootTest
+@AutoConfigureMockMvc
+class StaffControllerIntegrationTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private StaffRepository staffRepository;
+
+    @Autowired
+    private FacilityRepository facilityRepository;
+
+    @Autowired
+    private UserAccountRepository userAccountRepository;
+
+    private Facility facilityA;
+    private Facility facilityB;
+    private Staff testStaff;
+    private UserAccount managerUser;
+    private UserAccount nonManagerUser;
+    private UserAccount managerUserFacilityB;
+
+    @BeforeEach
+    void setUp() {
+        facilityA = new Facility();
+        facilityA.setFacilityName("Facility A");
+        facilityA = facilityRepository.save(facilityA);
+
+        facilityB = new Facility();
+        facilityB.setFacilityName("Facility B");
+        facilityB = facilityRepository.save(facilityB);
+
+        testStaff = new Staff();
+        testStaff.setFirstName("John");
+        testStaff.setLastName("Doe");
+        testStaff.setEmail("john.doe@example.com");
+        testStaff.setPhoneNumber("1234567890");
+        testStaff.setRole("NURSE");
+        testStaff.setFacility(facilityA);
+        testStaff.setActive(true);
+        testStaff = staffRepository.save(testStaff);
+
+        managerUser = new UserAccount();
+        managerUser.setUsername("manager");
+        managerUser.setRole("MANAGER");
+        managerUser.setFacility(facilityA);
+        managerUser = userAccountRepository.save(managerUser);
+
+        nonManagerUser = new UserAccount();
+        nonManagerUser.setUsername("staff");
+        nonManagerUser.setRole("STAFF");
+        nonManagerUser.setFacility(facilityA);
+        nonManagerUser = userAccountRepository.save(nonManagerUser);
+
+        managerUserFacilityB = new UserAccount();
+        managerUserFacilityB.setUsername("managerB");
+        managerUserFacilityB.setRole("MANAGER");
+        managerUserFacilityB.setFacility(facilityB);
+        managerUserFacilityB = userAccountRepository.save(managerUserFacilityB);
+    }
+
+    @Test
+    @Transactional
+    @WithMockUser(username = "manager", roles = {"MANAGER"})
+    void testUpdateStaff_Success() throws Exception {
+        String updateJson = String.format(
+            "{\"firstName\":\"Jane\",\"lastName\":\"Doe\",\"email\":\"jane.doe@example.com\",\"phoneNumber\":\"0987654321\",\"role\":\"DOCTOR\",\"facilityId\":%d}",
+            facilityA.getFacilityId()
+        );
+
+        mockMvc.perform(put("/api/staff/" + testStaff.getStaffId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.firstName").value("Jane"))
+                .andExpect(jsonPath("$.lastName").value("Doe"))
+                .andExpect(jsonPath("$.email").value("jane.doe@example.com"))
+                .andExpect(jsonPath("$.role").value("DOCTOR"));
+    }
+
+    @Test
+    @Transactional
+    @WithMockUser(username = "staff", roles = {"STAFF"})
+    void testUpdateStaff_Forbidden_NonManager() throws Exception {
+        String updateJson = String.format(
+            "{\"firstName\":\"Jane\",\"lastName\":\"Doe\",\"email\":\"jane.doe@example.com\",\"phoneNumber\":\"0987654321\",\"role\":\"DOCTOR\",\"facilityId\":%d}",
+            facilityA.getFacilityId()
+        );
+
+        mockMvc.perform(put("/api/staff/" + testStaff.getStaffId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateJson))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @Transactional
+    @WithMockUser(username = "managerB", roles = {"MANAGER"})
+    void testUpdateStaff_Forbidden_CrossFacility() throws Exception {
+        String updateJson = String.format(
+            "{\"firstName\":\"Jane\",\"lastName\":\"Doe\",\"email\":\"jane.doe@example.com\",\"phoneNumber\":\"0987654321\",\"role\":\"DOCTOR\",\"facilityId\":%d}",
+            facilityA.getFacilityId()
+        );
+
+        mockMvc.perform(put("/api/staff/" + testStaff.getStaffId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateJson))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @Transactional
+    @WithMockUser(username = "manager", roles = {"MANAGER"})
+    void testUpdateStaff_NotFound() throws Exception {
+        Long nonExistentStaffId = 99999L;
+        String updateJson = String.format(
+            "{\"firstName\":\"Jane\",\"lastName\":\"Doe\",\"email\":\"jane.doe@example.com\",\"phoneNumber\":\"0987654321\",\"role\":\"DOCTOR\",\"facilityId\":%d}",
+            facilityA.getFacilityId()
+        );
+
+        mockMvc.perform(put("/api/staff/" + nonExistentStaffId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateJson))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @Transactional
+    @WithMockUser(username = "manager", roles = {"MANAGER"})
+    void testUpdateStaff_ValidationError() throws Exception {
+        String updateJson = String.format(
+            "{\"firstName\":\"Jane\",\"lastName\":\"Doe\",\"email\":\"invalid-email\",\"phoneNumber\":\"0987654321\",\"role\":\"DOCTOR\",\"facilityId\":%d}",
+            facilityA.getFacilityId()
+        );
+
+        mockMvc.perform(put("/api/staff/" + testStaff.getStaffId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateJson))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.errors").exists());
+    }
+
+    @Test
+    @Transactional
+    @WithMockUser(username = "manager", roles = {"MANAGER"})
+    void testDeactivateStaff_Success() throws Exception {
+        mockMvc.perform(post("/api/staff/" + testStaff.getStaffId() + "/deactivate")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        Staff deactivatedStaff = staffRepository.findById(testStaff.getStaffId()).orElseThrow();
+        assertFalse(deactivatedStaff.isActive());
+    }
+
+    @Test
+    @Transactional
+    @WithMockUser(username = "manager", roles = {"MANAGER"})
+    void testDeactivateStaff_Idempotent() throws Exception {
+        mockMvc.perform(post("/api/staff/" + testStaff.getStaffId() + "/deactivate")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/staff/" + testStaff.getStaffId() + "/deactivate")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        Staff deactivatedStaff = staffRepository.findById(testStaff.getStaffId()).orElseThrow();
+        assertFalse(deactivatedStaff.isActive());
+    }
+
+    @Test
+    @Transactional
+    @WithMockUser(username = "staff", roles = {"STAFF"})
+    void testDeactivateStaff_Forbidden_NonManager() throws Exception {
+        mockMvc.perform(post("/api/staff/" + testStaff.getStaffId() + "/deactivate")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @Transactional
+    @WithMockUser(username = "manager", roles = {"MANAGER"})
+    void testListActiveStaff_ExcludesDeactivated() throws Exception {
+        Staff activeStaff = new Staff();
+        activeStaff.setFirstName("Active");
+        activeStaff.setLastName("Staff");
+        activeStaff.setEmail("active@example.com");
+        activeStaff.setPhoneNumber("1111111111");
+        activeStaff.setRole("NURSE");
+        activeStaff.setFacility(facilityA);
+        activeStaff.setActive(true);
+        staffRepository.save(activeStaff);
+
+        Staff deactivatedStaff = new Staff();
+        deactivatedStaff.setFirstName("Deactivated");
+        deactivatedStaff.setLastName("Staff");
+        deactivatedStaff.setEmail("deactivated@example.com");
+        deactivatedStaff.setPhoneNumber("2222222222");
+        deactivatedStaff.setRole("NURSE");
+        deactivatedStaff.setFacility(facilityA);
+        deactivatedStaff.setActive(false);
+        staffRepository.save(deactivatedStaff);
+
+        mockMvc.perform(get("/api/staff")
+                .param("facilityId", facilityA.getFacilityId().toString())
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.email == 'active@example.com')]").exists())
+                .andExpect(jsonPath("$[?(@.email == 'deactivated@example.com')]").doesNotExist());
     }
 }

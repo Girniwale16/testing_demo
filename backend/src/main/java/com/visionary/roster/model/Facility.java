@@ -6,6 +6,9 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "facility")
@@ -43,6 +46,9 @@ public class Facility {
     @Column(name = "updated_by", length = 100)
     private String updatedBy;
 
+    @OneToMany(mappedBy = "facility", cascade = CascadeType.ALL, orphanRemoval = false)
+    private Set<Staff> staffMembers = new HashSet<>();
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
@@ -57,5 +63,19 @@ public class Facility {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public Set<Staff> getStaffMembers() {
+        return Collections.unmodifiableSet(staffMembers);
+    }
+
+    public void addStaff(Staff staff) {
+        staffMembers.add(staff);
+        staff.setFacility(this);
+    }
+
+    public void removeStaff(Staff staff) {
+        staffMembers.remove(staff);
+        staff.setFacility(null);
     }
 }

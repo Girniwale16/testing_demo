@@ -1,140 +1,258 @@
 package com.visionary.roster.dto;
 
-import com.visionary.roster.entity.StaffMember;
+import com.visionary.roster.entity.Staff;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
- * Data Transfer Object representing the API response payload for staff member data.
- * This DTO is used to transfer staff member information from the backend to the client.
- * It follows the DTO structure pattern established by SessionResponse and LoginResponse for consistency.
+ * Data Transfer Object for Staff entity responses.
+ * Used to transfer staff data to the client layer.
  */
 public class StaffResponse {
 
     private Long id;
-    private String name;
-    private String contact;
+    private String firstName;
+    private String lastName;
+    private String email;
     private String role;
     private String employmentStatus;
-    private LocalDate startDate;
-    private LocalDate endDate;
     private Long facilityId;
+    private String facilityName;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private LocalDate endDate;
 
     /**
-     * No-args constructor
+     * Default constructor.
      */
     public StaffResponse() {
     }
 
     /**
-     * All-args constructor
+     * Gets the staff ID.
      *
-     * @param id the staff member ID
-     * @param name the staff member name
-     * @param contact the staff member contact information
-     * @param role the staff member role
-     * @param employmentStatus the employment status
-     * @param startDate the start date of employment
-     * @param endDate the end date of employment
-     * @param facilityId the facility ID associated with the staff member
+     * @return the staff ID
      */
-    public StaffResponse(Long id, String name, String contact, String role, String employmentStatus, 
-                        LocalDate startDate, LocalDate endDate, Long facilityId) {
-        this.id = id;
-        this.name = name;
-        this.contact = contact;
-        this.role = role;
-        this.employmentStatus = employmentStatus;
-        this.startDate = startDate;
-        this.endDate = endDate;
-        this.facilityId = facilityId;
-    }
-
-    /**
-     * Static factory method to create a StaffResponse from a StaffMember entity.
-     * Handles null startDate and endDate gracefully.
-     *
-     * @param entity the StaffMember entity to convert
-     * @return a new StaffResponse instance populated with data from the entity
-     */
-    public static StaffResponse fromEntity(StaffMember entity) {
-        if (entity == null) {
-            return null;
-        }
-        
-        StaffResponse response = new StaffResponse();
-        response.setId(entity.getId());
-        response.setName(entity.getName());
-        response.setContact(entity.getContact());
-        response.setRole(entity.getRole());
-        response.setEmploymentStatus(entity.getEmploymentStatus());
-        response.setStartDate(entity.getStartDate() != null ? entity.getStartDate() : null);
-        response.setEndDate(entity.getEndDate() != null ? entity.getEndDate() : null);
-        response.setFacilityId(entity.getFacilityId());
-        
-        return response;
-    }
-
     public Long getId() {
         return id;
     }
 
+    /**
+     * Sets the staff ID.
+     *
+     * @param id the staff ID
+     */
     public void setId(Long id) {
         this.id = id;
     }
 
-    public String getName() {
-        return name;
+    /**
+     * Gets the first name.
+     *
+     * @return the first name
+     */
+    public String getFirstName() {
+        return firstName;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    /**
+     * Sets the first name.
+     *
+     * @param firstName the first name
+     */
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
     }
 
-    public String getContact() {
-        return contact;
+    /**
+     * Gets the last name.
+     *
+     * @return the last name
+     */
+    public String getLastName() {
+        return lastName;
     }
 
-    public void setContact(String contact) {
-        this.contact = contact;
+    /**
+     * Sets the last name.
+     *
+     * @param lastName the last name
+     */
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
+    /**
+     * Gets the email.
+     *
+     * @return the email
+     */
+    public String getEmail() {
+        return email;
+    }
+
+    /**
+     * Sets the email.
+     *
+     * @param email the email
+     */
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    /**
+     * Gets the role.
+     *
+     * @return the role
+     */
     public String getRole() {
         return role;
     }
 
+    /**
+     * Sets the role.
+     *
+     * @param role the role
+     */
     public void setRole(String role) {
         this.role = role;
     }
 
+    /**
+     * Gets the employment status.
+     *
+     * @return the employment status
+     */
     public String getEmploymentStatus() {
         return employmentStatus;
     }
 
+    /**
+     * Sets the employment status.
+     *
+     * @param employmentStatus the employment status
+     */
     public void setEmploymentStatus(String employmentStatus) {
         this.employmentStatus = employmentStatus;
     }
 
-    public LocalDate getStartDate() {
-        return startDate;
-    }
-
-    public void setStartDate(LocalDate startDate) {
-        this.startDate = startDate;
-    }
-
-    public LocalDate getEndDate() {
-        return endDate;
-    }
-
-    public void setEndDate(LocalDate endDate) {
-        this.endDate = endDate;
-    }
-
+    /**
+     * Gets the facility ID.
+     *
+     * @return the facility ID
+     */
     public Long getFacilityId() {
         return facilityId;
     }
 
+    /**
+     * Sets the facility ID.
+     *
+     * @param facilityId the facility ID
+     */
     public void setFacilityId(Long facilityId) {
         this.facilityId = facilityId;
+    }
+
+    /**
+     * Gets the facility name.
+     *
+     * @return the facility name
+     */
+    public String getFacilityName() {
+        return facilityName;
+    }
+
+    /**
+     * Sets the facility name.
+     *
+     * @param facilityName the facility name
+     */
+    public void setFacilityName(String facilityName) {
+        this.facilityName = facilityName;
+    }
+
+    /**
+     * Gets the creation timestamp.
+     *
+     * @return the creation timestamp
+     */
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    /**
+     * Sets the creation timestamp.
+     *
+     * @param createdAt the creation timestamp
+     */
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    /**
+     * Gets the last update timestamp.
+     *
+     * @return the last update timestamp
+     */
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    /**
+     * Sets the last update timestamp.
+     *
+     * @param updatedAt the last update timestamp
+     */
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    /**
+     * Gets the end date.
+     *
+     * @return the end date (nullable)
+     */
+    public LocalDate getEndDate() {
+        return endDate;
+    }
+
+    /**
+     * Sets the end date.
+     *
+     * @param endDate the end date (nullable)
+     */
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
+    }
+
+    /**
+     * Factory method to create a StaffResponse from a Staff entity.
+     *
+     * @param staff the Staff entity
+     * @return a StaffResponse populated with data from the Staff entity
+     */
+    public static StaffResponse fromEntity(Staff staff) {
+        if (staff == null) {
+            return null;
+        }
+
+        StaffResponse response = new StaffResponse();
+        response.setId(staff.getId());
+        response.setFirstName(staff.getFirstName());
+        response.setLastName(staff.getLastName());
+        response.setEmail(staff.getEmail());
+        response.setRole(staff.getRole());
+        response.setEmploymentStatus(staff.getEmploymentStatus());
+        response.setCreatedAt(staff.getCreatedAt());
+        response.setUpdatedAt(staff.getUpdatedAt());
+        response.setEndDate(staff.getEndDate());
+
+        if (staff.getFacility() != null) {
+            response.setFacilityId(staff.getFacility().getId());
+            response.setFacilityName(staff.getFacility().getName());
+        }
+
+        return response;
     }
 }

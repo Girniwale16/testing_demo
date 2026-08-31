@@ -35,7 +35,7 @@ public class GlobalExceptionHandler {
         }
 
         String details = ex.getBindingResult().getFieldErrors().stream()
-                .map(FieldError::getDefaultMessage)
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining("; "));
 
         logger.warn("Validation error - correlationId: {}, details: {}", correlationId, details);
@@ -108,6 +108,30 @@ public class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex) {
+        String correlationId = getOrGenerateCorrelationId();
+
+        String resourceType = ex.getResourceType() != null ? ex.getResourceType() : "Resource";
+        String resourceId = ex.getResourceId() != null ? ex.getResourceId() : "unknown";
+        String message = String.format("%s with ID %s not found", resourceType, resourceId);
+
+        logger.warn("Resource not found - correlationId: {}, resourceType: {}, resourceId: {}", 
+                   correlationId, resourceType, resourceId);
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .correlationId(correlationId)
+                .errorCode("RESOURCE_NOT_FOUND")
+                .message(message)
+                .details(ex.getMessage())
+                .remediation("Please verify the resource identifier and try again")
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.NOT_FOUND.value())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

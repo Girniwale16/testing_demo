@@ -8,8 +8,22 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * UserAccount entity represents user authentication and authorization credentials.
+ * 
+ * IMPORTANT DISTINCTION:
+ * - UserAccount deactivation (accountStatus/accountEndDate): Controls authentication and authorization access.
+ *   When a user account is deactivated, the user cannot log in or access the system.
+ * 
+ * - Staff deactivation (employment_status/end_date in Staff entity): Controls employment status.
+ *   A staff member's employment may end, but their user account may remain active for historical access,
+ *   or vice versa - a user may have an account without being a staff member (e.g., external auditors, contractors).
+ * 
+ * These two concepts are independent and must be managed separately to support various business scenarios.
+ */
 @Entity
 @Table(name = "user_account", 
        uniqueConstraints = {
@@ -60,6 +74,12 @@ public class UserAccount {
     @NotNull
     private Boolean isActive = true;
 
+    @Column(name = "account_status", length = 20)
+    private String accountStatus;
+
+    @Column(name = "account_end_date")
+    private LocalDate accountEndDate;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -86,5 +106,14 @@ public class UserAccount {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * Helper method to determine if the user account is active for authentication/authorization.
+     * 
+     * @return true if the account is active (accountStatus is null or "ACTIVE"), false otherwise
+     */
+    public boolean isAccountActive() {
+        return accountStatus == null || accountStatus.equals("ACTIVE");
     }
 }

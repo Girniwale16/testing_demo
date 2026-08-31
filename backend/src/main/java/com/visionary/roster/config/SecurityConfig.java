@@ -2,6 +2,7 @@ package com.visionary.roster.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -31,6 +32,10 @@ public class SecurityConfig {
                 
                 .requestMatchers("/api/v1/auth/logout").authenticated()
                 .requestMatchers("/api/v1/auth/session").authenticated()
+                
+                .requestMatchers(HttpMethod.PUT, "/api/staff/**").hasRole("MANAGER")
+                .requestMatchers(HttpMethod.POST, "/api/staff/*/deactivate").hasRole("MANAGER")
+                .requestMatchers(HttpMethod.GET, "/api/staff/**").hasAnyRole("MANAGER", "STAFF")
                 
                 .anyRequest().authenticated()
             )
