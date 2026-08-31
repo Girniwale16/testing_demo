@@ -20,6 +20,27 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Collections;
 
+/**
+ * Authentication Service
+ * 
+ * Handles authentication business logic including login validation, session management,
+ * and secure password verification. This service properly throws InvalidCredentialsException
+ * and InactiveAccountException which are mapped by GlobalExceptionHandler to 401/403 responses.
+ * 
+ * Service Layer Patterns (to be replicated in StaffService):
+ * - Constructor-based dependency injection
+ * - Transactional boundaries with @Transactional annotations
+ * - Comprehensive security logging with correlation IDs
+ * - Proper exception handling with custom exceptions
+ * - MDC context management for distributed tracing
+ * - Password encoding using Spring Security's PasswordEncoder
+ * 
+ * Security Best Practices:
+ * - Passwords are verified using BCrypt via PasswordEncoder (never stored or logged in plain text)
+ * - Failed login attempts are logged without exposing sensitive data
+ * - Account status validation prevents inactive users from authenticating
+ * - Authentication state is managed via Spring Security Context
+ */
 @Service
 public class AuthService {
 
@@ -33,11 +54,22 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    /**
+     * Authenticates a user with username, password, and facility context.
+     * 
+     * @param username the username
+     * @param password the plain-text password (verified securely using BCrypt)
+     * @param facilityId the facility context for multi-tenant authentication
+     * @return LoginResponse containing user details and session information
+     * @throws InvalidCredentialsException if username/password is invalid (mapped to 401 by GlobalExceptionHandler)
+     * @throws InactiveAccountException if account is inactive (mapped to 403 by GlobalExceptionHandler)
+     */
     @Transactional
     public LoginResponse login(String username, String password, Long facilityId) {
         String correlationId = MDC.get("correlationId");
 
         try {
+            // Step 1: Retrieve user by username and facility
             UserAccount user = userAccountRepository.findByUsernameAndFacilityId(username, facilityId)
                     .orElseThrow(() -> {
                         securityLogger.warn("Login failed - invalid credentials - correlationId: {}, username: [REDACTED], facilityId: {}, reason: user not found",
@@ -45,21 +77,25 @@ public class AuthService {
                         return new InvalidCredentialsException("Invalid username or password");
                     });
 
+            // Step 2: Verify password using secure BCrypt matching (best practice)
             if (!passwordEncoder.matches(password, user.getPasswordHash())) {
                 securityLogger.warn("Login failed - invalid credentials - correlationId: {}, username: [REDACTED], facilityId: {}, reason: password mismatch",
                         correlationId, facilityId);
                 throw new InvalidCredentialsException("Invalid username or password");
             }
 
+            // Step 3: Validate account is active
             if (!user.getIsActive()) {
                 securityLogger.warn("Login failed - inactive account - correlationId: {}, userId: {}, facilityId: {}",
                         correlationId, user.getUserAccountId(), facilityId);
                 throw new InactiveAccountException("Account is inactive", user.getUserAccountId());
             }
 
+            // Step 4: Update last login timestamp
             user.setLastLoginAt(LocalDateTime.now());
             userAccountRepository.save(user);
 
+            // Step 5: Establish Spring Security authentication context
             Authentication authentication = new UsernamePasswordAuthenticationToken(
                     user.getUserAccountId(),
                     null,
@@ -67,12 +103,14 @@ public class AuthService {
             );
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
+            // Step 6: Populate MDC for distributed tracing
             MDC.put("userId", String.valueOf(user.getUserAccountId()));
             MDC.put("facilityId", String.valueOf(user.getFacility().getFacilityId()));
 
             securityLogger.info("Login successful - correlationId: {}, userId: {}, facilityId: {}, role: {}",
                     correlationId, user.getUserAccountId(), user.getFacility().getFacilityId(), user.getRole());
 
+            // Step 7: Return login response
             return LoginResponse.builder()
                     .userId(user.getUserAccountId())
                     .username(user.getUsername())
@@ -91,6 +129,12 @@ public class AuthService {
         }
     }
 
+    /**
+     * Retrieves the current authenticated user's session information.
+     * 
+     * @return SessionResponse containing current user session details
+     * @throws InvalidCredentialsException if user is not authenticated (mapped to 401 by GlobalExceptionHandler)
+     */
     @Transactional(readOnly = true)
     public SessionResponse getCurrentSession() {
         String correlationId = MDC.get("correlationId");
@@ -121,6 +165,10 @@ public class AuthService {
                 .build();
     }
 
+    /**
+     * Logs out the current user by clearing the security context and MDC.
+     * Method signature maintained for AuthController compatibility.
+     */
     public void logout() {
         String correlationId = MDC.get("correlationId");
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

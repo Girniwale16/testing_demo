@@ -1,276 +1,286 @@
--- V2__add_auth_columns_to_user_account_test.sql
--- Integration test for V2 migration: Add authentication columns to user_account table
--- This test validates the migration executes successfully and enforces all constraints
+package com.example.testingdemo.db.migration;
 
--- Test Setup: Create a test user_account table if not exists (for isolated testing)
--- In production, this migration runs against existing user_account table
+import org.flywaydb.core.Flyway;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 
--- TEST 1: Verify all columns are added successfully
-DO $$
-BEGIN
-    -- Verify last_login_at column exists and is TIMESTAMP type
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'user_account' 
-        AND column_name = 'last_login_at' 
-        AND data_type = 'timestamp without time zone'
-    ) THEN
-        RAISE EXCEPTION 'TEST FAILED: last_login_at column not created or wrong type';
-    END IF;
+import javax.sql.DataSource;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
-    -- Verify is_active column exists, is BOOLEAN, NOT NULL with DEFAULT TRUE
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'user_account' 
-        AND column_name = 'is_active' 
-        AND data_type = 'boolean'
-        AND is_nullable = 'NO'
-        AND column_default = 'true'
-    ) THEN
-        RAISE EXCEPTION 'TEST FAILED: is_active column not created correctly';
-    END IF;
+import static org.junit.jupiter.api.Assertions.*;
 
-    -- Verify employment_status column exists and is VARCHAR(20)
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'user_account' 
-        AND column_name = 'employment_status' 
-        AND data_type = 'character varying'
-        AND character_maximum_length = 20
-    ) THEN
-        RAISE EXCEPTION 'TEST FAILED: employment_status column not created or wrong type';
-    END IF;
+@SpringBootTest
+@ActiveProfiles("test")
+class V2AddAuthColumnsToUserAccountTest {
 
-    -- Verify end_date column exists and is DATE type
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'user_account' 
-        AND column_name = 'end_date' 
-        AND data_type = 'date'
-    ) THEN
-        RAISE EXCEPTION 'TEST FAILED: end_date column not created or wrong type';
-    END IF;
+    @Autowired
+    private DataSource dataSource;
 
-    RAISE NOTICE 'TEST PASSED: All columns created successfully';
-END $$;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
--- TEST 2: Verify check constraint for employment_status
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.constraint_column_usage 
-        WHERE table_name = 'user_account' 
-        AND constraint_name = 'chk_user_employment_status'
-    ) THEN
-        RAISE EXCEPTION 'TEST FAILED: chk_user_employment_status constraint not created';
-    END IF;
+    @BeforeEach
+    void setUp() {
+        // Clean and migrate database
+        Flyway flyway = Flyway.configure()
+                .dataSource(dataSource)
+                .locations("classpath:db/migration")
+                .load();
+        flyway.clean();
+        flyway.migrate();
+    }
 
-    RAISE NOTICE 'TEST PASSED: Check constraint created successfully';
-END $$;
+    @AfterEach
+    void tearDown() {
+        // Clean up test data
+        jdbcTemplate.execute("DELETE FROM user_account WHERE email LIKE 'test%@example.com'");
+    }
 
--- TEST 3: Verify employment_status constraint allows only ACTIVE and INACTIVE
-DO $$
-DECLARE
-    test_user_id INTEGER;
-BEGIN
-    -- Insert test record with ACTIVE status (should succeed)
-    INSERT INTO user_account (username, email, employment_status, is_active)
-    VALUES ('test_user_active', 'test_active@example.com', 'ACTIVE', TRUE)
-    RETURNING id INTO test_user_id;
-    
-    DELETE FROM user_account WHERE id = test_user_id;
-
-    -- Insert test record with INACTIVE status (should succeed)
-    INSERT INTO user_account (username, email, employment_status, is_active)
-    VALUES ('test_user_inactive', 'test_inactive@example.com', 'INACTIVE', TRUE)
-    RETURNING id INTO test_user_id;
-    
-    DELETE FROM user_account WHERE id = test_user_id;
-
-    RAISE NOTICE 'TEST PASSED: Valid employment_status values accepted';
-END $$;
-
--- TEST 4: Verify employment_status constraint rejects invalid values
-DO $$
-DECLARE
-    test_failed BOOLEAN := FALSE;
-BEGIN
-    BEGIN
-        INSERT INTO user_account (username, email, employment_status, is_active)
-        VALUES ('test_user_invalid', 'test_invalid@example.com', 'TERMINATED', TRUE);
+    @Test
+    void testLastLoginAtColumnExists() {
+        String sql = "SELECT column_name, data_type, is_nullable " +
+                     "FROM information_schema.columns " +
+                     "WHERE table_name = 'user_account' AND column_name = 'last_login_at'";
         
-        test_failed := TRUE;
-    EXCEPTION
-        WHEN check_violation THEN
-            RAISE NOTICE 'TEST PASSED: Invalid employment_status rejected correctly';
-    END;
+        List<Map<String, Object>> columns = jdbcTemplate.queryForList(sql);
+        
+        assertFalse(columns.isEmpty(), "last_login_at column should exist");
+        assertEquals("last_login_at", columns.get(0).get("column_name"));
+        assertTrue(columns.get(0).get("data_type").toString().contains("timestamp"));
+        assertEquals("YES", columns.get(0).get("is_nullable"));
+    }
 
-    IF test_failed THEN
-        RAISE EXCEPTION 'TEST FAILED: Invalid employment_status was accepted';
-    END IF;
-END $$;
+    @Test
+    void testIsActiveColumnExistsWithDefaultTrue() {
+        String sql = "SELECT column_name, data_type, is_nullable, column_default " +
+                     "FROM information_schema.columns " +
+                     "WHERE table_name = 'user_account' AND column_name = 'is_active'";
+        
+        List<Map<String, Object>> columns = jdbcTemplate.queryForList(sql);
+        
+        assertFalse(columns.isEmpty(), "is_active column should exist");
+        assertEquals("is_active", columns.get(0).get("column_name"));
+        assertEquals("boolean", columns.get(0).get("data_type"));
+        assertEquals("NO", columns.get(0).get("is_nullable"));
+        assertTrue(columns.get(0).get("column_default").toString().contains("true"));
+    }
 
--- TEST 5: Verify is_active defaults to TRUE for new records
-DO $$
-DECLARE
-    test_user_id INTEGER;
-    test_is_active BOOLEAN;
-BEGIN
-    INSERT INTO user_account (username, email)
-    VALUES ('test_user_default', 'test_default@example.com')
-    RETURNING id INTO test_user_id;
-    
-    SELECT is_active INTO test_is_active FROM user_account WHERE id = test_user_id;
-    
-    IF test_is_active != TRUE THEN
-        RAISE EXCEPTION 'TEST FAILED: is_active did not default to TRUE';
-    END IF;
-    
-    DELETE FROM user_account WHERE id = test_user_id;
-    
-    RAISE NOTICE 'TEST PASSED: is_active defaults to TRUE';
-END $$;
+    @Test
+    void testEmploymentStatusColumnExists() {
+        String sql = "SELECT column_name, data_type, character_maximum_length " +
+                     "FROM information_schema.columns " +
+                     "WHERE table_name = 'user_account' AND column_name = 'employment_status'";
+        
+        List<Map<String, Object>> columns = jdbcTemplate.queryForList(sql);
+        
+        assertFalse(columns.isEmpty(), "employment_status column should exist");
+        assertEquals("employment_status", columns.get(0).get("column_name"));
+        assertEquals("character varying", columns.get(0).get("data_type"));
+        assertEquals(20, columns.get(0).get("character_maximum_length"));
+    }
 
--- TEST 6: Verify indexes are created
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_indexes 
-        WHERE tablename = 'user_account' 
-        AND indexname = 'idx_user_account_is_active'
-    ) THEN
-        RAISE EXCEPTION 'TEST FAILED: idx_user_account_is_active index not created';
-    END IF;
+    @Test
+    void testEndDateColumnExists() {
+        String sql = "SELECT column_name, data_type, is_nullable " +
+                     "FROM information_schema.columns " +
+                     "WHERE table_name = 'user_account' AND column_name = 'end_date'";
+        
+        List<Map<String, Object>> columns = jdbcTemplate.queryForList(sql);
+        
+        assertFalse(columns.isEmpty(), "end_date column should exist");
+        assertEquals("end_date", columns.get(0).get("column_name"));
+        assertEquals("date", columns.get(0).get("data_type"));
+        assertEquals("YES", columns.get(0).get("is_nullable"));
+    }
 
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_indexes 
-        WHERE tablename = 'user_account' 
-        AND indexname = 'idx_user_account_employment_status'
-    ) THEN
-        RAISE EXCEPTION 'TEST FAILED: idx_user_account_employment_status index not created';
-    END IF;
+    @Test
+    void testEmploymentStatusCheckConstraintExists() {
+        String sql = "SELECT constraint_name, check_clause " +
+                     "FROM information_schema.check_constraints " +
+                     "WHERE constraint_name = 'chk_user_employment_status'";
+        
+        List<Map<String, Object>> constraints = jdbcTemplate.queryForList(sql);
+        
+        assertFalse(constraints.isEmpty(), "Check constraint chk_user_employment_status should exist");
+        String checkClause = constraints.get(0).get("check_clause").toString();
+        assertTrue(checkClause.contains("ACTIVE") && checkClause.contains("INACTIVE"));
+    }
 
-    RAISE NOTICE 'TEST PASSED: All indexes created successfully';
-END $$;
+    @Test
+    void testEmploymentStatusConstraintAllowsActiveValue() {
+        jdbcTemplate.execute("INSERT INTO user_account (email, password_hash, employment_status) " +
+                           "VALUES ('test_active@example.com', 'hash123', 'ACTIVE')");
+        
+        Integer count = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM user_account WHERE email = 'test_active@example.com' AND employment_status = 'ACTIVE'",
+            Integer.class
+        );
+        
+        assertEquals(1, count);
+    }
 
--- TEST 7: Verify column comments are set
-DO $$
-DECLARE
-    comment_count INTEGER;
-BEGIN
-    SELECT COUNT(*) INTO comment_count
-    FROM pg_description d
-    JOIN pg_class c ON d.objoid = c.oid
-    JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum = d.objsubid
-    WHERE c.relname = 'user_account'
-    AND a.attname IN ('last_login_at', 'is_active', 'employment_status', 'end_date');
+    @Test
+    void testEmploymentStatusConstraintAllowsInactiveValue() {
+        jdbcTemplate.execute("INSERT INTO user_account (email, password_hash, employment_status) " +
+                           "VALUES ('test_inactive@example.com', 'hash123', 'INACTIVE')");
+        
+        Integer count = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM user_account WHERE email = 'test_inactive@example.com' AND employment_status = 'INACTIVE'",
+            Integer.class
+        );
+        
+        assertEquals(1, count);
+    }
 
-    IF comment_count != 4 THEN
-        RAISE EXCEPTION 'TEST FAILED: Not all column comments are set (expected 4, got %)', comment_count;
-    END IF;
+    @Test
+    void testEmploymentStatusConstraintRejectsInvalidValue() {
+        assertThrows(Exception.class, () -> {
+            jdbcTemplate.execute("INSERT INTO user_account (email, password_hash, employment_status) " +
+                               "VALUES ('test_invalid@example.com', 'hash123', 'TERMINATED')");
+        }, "Should reject invalid employment_status value");
+    }
 
-    RAISE NOTICE 'TEST PASSED: All column comments set successfully';
-END $$;
+    @Test
+    void testIsActiveIndexExists() {
+        String sql = "SELECT indexname FROM pg_indexes " +
+                     "WHERE tablename = 'user_account' AND indexname = 'idx_user_account_is_active'";
+        
+        List<Map<String, Object>> indexes = jdbcTemplate.queryForList(sql);
+        
+        assertFalse(indexes.isEmpty(), "Index idx_user_account_is_active should exist");
+    }
 
--- TEST 8: Verify last_login_at accepts NULL and TIMESTAMP values
-DO $$
-DECLARE
-    test_user_id INTEGER;
-    test_timestamp TIMESTAMP;
-BEGIN
-    -- Test NULL value
-    INSERT INTO user_account (username, email, last_login_at)
-    VALUES ('test_user_null_login', 'test_null_login@example.com', NULL)
-    RETURNING id INTO test_user_id;
-    
-    DELETE FROM user_account WHERE id = test_user_id;
+    @Test
+    void testEmploymentStatusIndexExists() {
+        String sql = "SELECT indexname FROM pg_indexes " +
+                     "WHERE tablename = 'user_account' AND indexname = 'idx_user_account_employment_status'";
+        
+        List<Map<String, Object>> indexes = jdbcTemplate.queryForList(sql);
+        
+        assertFalse(indexes.isEmpty(), "Index idx_user_account_employment_status should exist");
+    }
 
-    -- Test valid TIMESTAMP
-    INSERT INTO user_account (username, email, last_login_at)
-    VALUES ('test_user_with_login', 'test_with_login@example.com', '2024-01-15 10:30:00')
-    RETURNING id INTO test_user_id;
-    
-    SELECT last_login_at INTO test_timestamp FROM user_account WHERE id = test_user_id;
-    
-    IF test_timestamp IS NULL THEN
-        RAISE EXCEPTION 'TEST FAILED: last_login_at timestamp not stored correctly';
-    END IF;
-    
-    DELETE FROM user_account WHERE id = test_user_id;
-    
-    RAISE NOTICE 'TEST PASSED: last_login_at accepts NULL and TIMESTAMP values';
-END $$;
+    @Test
+    void testIsActiveDefaultValueAppliedOnInsert() {
+        jdbcTemplate.execute("INSERT INTO user_account (email, password_hash) " +
+                           "VALUES ('test_default@example.com', 'hash123')");
+        
+        Boolean isActive = jdbcTemplate.queryForObject(
+            "SELECT is_active FROM user_account WHERE email = 'test_default@example.com'",
+            Boolean.class
+        );
+        
+        assertTrue(isActive, "is_active should default to true");
+    }
 
--- TEST 9: Verify end_date accepts NULL and DATE values
-DO $$
-DECLARE
-    test_user_id INTEGER;
-    test_date DATE;
-BEGIN
-    -- Test NULL value
-    INSERT INTO user_account (username, email, end_date)
-    VALUES ('test_user_null_end', 'test_null_end@example.com', NULL)
-    RETURNING id INTO test_user_id;
-    
-    DELETE FROM user_account WHERE id = test_user_id;
+    @Test
+    void testCanFilterByIsActiveColumn() {
+        jdbcTemplate.execute("INSERT INTO user_account (email, password_hash, is_active) " +
+                           "VALUES ('test_active1@example.com', 'hash123', true)");
+        jdbcTemplate.execute("INSERT INTO user_account (email, password_hash, is_active) " +
+                           "VALUES ('test_inactive1@example.com', 'hash123', false)");
+        
+        Integer activeCount = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM user_account WHERE is_active = true AND email LIKE 'test%@example.com'",
+            Integer.class
+        );
+        Integer inactiveCount = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM user_account WHERE is_active = false AND email LIKE 'test%@example.com'",
+            Integer.class
+        );
+        
+        assertTrue(activeCount >= 1, "Should find at least one active user");
+        assertTrue(inactiveCount >= 1, "Should find at least one inactive user");
+    }
 
-    -- Test valid DATE
-    INSERT INTO user_account (username, email, end_date, employment_status)
-    VALUES ('test_user_with_end', 'test_with_end@example.com', '2024-12-31', 'INACTIVE')
-    RETURNING id INTO test_user_id;
-    
-    SELECT end_date INTO test_date FROM user_account WHERE id = test_user_id;
-    
-    IF test_date IS NULL THEN
-        RAISE EXCEPTION 'TEST FAILED: end_date not stored correctly';
-    END IF;
-    
-    DELETE FROM user_account WHERE id = test_user_id;
-    
-    RAISE NOTICE 'TEST PASSED: end_date accepts NULL and DATE values';
-END $$;
+    @Test
+    void testLastLoginAtCanBeUpdated() {
+        jdbcTemplate.execute("INSERT INTO user_account (email, password_hash) " +
+                           "VALUES ('test_login@example.com', 'hash123')");
+        
+        jdbcTemplate.update("UPDATE user_account SET last_login_at = ? WHERE email = ?",
+                          LocalDateTime.now(), "test_login@example.com");
+        
+        LocalDateTime lastLogin = jdbcTemplate.queryForObject(
+            "SELECT last_login_at FROM user_account WHERE email = 'test_login@example.com'",
+            LocalDateTime.class
+        );
+        
+        assertNotNull(lastLogin, "last_login_at should be set");
+    }
 
--- TEST 10: Verify independent deactivation scenarios (user_account vs staff)
-DO $$
-DECLARE
-    test_user_id INTEGER;
-BEGIN
-    -- Scenario 1: User account INACTIVE, but could have ACTIVE staff record
-    INSERT INTO user_account (username, email, employment_status, end_date, is_active)
-    VALUES ('test_deactivated_user', 'test_deactivated@example.com', 'INACTIVE', '2024-01-01', FALSE)
-    RETURNING id INTO test_user_id;
-    
-    -- Verify record created successfully
-    IF test_user_id IS NULL THEN
-        RAISE EXCEPTION 'TEST FAILED: Could not create deactivated user account';
-    END IF;
-    
-    DELETE FROM user_account WHERE id = test_user_id;
+    @Test
+    void testEndDateCanBeSet() {
+        jdbcTemplate.execute("INSERT INTO user_account (email, password_hash, end_date) " +
+                           "VALUES ('test_enddate@example.com', 'hash123', '2024-12-31')");
+        
+        String endDate = jdbcTemplate.queryForObject(
+            "SELECT end_date::text FROM user_account WHERE email = 'test_enddate@example.com'",
+            String.class
+        );
+        
+        assertNotNull(endDate, "end_date should be set");
+        assertTrue(endDate.contains("2024-12-31"));
+    }
 
-    -- Scenario 2: User account ACTIVE with NULL end_date
-    INSERT INTO user_account (username, email, employment_status, end_date, is_active)
-    VALUES ('test_active_user', 'test_active@example.com', 'ACTIVE', NULL, TRUE)
-    RETURNING id INTO test_user_id;
-    
-    IF test_user_id IS NULL THEN
-        RAISE EXCEPTION 'TEST FAILED: Could not create active user account';
-    END IF;
-    
-    DELETE FROM user_account WHERE id = test_user_id;
-    
-    RAISE NOTICE 'TEST PASSED: Independent deactivation scenarios work correctly';
-END $$;
+    @Test
+    void testColumnCommentsExist() {
+        String sql = "SELECT column_name, col_description((table_schema||'.'||table_name)::regclass::oid, ordinal_position) as comment " +
+                     "FROM information_schema.columns " +
+                     "WHERE table_name = 'user_account' AND column_name IN ('last_login_at', 'is_active', 'employment_status', 'end_date')";
+        
+        List<Map<String, Object>> comments = jdbcTemplate.queryForList(sql);
+        
+        assertEquals(4, comments.size(), "All four columns should have comments");
+        
+        for (Map<String, Object> row : comments) {
+            assertNotNull(row.get("comment"), "Column " + row.get("column_name") + " should have a comment");
+        }
+    }
 
--- TEST SUMMARY
-DO $$
-BEGIN
-    RAISE NOTICE '=== V2 MIGRATION TEST SUITE COMPLETED ===';
-    RAISE NOTICE 'All tests passed successfully';
-    RAISE NOTICE '- Column creation and types validated';
-    RAISE NOTICE '- Check constraint enforcement verified';
-    RAISE NOTICE '- Default values confirmed';
-    RAISE NOTICE '- Indexes created and validated';
-    RAISE NOTICE '- Column comments set correctly';
-    RAISE NOTICE '- NULL and valid value handling tested';
-    RAISE NOTICE '- Independent deactivation logic validated';
-END $$;
+    @Test
+    void testCanDeactivateUserAccountIndependently() {
+        jdbcTemplate.execute("INSERT INTO user_account (email, password_hash, is_active, employment_status) " +
+                           "VALUES ('test_deactivate@example.com', 'hash123', false, 'INACTIVE')");
+        
+        Map<String, Object> user = jdbcTemplate.queryForMap(
+            "SELECT is_active, employment_status FROM user_account WHERE email = 'test_deactivate@example.com'"
+        );
+        
+        assertFalse((Boolean) user.get("is_active"));
+        assertEquals("INACTIVE", user.get("employment_status"));
+    }
+
+    @Test
+    void testIsActiveNotNullConstraint() {
+        assertThrows(Exception.class, () -> {
+            jdbcTemplate.execute("INSERT INTO user_account (email, password_hash, is_active) " +
+                               "VALUES ('test_null@example.com', 'hash123', NULL)");
+        }, "is_active should not accept NULL values");
+    }
+
+    @Test
+    void testAllColumnsCanBeUsedTogether() {
+        jdbcTemplate.execute("INSERT INTO user_account (email, password_hash, last_login_at, is_active, employment_status, end_date) " +
+                           "VALUES ('test_complete@example.com', 'hash123', '2024-01-15 10:30:00', true, 'ACTIVE', NULL)");
+        
+        Map<String, Object> user = jdbcTemplate.queryForMap(
+            "SELECT email, last_login_at, is_active, employment_status, end_date FROM user_account WHERE email = 'test_complete@example.com'"
+        );
+        
+        assertEquals("test_complete@example.com", user.get("email"));
+        assertNotNull(user.get("last_login_at"));
+        assertTrue((Boolean) user.get("is_active"));
+        assertEquals("ACTIVE", user.get("employment_status"));
+        assertNull(user.get("end_date"));
+    }
+}
