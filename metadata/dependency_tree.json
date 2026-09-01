@@ -35,5 +35,56 @@
     "backend/src/main/java/com/visionary/roster/audit/AuditEmitterImpl.java": [],
     "backend/src/main/java/com/visionary/roster/controller/StaffController.java": [],
     "backend/src/main/java/com/visionary/roster/exception/ForbiddenAccessException.java": [],
-    "backend/src/main/java/com/visionary/roster/exception/InvalidCredentialsException.java": []
+    "backend/src/main/java/com/visionary/roster/exception/InvalidCredentialsException.java": [],
+    "frontend/src/main.tsx": [
+        "./App"
+    ],
+    "frontend/src/tests/LoginForm.test.tsx": [
+        "../components/LoginForm",
+        "../utils/logger"
+    ],
+    "frontend/src/components/ProtectedRoute.tsx": [
+        "../hooks/useAuth",
+        "../utils/logger"
+    ],
+    "frontend/src/api/axiosInstance.ts": [
+        "../utils/logger"
+    ],
+    "frontend/src/components/LoginForm.tsx": [
+        "../utils/logger"
+    ],
+    "frontend/src/App.tsx": [
+        "./pages/LoginPage",
+        "./components/ProtectedRoute",
+        "./utils/logger"
+    ],
+    "frontend/src/components/ErrorBanner.tsx": [
+        "../utils/logger"
+    ],
+    "frontend/src/pages/LoginPage.tsx": [
+        "../components/LoginForm",
+        "../components/ErrorBanner",
+        "../hooks/useAuth",
+        "../utils/logger"
+    ],
+    "frontend/src/api/authApi.ts": [
+        "./axiosInstance",
+        "../types/auth.types",
+        "../utils/logger"
+    ],
+    "frontend/src/hooks/useAuth.ts": [
+        "../api/authApi",
+        "../types/auth.types",
+        "../utils/logger"
+    ],
+    "frontend/src/tests/app.test.tsx": [
+        "../api/authApi"
+    ],
+    "frontend/src/types/auth.types.ts": [],
+    "frontend/src/tests/useAuth.test.ts": [
+        "../hooks/useAuth",
+        "../api/authApi",
+        "../utils/logger"
+    ],
+    "frontend/src/utils/logger.ts": []
 }
