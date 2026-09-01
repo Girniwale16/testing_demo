@@ -48,3 +48,49 @@
 |-----------|--------------|-------------------|
 | `backend/src/main/java/com/visionary/roster/model/Facility.java` | Represents a Facility entity in the roster management system, mapping to a database table with JPA annotations. Manages facility metadata including name, timezone, region, and audit fields, while maintaining a bidirectional one-to-many relationship with Staff members. Provides lifecycle callbacks for automatic timestamp management and methods for managing staff associations. | <b>`public Set<Staff> getStaffMembers()`</b>: Returns an unmodifiable view of the staff members associated with this facility to prevent external modification of the internal collection.<br/><b>`public void addStaff(Staff staff)`</b>: Adds a staff member to this facility and establishes the bidirectional relationship by setting the facility reference on the staff object.<br/><b>`public void removeStaff(Staff staff)`</b>: Removes a staff member from this facility and clears the bidirectional relationship by nullifying the facility reference on the staff object. |
 
+## `frontend/src`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `frontend/src/App.tsx` | Serves as the root React application component that configures client-side routing for the frontend application. Establishes route definitions for login and protected content areas, integrating authentication-based access control through a ProtectedRoute wrapper component. | <b>`function App()`</b>: Main application component that sets up the BrowserRouter with route definitions for login and protected routes, and logs application mount events. |
+| `frontend/src/main.tsx` | Serves as the application entry point for the React frontend. Initializes the React root DOM node and renders the main App component wrapped in StrictMode for development checks. |  |
+
+## `frontend/src/api`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `frontend/src/api/authApi.ts` | Provides a centralized API client module for authentication operations in the frontend application. Exposes methods for user login, logout, and session retrieval, with comprehensive logging for all API calls and error handling. | <b>`login: async (credentials: LoginRequest): Promise<LoginResponse>`</b>: Authenticates a user by sending login credentials to the backend API and returns the login response containing user information and authentication tokens.<br/><b>`logout: async (): Promise<void>`</b>: Terminates the current user session by calling the backend logout endpoint and clearing authentication state.<br/><b>`getCurrentUser: async (): Promise<UserProfile>`</b>: Retrieves the current authenticated user's profile information from the active session. |
+| `frontend/src/api/axiosInstance.ts` | Configures and exports a centralized Axios HTTP client instance for the frontend application with request/response interceptors. Automatically generates and attaches correlation IDs to all outgoing requests for distributed tracing. Handles global error responses including authentication redirects for 401 errors and structured logging for all HTTP failures. | <b>`function generateCorrelationId(): string`</b>: Generates a unique correlation ID combining timestamp, counter, and random string for request tracking across distributed systems. |
+
+## `frontend/src/components`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `frontend/src/components/ErrorBanner.tsx` | Provides a reusable React component that displays error messages to users in an accessible banner format with optional dismiss functionality. Integrates with the application's logging system to track error display and dismissal events, including correlation IDs for debugging and monitoring purposes. | <b>`function ErrorBanner({ message, onDismiss, correlationId }: ErrorBannerProps)`</b>: Renders an accessible error banner that displays an error message, logs the display event, automatically focuses the banner for screen readers, and provides an optional dismiss button that triggers logging and callback execution. |
+| `frontend/src/components/LoginForm.tsx` | Implements a React login form component that manages username and password input state, performs client-side validation, and handles asynchronous form submission with loading states. Integrates comprehensive logging for form events including validation failures, submission attempts, and errors. | <b>`function LoginForm({ onSubmit }: LoginFormProps)`</b>: Renders a controlled login form with username and password fields, validates input, manages loading state, and invokes the provided onSubmit callback with credentials while logging all form interactions. |
+| `frontend/src/components/ProtectedRoute.tsx` | Implements a React route guard component that protects application routes from unauthenticated access. Checks user authentication status, displays a loading state during authentication verification, and redirects unauthenticated users to the login page while logging all access attempts. | <b>`function ProtectedRoute({ children }: ProtectedRouteProps)`</b>: Wraps child components to enforce authentication requirements, rendering children only if user is authenticated, otherwise redirecting to login page with location state preserved. |
+
+## `frontend/src/hooks`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `frontend/src/hooks/useAuth.ts` | Provides a React custom hook for managing authentication state and operations in the frontend application. Handles user session validation on mount, login/logout flows, and exposes authentication state (user profile, loading, error) along with authentication methods to consuming components. | <b>`export function useAuth()`</b>: Main hook that manages authentication state and returns user profile, loading status, error state, and authentication methods (login, logout, clearError). Automatically validates the user session on component mount.<br/><b>`const login = async (username: string, password: string)`</b>: Authenticates a user with provided credentials, updates the user state with the returned profile, and logs the authentication attempt and result.<br/><b>`const logout = async ()`</b>: Terminates the current user session by calling the logout API, clears user state and errors, and logs the logout operation.<br/><b>`const clearError = ()`</b>: Resets the error state to null, allowing the UI to dismiss error messages. |
+
+## `frontend/src/pages`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `frontend/src/pages/LoginPage.tsx` | Implements the login page component for the frontend application. Manages user authentication flow by rendering a login form, handling login submissions through the useAuth hook, displaying error messages, and automatically redirecting authenticated users to the home route. | <b>`function LoginPage()`</b>: Main component function that renders the login page UI, manages authentication state, handles user login attempts, and navigates to the home page upon successful authentication.<br/><b>`const handleLogin = async (username: string, password: string)`</b>: Asynchronous handler that processes login form submissions by calling the login function from useAuth hook and logging any errors that occur during authentication. |
+
+## `frontend/src/tests`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `frontend/src/tests/LoginForm.test.tsx` | Comprehensive test suite for the LoginForm React component. Validates form rendering, client-side and server-side validation, loading state management, error handling, accessibility attributes, and user interaction flows using React Testing Library and Jest. |  |
+| `frontend/src/tests/app.test.tsx` | Provides comprehensive integration tests for the authentication API module using Vitest and Mock Service Worker (MSW). Tests cover login, logout, and session retrieval operations with both success and error scenarios, including credential validation and authentication state management. |  |
+| `frontend/src/tests/useAuth.test.ts` | Comprehensive test suite for the useAuth React hook that validates error handling across authentication operations (session validation, login, logout). Tests cover HTTP 403/404 error scenarios with custom, error field, and default messages, ensuring proper error state management and logging behavior. |  |
+
+## `frontend/src/types`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `frontend/src/types/auth.types.ts` | Defines TypeScript type interfaces for authentication-related data structures in the frontend application. Provides type safety for login requests, user profiles, login responses, and authentication error handling across the authentication flow. |  |
+
+## `frontend/src/utils`
+| File Path | Core Purpose | Exposed Functions |
+|-----------|--------------|-------------------|
+| `frontend/src/utils/logger.ts` | Provides a centralized logging utility for the frontend application with environment-aware log level filtering. Implements structured logging with timestamps and context support, suppressing info-level logs in production while maintaining warn and error visibility. | <b>`info(message: string, context?: LogContext)`</b>: Logs informational messages with optional context metadata, automatically suppressed in production environments.<br/><b>`warn(message: string, context?: LogContext)`</b>: Logs warning messages with optional context metadata to the console using console.warn.<br/><b>`error(message: string, context?: LogContext)`</b>: Logs error messages with optional context metadata to the console using console.error. |
+
