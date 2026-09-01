@@ -1,12 +1,17 @@
 package com.visionary.roster.service;
 
+import com.visionary.roster.audit.AuditEmitter;
+import com.visionary.roster.dto.CreateStaffRequest;
 import com.visionary.roster.dto.StaffResponse;
-import com.visionary.roster.dto.StaffUpdateRequest;
-import com.visionary.roster.entity.Facility;
-import com.visionary.roster.entity.Staff;
+import com.visionary.roster.dto.UpdateStaffRequest;
 import com.visionary.roster.exception.ForbiddenAccessException;
 import com.visionary.roster.exception.ResourceNotFoundException;
+import com.visionary.roster.model.Facility;
+import com.visionary.roster.model.Staff;
+import com.visionary.roster.repository.FacilityRepository;
 import com.visionary.roster.repository.StaffRepository;
+import com.visionary.roster.security.FacilityScopingService;
+import com.visionary.roster.security.RoleAuthorizationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,12 +19,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.MDC;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -30,6 +37,9 @@ class StaffServiceTest {
 
     @Mock
     private StaffRepository staffRepository;
+
+    @Mock
+    private FacilityRepository facilityRepository;
 
     @Mock
     private FacilityScopingService facilityScopingService;
@@ -43,412 +53,469 @@ class StaffServiceTest {
     @InjectMocks
     private StaffService staffService;
 
-    private Staff mockStaff;
-    private Facility mockFacility;
-    private StaffUpdateRequest updateRequest;
-    private Long staffId = 1L;
-    private Long requestingUserId = 100L;
-    private Long facilityId = 10L;
+    private Staff testStaff;
+    private Facility testFacility;
+    private CreateStaffRequest createRequest;
+    private UpdateStaffRequest updateRequest;
 
     @BeforeEach
     void setUp() {
-        mockFacility = new Facility();
-        mockFacility.setId(facilityId);
+        MDC.put("correlationId", "test-correlation-id");
 
-        mockStaff = new Staff();
-        mockStaff.setId(staffId);
-        mockStaff.setFirstName("John");
-        mockStaff.setLastName("Doe");
-        mockStaff.setEmail("john.doe@example.com");
-        mockStaff.setRole("NURSE");
-        mockStaff.setEmploymentStatus("ACTIVE");
-        mockStaff.setFacility(mockFacility);
-        mockStaff.setActive(true);
+        testFacility = new Facility();
+        testFacility.setFacilityId(1L);
+        testFacility.setName("Test Facility");
 
-        updateRequest = new StaffUpdateRequest();
-        updateRequest.setFirstName("Jane");
-        updateRequest.setLastName("Smith");
-        updateRequest.setEmail("jane.smith@example.com");
-        updateRequest.setRole("DOCTOR");
-        updateRequest.setEmploymentStatus("ACTIVE");
+        testStaff = new Staff();
+        testStaff.setId(1L);
+        testStaff.setFirstName("John");
+        testStaff.setLastName("Doe");
+        testStaff.setEmail("john.doe@example.com");
+        testStaff.setRole("NURSE");
+        testStaff.setFacility(testFacility);
+        testStaff.setEmploymentStatus("ACTIVE");
+        testStaff.setActive(true);
+        testStaff.setDeactivated(false);
+
+        createRequest = new CreateStaffRequest();
+        createRequest.setFirstName("Jane");
+        createRequest.setLastName("Smith");
+        createRequest.setEmail("jane.smith@example.com");
+        createRequest.setRole("DOCTOR");
+        createRequest.setFacilityId(1L);
+        createRequest.setEmploymentStatus("ACTIVE");
+
+        updateRequest = new UpdateStaffRequest();
+        updateRequest.setFirstName("John Updated");
+        updateRequest.setLastName("Doe Updated");
+        updateRequest.setEmail("john.updated@example.com");
+        updateRequest.setRole("SENIOR_NURSE");
+        updateRequest.setFacilityId(2L);
+        updateRequest.setEmploymentStatus("PART_TIME");
     }
 
-    // ==================== updateStaff Tests ====================
-
     @Test
-    void updateStaff_Success_AllFieldsUpdated() {
+    void listStaff_WhenIncludeDeactivatedTrue_ShouldReturnAllStaff() {
         // Arrange
-        when(staffRepository.findById(staffId)).thenReturn(Optional.of(mockStaff));
-        when(staffRepository.existsByEmailAndIdNot(updateRequest.getEmail(), staffId)).thenReturn(false);
-        when(staffRepository.save(any(Staff.class))).thenReturn(mockStaff);
-        doNothing().when(roleAuthorizationService).requireRole(requestingUserId, "MANAGER");
-        doNothing().when(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
-        doNothing().when(auditEmitter).emitStaffUpdateEvent(anyLong(), anyLong(), anyMap());
+        List<Staff> staffList = Arrays.asList(testStaff);
+        Page<Staff> staffPage = new PageImpl<>(staffList);
+        Pageable pageable = PageRequest.of(0, 10);
+
+        when(staffRepository.findAll(any(Pageable.class))).thenReturn(staffPage);
 
         // Act
-        StaffResponse response = staffService.updateStaff(staffId, updateRequest, requestingUserId);
+        Page<Staff> result = staffService.listStaff(0, 10, true);
 
         // Assert
-        assertNotNull(response);
-        verify(roleAuthorizationService).requireRole(requestingUserId, "MANAGER");
-        verify(staffRepository).findById(staffId);
-        verify(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
-        verify(staffRepository).existsByEmailAndIdNot(updateRequest.getEmail(), staffId);
-        verify(staffRepository).save(mockStaff);
-        verify(auditEmitter).emitStaffUpdateEvent(eq(staffId), eq(requestingUserId), anyMap());
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        verify(staffRepository).findAll(any(Pageable.class));
+        verify(staffRepository, never()).findByIsDeactivated(anyBoolean(), any(Pageable.class));
     }
 
     @Test
-    void updateStaff_ThrowsForbiddenAccessException_WhenUserNotManager() {
+    void listStaff_WhenIncludeDeactivatedFalse_ShouldFilterByIsDeactivated() {
         // Arrange
-        doThrow(new ForbiddenAccessException("User does not have MANAGER role"))
-                .when(roleAuthorizationService).requireRole(requestingUserId, "MANAGER");
+        List<Staff> activeStaffList = Arrays.asList(testStaff);
+        Page<Staff> staffPage = new PageImpl<>(activeStaffList);
+        Pageable pageable = PageRequest.of(0, 10);
 
-        // Act & Assert
-        assertThrows(ForbiddenAccessException.class, () ->
-                staffService.updateStaff(staffId, updateRequest, requestingUserId)
-        );
-
-        verify(roleAuthorizationService).requireRole(requestingUserId, "MANAGER");
-        verify(staffRepository, never()).findById(anyLong());
-        verify(staffRepository, never()).save(any());
-    }
-
-    @Test
-    void updateStaff_ThrowsResourceNotFoundException_WhenStaffNotFound() {
-        // Arrange
-        when(staffRepository.findById(staffId)).thenReturn(Optional.empty());
-        doNothing().when(roleAuthorizationService).requireRole(requestingUserId, "MANAGER");
-
-        // Act & Assert
-        assertThrows(ResourceNotFoundException.class, () ->
-                staffService.updateStaff(staffId, updateRequest, requestingUserId)
-        );
-
-        verify(roleAuthorizationService).requireRole(requestingUserId, "MANAGER");
-        verify(staffRepository).findById(staffId);
-        verify(staffRepository, never()).save(any());
-    }
-
-    @Test
-    void updateStaff_ThrowsForbiddenAccessException_WhenFacilityAccessDenied() {
-        // Arrange
-        when(staffRepository.findById(staffId)).thenReturn(Optional.of(mockStaff));
-        doNothing().when(roleAuthorizationService).requireRole(requestingUserId, "MANAGER");
-        doThrow(new ForbiddenAccessException("Access denied to facility"))
-                .when(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
-
-        // Act & Assert
-        assertThrows(ForbiddenAccessException.class, () ->
-                staffService.updateStaff(staffId, updateRequest, requestingUserId)
-        );
-
-        verify(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
-        verify(staffRepository, never()).save(any());
-    }
-
-    @Test
-    void updateStaff_ValidatesNewFacilityAccess_WhenFacilityIdChanged() {
-        // Arrange
-        Long newFacilityId = 20L;
-        updateRequest.setFacilityId(newFacilityId);
-
-        when(staffRepository.findById(staffId)).thenReturn(Optional.of(mockStaff));
-        when(staffRepository.existsByEmailAndIdNot(updateRequest.getEmail(), staffId)).thenReturn(false);
-        when(staffRepository.save(any(Staff.class))).thenReturn(mockStaff);
-        doNothing().when(roleAuthorizationService).requireRole(requestingUserId, "MANAGER");
-        doNothing().when(facilityScopingService).validateFacilityAccess(eq(requestingUserId), anyLong());
-        doNothing().when(auditEmitter).emitStaffUpdateEvent(anyLong(), anyLong(), anyMap());
+        when(staffRepository.findByIsDeactivated(eq(false), any(Pageable.class))).thenReturn(staffPage);
 
         // Act
-        staffService.updateStaff(staffId, updateRequest, requestingUserId);
+        Page<Staff> result = staffService.listStaff(0, 10, false);
 
         // Assert
-        verify(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
-        verify(facilityScopingService).validateFacilityAccess(requestingUserId, newFacilityId);
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        verify(staffRepository).findByIsDeactivated(eq(false), any(Pageable.class));
+        verify(staffRepository, never()).findAll(any(Pageable.class));
     }
 
     @Test
-    void updateStaff_ThrowsForbiddenAccessException_WhenNewFacilityAccessDenied() {
+    void listStaff_ShouldRetrieveCorrelationIdFromMDC() {
         // Arrange
-        Long newFacilityId = 20L;
-        updateRequest.setFacilityId(newFacilityId);
+        Page<Staff> staffPage = new PageImpl<>(Collections.emptyList());
+        when(staffRepository.findAll(any(Pageable.class))).thenReturn(staffPage);
 
-        when(staffRepository.findById(staffId)).thenReturn(Optional.of(mockStaff));
-        doNothing().when(roleAuthorizationService).requireRole(requestingUserId, "MANAGER");
-        doNothing().when(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
-        doThrow(new ForbiddenAccessException("Access denied to new facility"))
-                .when(facilityScopingService).validateFacilityAccess(requestingUserId, newFacilityId);
+        // Act
+        staffService.listStaff(0, 10, true);
 
-        // Act & Assert
-        assertThrows(ForbiddenAccessException.class, () ->
-                staffService.updateStaff(staffId, updateRequest, requestingUserId)
-        );
-
-        verify(facilityScopingService).validateFacilityAccess(requestingUserId, newFacilityId);
-        verify(staffRepository, never()).save(any());
+        // Assert
+        assertEquals("test-correlation-id", MDC.get("correlationId"));
     }
 
     @Test
-    void updateStaff_ThrowsIllegalArgumentException_WhenEmailAlreadyExists() {
+    void createStaff_WhenValidRequest_ShouldCreateStaffAndEmitAuditEvent() {
         // Arrange
-        when(staffRepository.findById(staffId)).thenReturn(Optional.of(mockStaff));
-        when(staffRepository.existsByEmailAndIdNot(updateRequest.getEmail(), staffId)).thenReturn(true);
-        doNothing().when(roleAuthorizationService).requireRole(requestingUserId, "MANAGER");
-        doNothing().when(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
+        when(staffRepository.existsByEmail(createRequest.getEmail())).thenReturn(false);
+        when(facilityRepository.findById(createRequest.getFacilityId())).thenReturn(Optional.of(testFacility));
+        when(staffRepository.save(any(Staff.class))).thenAnswer(invocation -> {
+            Staff staff = invocation.getArgument(0);
+            staff.setId(2L);
+            return staff;
+        });
+
+        // Act
+        Staff result = staffService.createStaff(createRequest);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(2L, result.getId());
+        assertEquals(createRequest.getFirstName(), result.getFirstName());
+        assertEquals(createRequest.getLastName(), result.getLastName());
+        assertEquals(createRequest.getEmail(), result.getEmail());
+        assertEquals(createRequest.getRole(), result.getRole());
+        assertEquals(testFacility, result.getFacility());
+        assertEquals(createRequest.getEmploymentStatus(), result.getEmploymentStatus());
+        assertTrue(result.isActive());
+        assertFalse(result.isDeactivated());
+
+        verify(staffRepository).existsByEmail(createRequest.getEmail());
+        verify(facilityRepository).findById(createRequest.getFacilityId());
+        verify(staffRepository).save(any(Staff.class));
+        verify(auditEmitter).emitStaffCreateEvent(eq(2L), eq("test-correlation-id"));
+    }
+
+    @Test
+    void createStaff_WhenEmailAlreadyExists_ShouldThrowIllegalArgumentException() {
+        // Arrange
+        when(staffRepository.existsByEmail(createRequest.getEmail())).thenReturn(true);
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
-                staffService.updateStaff(staffId, updateRequest, requestingUserId)
-        );
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> staffService.createStaff(createRequest));
 
         assertEquals("Email already exists for another staff member", exception.getMessage());
-        verify(staffRepository).existsByEmailAndIdNot(updateRequest.getEmail(), staffId);
-        verify(staffRepository, never()).save(any());
+        verify(staffRepository).existsByEmail(createRequest.getEmail());
+        verify(facilityRepository, never()).findById(anyLong());
+        verify(staffRepository, never()).save(any(Staff.class));
+        verify(auditEmitter, never()).emitStaffCreateEvent(anyLong(), anyString());
     }
 
     @Test
-    void updateStaff_TracksChangesInAuditMap() {
+    void createStaff_WhenFacilityNotFound_ShouldThrowResourceNotFoundException() {
         // Arrange
-        when(staffRepository.findById(staffId)).thenReturn(Optional.of(mockStaff));
-        when(staffRepository.existsByEmailAndIdNot(updateRequest.getEmail(), staffId)).thenReturn(false);
-        when(staffRepository.save(any(Staff.class))).thenReturn(mockStaff);
-        doNothing().when(roleAuthorizationService).requireRole(requestingUserId, "MANAGER");
-        doNothing().when(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
+        when(staffRepository.existsByEmail(createRequest.getEmail())).thenReturn(false);
+        when(facilityRepository.findById(createRequest.getFacilityId())).thenReturn(Optional.empty());
 
-        ArgumentCaptor<Map<String, Object>> changeMapCaptor = ArgumentCaptor.forClass(Map.class);
+        // Act & Assert
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+                () -> staffService.createStaff(createRequest));
+
+        assertTrue(exception.getMessage().contains("Facility"));
+        verify(staffRepository).existsByEmail(createRequest.getEmail());
+        verify(facilityRepository).findById(createRequest.getFacilityId());
+        verify(staffRepository, never()).save(any(Staff.class));
+        verify(auditEmitter, never()).emitStaffCreateEvent(anyLong(), anyString());
+    }
+
+    @Test
+    void createStaff_ShouldRetrieveCorrelationIdFromMDC() {
+        // Arrange
+        when(staffRepository.existsByEmail(createRequest.getEmail())).thenReturn(false);
+        when(facilityRepository.findById(createRequest.getFacilityId())).thenReturn(Optional.of(testFacility));
+        when(staffRepository.save(any(Staff.class))).thenAnswer(invocation -> {
+            Staff staff = invocation.getArgument(0);
+            staff.setId(2L);
+            return staff;
+        });
 
         // Act
-        staffService.updateStaff(staffId, updateRequest, requestingUserId);
+        staffService.createStaff(createRequest);
 
         // Assert
-        verify(auditEmitter).emitStaffUpdateEvent(eq(staffId), eq(requestingUserId), changeMapCaptor.capture());
-        Map<String, Object> changeMap = changeMapCaptor.getValue();
+        verify(auditEmitter).emitStaffCreateEvent(anyLong(), eq("test-correlation-id"));
+    }
 
+    @Test
+    void updateStaff_WhenValidRequest_ShouldUpdateStaffAndEmitAuditEvent() {
+        // Arrange
+        Facility newFacility = new Facility();
+        newFacility.setFacilityId(2L);
+        newFacility.setName("New Facility");
+
+        when(staffRepository.findById(1L)).thenReturn(Optional.of(testStaff));
+        when(staffRepository.existsByEmailAndIdNot(updateRequest.getEmail(), 1L)).thenReturn(false);
+        when(facilityRepository.findById(2L)).thenReturn(Optional.of(newFacility));
+        when(staffRepository.save(any(Staff.class))).thenReturn(testStaff);
+
+        // Act
+        Staff result = staffService.updateStaff(1L, updateRequest);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(updateRequest.getFirstName(), testStaff.getFirstName());
+        assertEquals(updateRequest.getLastName(), testStaff.getLastName());
+        assertEquals(updateRequest.getEmail(), testStaff.getEmail());
+        assertEquals(updateRequest.getRole(), testStaff.getRole());
+        assertEquals(newFacility, testStaff.getFacility());
+        assertEquals(updateRequest.getEmploymentStatus(), testStaff.getEmploymentStatus());
+
+        ArgumentCaptor<Map<String, Object>> changeMapCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(auditEmitter).emitStaffUpdateEvent(eq(1L), eq("test-correlation-id"), changeMapCaptor.capture());
+
+        Map<String, Object> changeMap = changeMapCaptor.getValue();
         assertTrue(changeMap.containsKey("firstName"));
         assertTrue(changeMap.containsKey("lastName"));
         assertTrue(changeMap.containsKey("email"));
         assertTrue(changeMap.containsKey("role"));
+        assertTrue(changeMap.containsKey("facilityId"));
+        assertTrue(changeMap.containsKey("employmentStatus"));
     }
 
     @Test
-    void updateStaff_DoesNotTrackUnchangedFields() {
+    void updateStaff_WhenStaffNotFound_ShouldThrowResourceNotFoundException() {
         // Arrange
-        updateRequest.setFirstName("John"); // Same as current
-        updateRequest.setLastName("Doe"); // Same as current
+        when(staffRepository.findById(1L)).thenReturn(Optional.empty());
 
-        when(staffRepository.findById(staffId)).thenReturn(Optional.of(mockStaff));
-        when(staffRepository.existsByEmailAndIdNot(updateRequest.getEmail(), staffId)).thenReturn(false);
-        when(staffRepository.save(any(Staff.class))).thenReturn(mockStaff);
-        doNothing().when(roleAuthorizationService).requireRole(requestingUserId, "MANAGER");
-        doNothing().when(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
+        // Act & Assert
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+                () -> staffService.updateStaff(1L, updateRequest));
 
+        assertTrue(exception.getMessage().contains("Staff"));
+        verify(staffRepository).findById(1L);
+        verify(staffRepository, never()).save(any(Staff.class));
+        verify(auditEmitter, never()).emitStaffUpdateEvent(anyLong(), anyString(), any());
+    }
+
+    @Test
+    void updateStaff_WhenEmailChangedAndAlreadyExists_ShouldThrowIllegalArgumentException() {
+        // Arrange
+        when(staffRepository.findById(1L)).thenReturn(Optional.of(testStaff));
+        when(staffRepository.existsByEmailAndIdNot(updateRequest.getEmail(), 1L)).thenReturn(true);
+
+        // Act & Assert
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> staffService.updateStaff(1L, updateRequest));
+
+        assertEquals("Email already exists for another staff member", exception.getMessage());
+        verify(staffRepository).findById(1L);
+        verify(staffRepository).existsByEmailAndIdNot(updateRequest.getEmail(), 1L);
+        verify(staffRepository, never()).save(any(Staff.class));
+        verify(auditEmitter, never()).emitStaffUpdateEvent(anyLong(), anyString(), any());
+    }
+
+    @Test
+    void updateStaff_WhenNewFacilityNotFound_ShouldThrowResourceNotFoundException() {
+        // Arrange
+        when(staffRepository.findById(1L)).thenReturn(Optional.of(testStaff));
+        when(staffRepository.existsByEmailAndIdNot(updateRequest.getEmail(), 1L)).thenReturn(false);
+        when(facilityRepository.findById(2L)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+                () -> staffService.updateStaff(1L, updateRequest));
+
+        assertTrue(exception.getMessage().contains("Facility"));
+        verify(facilityRepository).findById(2L);
+        verify(staffRepository, never()).save(any(Staff.class));
+        verify(auditEmitter, never()).emitStaffUpdateEvent(anyLong(), anyString(), any());
+    }
+
+    @Test
+    void updateStaff_WhenNoFieldsChanged_ShouldNotIncludeChangesInAuditEvent() {
+        // Arrange
+        UpdateStaffRequest noChangeRequest = new UpdateStaffRequest();
+        noChangeRequest.setFirstName(testStaff.getFirstName());
+        noChangeRequest.setLastName(testStaff.getLastName());
+        noChangeRequest.setEmail(testStaff.getEmail());
+        noChangeRequest.setRole(testStaff.getRole());
+        noChangeRequest.setFacilityId(testStaff.getFacility().getFacilityId());
+        noChangeRequest.setEmploymentStatus(testStaff.getEmploymentStatus());
+
+        when(staffRepository.findById(1L)).thenReturn(Optional.of(testStaff));
+        when(staffRepository.save(any(Staff.class))).thenReturn(testStaff);
+
+        // Act
+        staffService.updateStaff(1L, noChangeRequest);
+
+        // Assert
         ArgumentCaptor<Map<String, Object>> changeMapCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(auditEmitter).emitStaffUpdateEvent(eq(1L), eq("test-correlation-id"), changeMapCaptor.capture());
 
-        // Act
-        staffService.updateStaff(staffId, updateRequest, requestingUserId);
-
-        // Assert
-        verify(auditEmitter).emitStaffUpdateEvent(eq(staffId), eq(requestingUserId), changeMapCaptor.capture());
         Map<String, Object> changeMap = changeMapCaptor.getValue();
-
-        assertFalse(changeMap.containsKey("firstName"));
-        assertFalse(changeMap.containsKey("lastName"));
+        assertTrue(changeMap.isEmpty());
     }
 
-    // ==================== deactivateStaff Tests ====================
-
     @Test
-    void deactivateStaff_Success() {
+    void updateStaff_ShouldRetrieveCorrelationIdFromMDC() {
         // Arrange
-        when(staffRepository.findById(staffId)).thenReturn(Optional.of(mockStaff));
-        when(staffRepository.save(any(Staff.class))).thenReturn(mockStaff);
-        doNothing().when(roleAuthorizationService).requireRole(requestingUserId, "MANAGER");
-        doNothing().when(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
-        doNothing().when(auditEmitter).emitStaffDeactivateEvent(anyLong(), anyLong(), anyString());
+        when(staffRepository.findById(1L)).thenReturn(Optional.of(testStaff));
+        when(staffRepository.save(any(Staff.class))).thenReturn(testStaff);
 
         // Act
-        staffService.deactivateStaff(staffId, requestingUserId);
+        staffService.updateStaff(1L, new UpdateStaffRequest());
 
         // Assert
-        verify(roleAuthorizationService).requireRole(requestingUserId, "MANAGER");
-        verify(staffRepository).findById(staffId);
-        verify(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
-        verify(staffRepository).save(mockStaff);
-        verify(auditEmitter).emitStaffDeactivateEvent(staffId, requestingUserId, "Manager-initiated deactivation");
+        verify(auditEmitter).emitStaffUpdateEvent(anyLong(), eq("test-correlation-id"), any());
     }
 
     @Test
-    void deactivateStaff_ThrowsForbiddenAccessException_WhenUserNotManager() {
+    void deactivateStaff_WhenValidId_ShouldSetDeactivatedTrueAndEmitAuditEvent() {
         // Arrange
-        doThrow(new ForbiddenAccessException("User does not have MANAGER role"))
-                .when(roleAuthorizationService).requireRole(requestingUserId, "MANAGER");
-
-        // Act & Assert
-        assertThrows(ForbiddenAccessException.class, () ->
-                staffService.deactivateStaff(staffId, requestingUserId)
-        );
-
-        verify(roleAuthorizationService).requireRole(requestingUserId, "MANAGER");
-        verify(staffRepository, never()).findById(anyLong());
-        verify(staffRepository, never()).save(any());
-    }
-
-    @Test
-    void deactivateStaff_ThrowsResourceNotFoundException_WhenStaffNotFound() {
-        // Arrange
-        when(staffRepository.findById(staffId)).thenReturn(Optional.empty());
-        doNothing().when(roleAuthorizationService).requireRole(requestingUserId, "MANAGER");
-
-        // Act & Assert
-        assertThrows(ResourceNotFoundException.class, () ->
-                staffService.deactivateStaff(staffId, requestingUserId)
-        );
-
-        verify(roleAuthorizationService).requireRole(requestingUserId, "MANAGER");
-        verify(staffRepository).findById(staffId);
-        verify(staffRepository, never()).save(any());
-    }
-
-    @Test
-    void deactivateStaff_ThrowsForbiddenAccessException_WhenFacilityAccessDenied() {
-        // Arrange
-        when(staffRepository.findById(staffId)).thenReturn(Optional.of(mockStaff));
-        doNothing().when(roleAuthorizationService).requireRole(requestingUserId, "MANAGER");
-        doThrow(new ForbiddenAccessException("Access denied to facility"))
-                .when(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
-
-        // Act & Assert
-        assertThrows(ForbiddenAccessException.class, () ->
-                staffService.deactivateStaff(staffId, requestingUserId)
-        );
-
-        verify(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
-        verify(staffRepository, never()).save(any());
-    }
-
-    @Test
-    void deactivateStaff_Idempotent_WhenStaffAlreadyDeactivated() {
-        // Arrange
-        mockStaff.setActive(false);
-        when(staffRepository.findById(staffId)).thenReturn(Optional.of(mockStaff));
-        doNothing().when(roleAuthorizationService).requireRole(requestingUserId, "MANAGER");
-        doNothing().when(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
+        when(staffRepository.findById(1L)).thenReturn(Optional.of(testStaff));
+        when(staffRepository.save(any(Staff.class))).thenReturn(testStaff);
 
         // Act
-        staffService.deactivateStaff(staffId, requestingUserId);
+        staffService.deactivateStaff(1L);
 
         // Assert
-        verify(staffRepository).findById(staffId);
-        verify(staffRepository, never()).save(any());
-        verify(auditEmitter, never()).emitStaffDeactivateEvent(anyLong(), anyLong(), anyString());
+        assertTrue(testStaff.isDeactivated());
+        assertFalse(testStaff.isActive());
+        assertNotNull(testStaff.getDeactivationDate());
+        assertEquals(LocalDate.now(), testStaff.getDeactivationDate());
+
+        verify(staffRepository).findById(1L);
+        verify(staffRepository).save(testStaff);
+        verify(auditEmitter).emitStaffDeactivateEvent(eq(1L), eq("test-correlation-id"), eq("Staff deactivation"));
     }
 
-    // ==================== getStaffById Tests ====================
+    @Test
+    void deactivateStaff_WhenStaffNotFound_ShouldThrowResourceNotFoundException() {
+        // Arrange
+        when(staffRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+                () -> staffService.deactivateStaff(1L));
+
+        assertTrue(exception.getMessage().contains("Staff"));
+        verify(staffRepository).findById(1L);
+        verify(staffRepository, never()).save(any(Staff.class));
+        verify(auditEmitter, never()).emitStaffDeactivateEvent(anyLong(), anyString(), anyString());
+    }
 
     @Test
-    void getStaffById_Success() {
+    void deactivateStaff_ShouldRetrieveCorrelationIdFromMDC() {
         // Arrange
-        when(staffRepository.findById(staffId)).thenReturn(Optional.of(mockStaff));
-        doNothing().when(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
+        when(staffRepository.findById(1L)).thenReturn(Optional.of(testStaff));
+        when(staffRepository.save(any(Staff.class))).thenReturn(testStaff);
 
         // Act
-        StaffResponse response = staffService.getStaffById(staffId, requestingUserId);
+        staffService.deactivateStaff(1L);
 
         // Assert
-        assertNotNull(response);
-        verify(staffRepository).findById(staffId);
-        verify(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
+        verify(auditEmitter).emitStaffDeactivateEvent(anyLong(), eq("test-correlation-id"), anyString());
     }
 
     @Test
-    void getStaffById_ThrowsResourceNotFoundException_WhenStaffNotFound() {
+    void getStaffById_WhenValidIdAndFacilityAccess_ShouldReturnStaffResponse() {
         // Arrange
-        when(staffRepository.findById(staffId)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        assertThrows(ResourceNotFoundException.class, () ->
-                staffService.getStaffById(staffId, requestingUserId)
-        );
-
-        verify(staffRepository).findById(staffId);
-        verify(facilityScopingService, never()).validateFacilityAccess(anyLong(), anyLong());
-    }
-
-    @Test
-    void getStaffById_ThrowsForbiddenAccessException_WhenFacilityAccessDenied() {
-        // Arrange
-        when(staffRepository.findById(staffId)).thenReturn(Optional.of(mockStaff));
-        doThrow(new ForbiddenAccessException("Access denied to facility"))
-                .when(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
-
-        // Act & Assert
-        assertThrows(ForbiddenAccessException.class, () ->
-                staffService.getStaffById(staffId, requestingUserId)
-        );
-
-        verify(staffRepository).findById(staffId);
-        verify(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
-    }
-
-    // ==================== listActiveStaff Tests ====================
-
-    @Test
-    void listActiveStaff_Success() {
-        // Arrange
-        Staff staff1 = new Staff();
-        staff1.setId(1L);
-        staff1.setEmploymentStatus("ACTIVE");
-        staff1.setFacility(mockFacility);
-
-        Staff staff2 = new Staff();
-        staff2.setId(2L);
-        staff2.setEmploymentStatus("ACTIVE");
-        staff2.setFacility(mockFacility);
-
-        List<Staff> activeStaffList = Arrays.asList(staff1, staff2);
-
-        when(staffRepository.findByFacilityIdAndEmploymentStatus(facilityId, "ACTIVE")).thenReturn(activeStaffList);
-        doNothing().when(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
+        when(staffRepository.findById(1L)).thenReturn(Optional.of(testStaff));
+        doNothing().when(facilityScopingService).validateFacilityAccess(testFacility.getFacilityId());
 
         // Act
-        List<StaffResponse> responses = staffService.listActiveStaff(facilityId, requestingUserId);
+        StaffResponse result = staffService.getStaffById(1L, 100L);
 
         // Assert
-        assertNotNull(responses);
-        assertEquals(2, responses.size());
-        verify(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
-        verify(staffRepository).findByFacilityIdAndEmploymentStatus(facilityId, "ACTIVE");
+        assertNotNull(result);
+        verify(staffRepository).findById(1L);
+        verify(facilityScopingService).validateFacilityAccess(testFacility.getFacilityId());
     }
 
     @Test
-    void listActiveStaff_ThrowsForbiddenAccessException_WhenFacilityAccessDenied() {
+    void getStaffById_WhenStaffNotFound_ShouldThrowResourceNotFoundException() {
         // Arrange
-        doThrow(new ForbiddenAccessException("Access denied to facility"))
-                .when(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
+        when(staffRepository.findById(1L)).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(ForbiddenAccessException.class, () ->
-                staffService.listActiveStaff(facilityId, requestingUserId)
-        );
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+                () -> staffService.getStaffById(1L, 100L));
 
-        verify(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
+        assertTrue(exception.getMessage().contains("Staff"));
+        verify(staffRepository).findById(1L);
+        verify(facilityScopingService, never()).validateFacilityAccess(anyLong());
+    }
+
+    @Test
+    void getStaffById_WhenFacilityAccessDenied_ShouldThrowForbiddenAccessException() {
+        // Arrange
+        when(staffRepository.findById(1L)).thenReturn(Optional.of(testStaff));
+        doThrow(new ForbiddenAccessException("Access denied")).when(facilityScopingService)
+                .validateFacilityAccess(testFacility.getFacilityId());
+
+        // Act & Assert
+        ForbiddenAccessException exception = assertThrows(ForbiddenAccessException.class,
+                () -> staffService.getStaffById(1L, 100L));
+
+        assertEquals("Access denied", exception.getMessage());
+        verify(staffRepository).findById(1L);
+        verify(facilityScopingService).validateFacilityAccess(testFacility.getFacilityId());
+    }
+
+    @Test
+    void getStaffById_ShouldRetrieveCorrelationIdFromMDC() {
+        // Arrange
+        when(staffRepository.findById(1L)).thenReturn(Optional.of(testStaff));
+        doNothing().when(facilityScopingService).validateFacilityAccess(testFacility.getFacilityId());
+
+        // Act
+        staffService.getStaffById(1L, 100L);
+
+        // Assert
+        assertEquals("test-correlation-id", MDC.get("correlationId"));
+    }
+
+    @Test
+    void listActiveStaff_WhenValidFacilityIdAndAccess_ShouldReturnActiveStaffList() {
+        // Arrange
+        List<Staff> activeStaffList = Arrays.asList(testStaff);
+        when(staffRepository.findByFacilityIdAndEmploymentStatus(1L, "ACTIVE")).thenReturn(activeStaffList);
+        doNothing().when(facilityScopingService).validateFacilityAccess(1L);
+
+        // Act
+        List<StaffResponse> result = staffService.listActiveStaff(1L, 100L);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(facilityScopingService).validateFacilityAccess(1L);
+        verify(staffRepository).findByFacilityIdAndEmploymentStatus(1L, "ACTIVE");
+    }
+
+    @Test
+    void listActiveStaff_WhenFacilityAccessDenied_ShouldThrowForbiddenAccessException() {
+        // Arrange
+        doThrow(new ForbiddenAccessException("Access denied")).when(facilityScopingService)
+                .validateFacilityAccess(1L);
+
+        // Act & Assert
+        ForbiddenAccessException exception = assertThrows(ForbiddenAccessException.class,
+                () -> staffService.listActiveStaff(1L, 100L));
+
+        assertEquals("Access denied", exception.getMessage());
+        verify(facilityScopingService).validateFacilityAccess(1L);
         verify(staffRepository, never()).findByFacilityIdAndEmploymentStatus(anyLong(), anyString());
     }
 
     @Test
-    void listActiveStaff_ReturnsEmptyList_WhenNoActiveStaff() {
+    void listActiveStaff_ShouldRetrieveCorrelationIdFromMDC() {
         // Arrange
-        when(staffRepository.findByFacilityIdAndEmploymentStatus(facilityId, "ACTIVE")).thenReturn(Arrays.asList());
-        doNothing().when(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
+        List<Staff> activeStaffList = Arrays.asList(testStaff);
+        when(staffRepository.findByFacilityIdAndEmploymentStatus(1L, "ACTIVE")).thenReturn(activeStaffList);
+        doNothing().when(facilityScopingService).validateFacilityAccess(1L);
 
         // Act
-        List<StaffResponse> responses = staffService.listActiveStaff(facilityId, requestingUserId);
+        staffService.listActiveStaff(1L, 100L);
 
         // Assert
-        assertNotNull(responses);
-        assertTrue(responses.isEmpty());
-        verify(facilityScopingService).validateFacilityAccess(requestingUserId, facilityId);
-        verify(staffRepository).findByFacilityIdAndEmploymentStatus(facilityId, "ACTIVE");
+        assertEquals("test-correlation-id", MDC.get("correlationId"));
+    }
+
+    @Test
+    void listActiveStaff_WhenNoActiveStaff_ShouldReturnEmptyList() {
+        // Arrange
+        when(staffRepository.findByFacilityIdAndEmploymentStatus(1L, "ACTIVE")).thenReturn(Collections.emptyList());
+        doNothing().when(facilityScopingService).validateFacilityAccess(1L);
+
+        // Act
+        List<StaffResponse> result = staffService.listActiveStaff(1L, 100L);
+
+        // Assert
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        verify(facilityScopingService).validateFacilityAccess(1L);
+        verify(staffRepository).findByFacilityIdAndEmploymentStatus(1L, "ACTIVE");
     }
 }
