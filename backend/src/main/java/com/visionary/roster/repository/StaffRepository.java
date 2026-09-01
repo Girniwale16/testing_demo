@@ -1,6 +1,6 @@
 package com.visionary.roster.repository;
 
-import com.visionary.roster.entity.Staff;
+import com.visionary.roster.model.Staff;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

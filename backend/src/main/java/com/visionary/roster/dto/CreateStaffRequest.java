@@ -2,7 +2,7 @@ package com.visionary.roster.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDate;
-import com.visionary.roster.entity.StaffMember;
+import com.visionary.roster.model.StaffMember;
 
 /**
  * Data Transfer Object for creating new staff members.

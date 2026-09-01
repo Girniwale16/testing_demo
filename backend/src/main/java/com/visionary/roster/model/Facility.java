@@ -19,7 +19,7 @@ public class Facility {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "facility_id")
+    @Column(name = "id")
     private Long facilityId;
 
     @Column(name = "name", nullable = false, length = 200)
@@ -31,7 +31,7 @@ public class Facility {
     @Column(name = "region_code", length = 10)
     private String regionCode;
 
-    @Column(name = "is_active", nullable = false)
+    @Column(name = "active", nullable = false)
     private Boolean isActive = true;
 
     @Column(name = "created_at", nullable = false, updatable = false)

@@ -1,6 +1,6 @@
 package com.visionary.roster.dto;
 
-import com.visionary.roster.entity.Staff;
+import com.visionary.roster.model.Staff;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -249,7 +249,7 @@ public class StaffResponse {
         response.setEndDate(staff.getEndDate());
 
         if (staff.getFacility() != null) {
-            response.setFacilityId(staff.getFacility().getId());
+            response.setFacilityId(staff.getFacility().getFacilityId());
             response.setFacilityName(staff.getFacility().getName());
         }
 

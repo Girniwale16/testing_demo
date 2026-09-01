@@ -1,11 +1,14 @@
 package com.visionary.roster.service;
 
+import com.visionary.roster.audit.AuditEmitter;
 import com.visionary.roster.dto.StaffResponse;
 import com.visionary.roster.dto.StaffUpdateRequest;
-import com.visionary.roster.entity.Staff;
+import com.visionary.roster.model.Staff;
 import com.visionary.roster.exception.ForbiddenAccessException;
 import com.visionary.roster.exception.ResourceNotFoundException;
 import com.visionary.roster.repository.StaffRepository;
+import com.visionary.roster.security.FacilityScopingService;
+import com.visionary.roster.security.RoleAuthorizationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,7 +62,7 @@ public class StaffService {
     public StaffResponse updateStaff(Long staffId, StaffUpdateRequest request, Long requestingUserId) {
         try {
             // Enforce manager-only access
-            roleAuthorizationService.requireRole(requestingUserId, "MANAGER");
+            roleAuthorizationService.requireManagerRole();
         } catch (ForbiddenAccessException e) {
             throw e;
         }
@@ -70,15 +73,15 @@ public class StaffService {
 
         try {
             // Validate facility access for current staff facility
-            facilityScopingService.validateFacilityAccess(requestingUserId, staff.getFacility().getId());
+            facilityScopingService.validateFacilityAccess(staff.getFacility().getFacilityId());
         } catch (ForbiddenAccessException e) {
             throw e;
         }
 
         // If facility is being changed, validate access to new facility
-        if (request.getFacilityId() != null && !request.getFacilityId().equals(staff.getFacility().getId())) {
+        if (request.getFacilityId() != null && !request.getFacilityId().equals(staff.getFacility().getFacilityId())) {
             try {
-                facilityScopingService.validateFacilityAccess(requestingUserId, request.getFacilityId());
+                facilityScopingService.validateFacilityAccess(request.getFacilityId());
             } catch (ForbiddenAccessException e) {
                 throw e;
             }
@@ -113,9 +116,9 @@ public class StaffService {
             staff.setRole(request.getRole());
         }
 
-        if (request.getFacilityId() != null && !request.getFacilityId().equals(staff.getFacility().getId())) {
-            changeMap.put("facilityId", Map.of("old", staff.getFacility().getId(), "new", request.getFacilityId()));
-            staff.getFacility().setId(request.getFacilityId());
+        if (request.getFacilityId() != null && !request.getFacilityId().equals(staff.getFacility().getFacilityId())) {
+            changeMap.put("facilityId", Map.of("old", staff.getFacility().getFacilityId(), "new", request.getFacilityId()));
+            staff.getFacility().setFacilityId(request.getFacilityId());
         }
 
         if (request.getEmploymentStatus() != null && !request.getEmploymentStatus().equals(staff.getEmploymentStatus())) {
@@ -146,7 +149,7 @@ public class StaffService {
     public void deactivateStaff(Long staffId, Long requestingUserId) {
         try {
             // Enforce manager-only access
-            roleAuthorizationService.requireRole(requestingUserId, "MANAGER");
+            roleAuthorizationService.requireManagerRole();
         } catch (ForbiddenAccessException e) {
             throw e;
         }
@@ -157,7 +160,7 @@ public class StaffService {
 
         try {
             // Validate facility access
-            facilityScopingService.validateFacilityAccess(requestingUserId, staff.getFacility().getId());
+            facilityScopingService.validateFacilityAccess(staff.getFacility().getFacilityId());
         } catch (ForbiddenAccessException e) {
             throw e;
         }
@@ -193,7 +196,7 @@ public class StaffService {
 
         try {
             // Validate facility access
-            facilityScopingService.validateFacilityAccess(requestingUserId, staff.getFacility().getId());
+            facilityScopingService.validateFacilityAccess(staff.getFacility().getFacilityId());
         } catch (ForbiddenAccessException e) {
             throw e;
         }
@@ -213,7 +216,7 @@ public class StaffService {
     public List<StaffResponse> listActiveStaff(Long facilityId, Long requestingUserId) {
         try {
             // Validate facility access
-            facilityScopingService.validateFacilityAccess(requestingUserId, facilityId);
+            facilityScopingService.validateFacilityAccess(facilityId);
         } catch (ForbiddenAccessException e) {
             throw e;
         }

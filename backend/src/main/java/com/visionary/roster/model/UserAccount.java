@@ -42,7 +42,7 @@ public class UserAccount {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "user_account_id")
+    @Column(name = "id")
     private Long userAccountId;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -60,7 +60,7 @@ public class UserAccount {
     @NotNull
     private String passwordHash;
 
-    @Column(name = "role", nullable = false, length = 50)
+    @Column(name = "roles", nullable = false, length = 50)
     @NotNull
     private String role;
 

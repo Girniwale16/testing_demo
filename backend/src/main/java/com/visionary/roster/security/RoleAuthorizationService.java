@@ -1,6 +1,6 @@
 package com.visionary.roster.security;
 
-import com.visionary.roster.entity.UserAccount;
+import com.visionary.roster.model.UserAccount;
 import com.visionary.roster.exception.ForbiddenAccessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -182,7 +182,7 @@ public class RoleAuthorizationService {
      */
     private void requireRole(String requiredRole, UserAccount user) {
         if (user == null || user.getRole() == null || !user.getRole().equals(requiredRole)) {
-            Long userId = user != null ? user.getId() : null;
+            Long userId = user != null ? user.getUserAccountId() : null;
             throw new ForbiddenAccessException(
                     "Access denied: " + requiredRole + " role required",
                     userId,

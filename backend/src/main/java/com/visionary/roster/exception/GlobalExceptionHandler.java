@@ -13,7 +13,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import javax.persistence.EntityNotFoundException;
+import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -115,7 +115,7 @@ public class GlobalExceptionHandler {
         String correlationId = getOrGenerateCorrelationId();
 
         String resourceType = ex.getResourceType() != null ? ex.getResourceType() : "Resource";
-        String resourceId = ex.getResourceId() != null ? ex.getResourceId() : "unknown";
+        String resourceId = ex.getResourceId() != null ? String.valueOf(ex.getResourceId()) : "unknown";
         String message = String.format("%s with ID %s not found", resourceType, resourceId);
 
         logger.warn("Resource not found - correlationId: {}, resourceType: {}, resourceId: {}", 

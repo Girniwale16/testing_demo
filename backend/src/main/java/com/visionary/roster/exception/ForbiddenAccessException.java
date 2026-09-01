@@ -15,6 +15,10 @@ public class ForbiddenAccessException extends RuntimeException {
         this.reason = reason;
     }
 
+    public ForbiddenAccessException(String message) {
+        this(message, null, null, null, null);
+    }
+
     public Long getUserId() {
         return userId;
     }
