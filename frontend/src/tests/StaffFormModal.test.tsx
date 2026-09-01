@@ -2,11 +2,11 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom';
-import StaffFormModal from '../StaffFormModal';
-import { useStaffForm } from '../../hooks/useStaffForm';
+import StaffFormModal from '../components/StaffFormModal';
+import { useStaffForm } from '../hooks/useStaffForm';
 
-jest.mock('../../hooks/useStaffForm');
-jest.mock('../ErrorBanner', () => ({
+jest.mock('../hooks/useStaffForm');
+jest.mock('../components/ErrorBanner', () => ({
   __esModule: true,
   default: ({ message, fieldErrors, onDismiss }: any) => (
     <div data-testid="error-banner">
@@ -18,7 +18,7 @@ jest.mock('../ErrorBanner', () => ({
     </div>
   )
 }));
-jest.mock('../Toast', () => ({
+jest.mock('../components/Toast', () => ({
   __esModule: true,
   default: ({ message, type, onDismiss }: any) => (
     <div data-testid="toast" data-type={type}>
@@ -27,7 +27,7 @@ jest.mock('../Toast', () => ({
     </div>
   )
 }));
-jest.mock('../../utils/logger', () => ({
+jest.mock('../utils/logger', () => ({
   __esModule: true,
   default: {
     info: jest.fn(),

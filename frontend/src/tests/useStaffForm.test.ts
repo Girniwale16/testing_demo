@@ -1,12 +1,12 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useStaffForm } from '../useStaffForm';
-import { createStaff, updateStaff, getStaff } from '../../api/staffApi';
-import { validateStaffForm } from '../../utils/staffValidation';
-import logger from '../../utils/logger';
+import { useStaffForm } from '../hooks/useStaffForm';
+import { createStaff, updateStaff, getStaff } from '../api/staffApi';
+import { validateStaffForm } from '../utils/staffValidation';
+import logger from '../utils/logger';
 
-jest.mock('../../api/staffApi');
-jest.mock('../../utils/staffValidation');
-jest.mock('../../utils/logger');
+jest.mock('../api/staffApi');
+jest.mock('../utils/staffValidation');
+jest.mock('../utils/logger');
 
 const mockedCreateStaff = createStaff as jest.MockedFunction<typeof createStaff>;
 const mockedUpdateStaff = updateStaff as jest.MockedFunction<typeof updateStaff>;

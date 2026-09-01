@@ -3,7 +3,6 @@ package com.visionary.roster.service;
 import com.visionary.roster.audit.AuditEmitter;
 import com.visionary.roster.dto.CreateStaffRequest;
 import com.visionary.roster.dto.StaffResponse;
-import com.visionary.roster.dto.StaffUpdateRequest;
 import com.visionary.roster.dto.UpdateStaffRequest;
 import com.visionary.roster.model.Staff;
 import com.visionary.roster.exception.ForbiddenAccessException;
@@ -51,30 +50,35 @@ public class StaffService {
     }
 
     /**
-     * Creates a new staff member with authorization and facility scoping validation.
+     * Creates a new staff member with manager authorization and facility scoping validation.
      *
      * @param request the create staff request containing staff data
      * @param facilityId the ID of the facility where staff will be created
      * @param userId the ID of the user creating the staff
      * @return StaffResponse containing created staff information
-     * @throws ForbiddenAccessException if user lacks permission or facility access
+     * @throws ForbiddenAccessException if user lacks manager role or facility access
      * @throws IllegalArgumentException if validation fails
      */
     @Transactional
-    public StaffResponse createStaff(CreateStaffRequest request, Long facilityId, String userId) {
-        // Verify user has permission to create staff
-        roleAuthorizationService.checkPermission(userId, "STAFF_CREATE");
+    public StaffResponse createStaff(CreateStaffRequest request, Long facilityId, Long userId) {
+        // Enforce manager-only access
+        roleAuthorizationService.requireManagerRole();
 
         // Ensure user can create staff in target facility
-        facilityScopingService.validateFacilityAccess(userId, facilityId);
+        facilityScopingService.validateFacilityAccess(facilityId);
+
+        // Validate email uniqueness
+        if (staffRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email already exists for another staff member");
+        }
 
         // Convert CreateStaffRequest to Staff entity
-        Staff staff = request.toEntity(facilityId);
+        Staff staff = Staff.toEntity(request, facilityId);
 
         // Validate employment_status transitions (new staff must start with ACTIVE or PENDING status)
         String employmentStatus = staff.getEmploymentStatus();
-        if (employmentStatus != null && 
-            !employmentStatus.equals("ACTIVE") && 
+        if (employmentStatus != null &&
+            !employmentStatus.equals("ACTIVE") &&
             !employmentStatus.equals("PENDING")) {
             throw new IllegalArgumentException("New staff must start with ACTIVE or PENDING status");
         }
@@ -90,39 +94,36 @@ public class StaffService {
         Staff savedStaff = staffRepository.save(staff);
 
         // Emit audit event
-        Map<String, Object> auditData = new HashMap<>();
-        auditData.put("action", "STAFF_CREATED");
-        auditData.put("userId", userId);
-        auditData.put("facilityId", facilityId);
-        auditData.put("staffId", savedStaff.getId());
-        auditEmitter.emitStaffCreateEvent(savedStaff.getId(), userId, facilityId);
+        Map<String, Object> auditMetadata = new HashMap<>();
+        auditMetadata.put("facilityId", facilityId);
+        auditEmitter.emitAuditEvent("STAFF_CREATED", "STAFF", savedStaff.getId(), userId, auditMetadata);
 
         // Return StaffResponse
         return StaffResponse.fromEntity(savedStaff);
     }
 
     /**
-     * Updates staff information with authorization and facility scoping validation.
+     * Updates staff information with manager authorization and facility scoping validation.
      *
      * @param staffId the ID of the staff to update
      * @param request the update request containing new staff data
      * @param userId the ID of the user requesting the update
      * @return StaffResponse containing updated staff information
-     * @throws ForbiddenAccessException if user lacks permission or facility access
+     * @throws ForbiddenAccessException if user lacks manager role or facility access
      * @throws ResourceNotFoundException if staff not found
      * @throws IllegalArgumentException if validation fails
      */
     @Transactional
-    public StaffResponse updateStaff(Long staffId, UpdateStaffRequest request, String userId) {
-        // Retrieve existing Staff entity by staffId
+    public StaffResponse updateStaff(Long staffId, UpdateStaffRequest request, Long userId) {
+        // Enforce manager-only access
+        roleAuthorizationService.requireManagerRole();
+
+        // Retrieve existing Staff entity
         Staff staff = staffRepository.findById(staffId)
                 .orElseThrow(() -> new ResourceNotFoundException("Staff", staffId));
 
-        // Verify user has permission to update staff
-        roleAuthorizationService.checkPermission(userId, "STAFF_UPDATE");
-
         // Ensure user can modify staff in this facility
-        facilityScopingService.validateFacilityAccess(userId, staff.getFacilityId());
+        facilityScopingService.validateFacilityAccess(staff.getFacilityId());
 
         // Track changed fields for audit
         Map<String, Object> changedFields = new HashMap<>();
@@ -154,12 +155,6 @@ public class StaffService {
         Staff updatedStaff = staffRepository.save(staff);
 
         // Emit audit event
-        Map<String, Object> auditData = new HashMap<>();
-        auditData.put("action", "STAFF_UPDATED");
-        auditData.put("userId", userId);
-        auditData.put("facilityId", staff.getFacilityId());
-        auditData.put("staffId", staffId);
-        auditData.put("changedFields", changedFields);
         auditEmitter.emitStaffUpdateEvent(staffId, userId, changedFields);
 
         // Return StaffResponse
@@ -175,15 +170,12 @@ public class StaffService {
      * @throws ForbiddenAccessException if user lacks facility access
      * @throws ResourceNotFoundException if staff not found
      */
-    public StaffResponse getStaff(Long staffId, String userId) {
-        // Retrieve Staff entity
+    public StaffResponse getStaff(Long staffId, Long userId) {
         Staff staff = staffRepository.findById(staffId)
                 .orElseThrow(() -> new ResourceNotFoundException("Staff", staffId));
 
-        // Validate facility access
-        facilityScopingService.validateFacilityAccess(userId, staff.getFacilityId());
+        facilityScopingService.validateFacilityAccess(staff.getFacilityId());
 
-        // Return StaffResponse
         return StaffResponse.fromEntity(staff);
     }
 
@@ -195,105 +187,14 @@ public class StaffService {
      * @return List of StaffResponse containing staff information
      * @throws ForbiddenAccessException if user lacks facility access
      */
-    public List<StaffResponse> listStaff(Long facilityId, String userId) {
-        // Validate facility access
-        facilityScopingService.validateFacilityAccess(userId, facilityId);
+    public List<StaffResponse> listStaff(Long facilityId, Long userId) {
+        facilityScopingService.validateFacilityAccess(facilityId);
 
-        // Query repository for all staff in facility
         List<Staff> staffList = staffRepository.findByFacilityId(facilityId);
 
-        // Map to StaffResponse list
         return staffList.stream()
                 .map(StaffResponse::fromEntity)
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * Updates staff information with manager authorization and facility scoping validation.
-     *
-     * @param staffId the ID of the staff to update
-     * @param request the update request containing new staff data
-     * @param requestingUserId the ID of the user requesting the update
-     * @return StaffResponse containing updated staff information
-     * @throws ForbiddenAccessException if user lacks manager role or facility access
-     * @throws ResourceNotFoundException if staff not found
-     */
-    @Transactional
-    public StaffResponse updateStaff(Long staffId, StaffUpdateRequest request, Long requestingUserId) {
-        try {
-            // Enforce manager-only access
-            roleAuthorizationService.requireManagerRole();
-        } catch (ForbiddenAccessException e) {
-            throw e;
-        }
-
-        // Retrieve Staff entity
-        Staff staff = staffRepository.findById(staffId)
-                .orElseThrow(() -> new ResourceNotFoundException("Staff", staffId));
-
-        try {
-            // Validate facility access for current staff facility
-            facilityScopingService.validateFacilityAccess(staff.getFacility().getFacilityId());
-        } catch (ForbiddenAccessException e) {
-            throw e;
-        }
-
-        // If facility is being changed, validate access to new facility
-        if (request.getFacilityId() != null && !request.getFacilityId().equals(staff.getFacility().getFacilityId())) {
-            try {
-                facilityScopingService.validateFacilityAccess(request.getFacilityId());
-            } catch (ForbiddenAccessException e) {
-                throw e;
-            }
-        }
-
-        // Validate email uniqueness
-        if (request.getEmail() != null && staffRepository.existsByEmailAndIdNot(request.getEmail(), staffId)) {
-            throw new IllegalArgumentException("Email already exists for another staff member");
-        }
-
-        // Build change map for audit
-        Map<String, Object> changeMap = new HashMap<>();
-
-        // Apply field updates and track changes
-        if (request.getFirstName() != null && !request.getFirstName().equals(staff.getFirstName())) {
-            changeMap.put("firstName", Map.of("old", staff.getFirstName(), "new", request.getFirstName()));
-            staff.setFirstName(request.getFirstName());
-        }
-
-        if (request.getLastName() != null && !request.getLastName().equals(staff.getLastName())) {
-            changeMap.put("lastName", Map.of("old", staff.getLastName(), "new", request.getLastName()));
-            staff.setLastName(request.getLastName());
-        }
-
-        if (request.getEmail() != null && !request.getEmail().equals(staff.getEmail())) {
-            changeMap.put("email", Map.of("old", staff.getEmail(), "new", request.getEmail()));
-            staff.setEmail(request.getEmail());
-        }
-
-        if (request.getRole() != null && !request.getRole().equals(staff.getRole())) {
-            changeMap.put("role", Map.of("old", staff.getRole(), "new", request.getRole()));
-            staff.setRole(request.getRole());
-        }
-
-        if (request.getFacilityId() != null && !request.getFacilityId().equals(staff.getFacility().getFacilityId())) {
-            changeMap.put("facilityId", Map.of("old", staff.getFacility().getFacilityId(), "new", request.getFacilityId()));
-            staff.getFacility().setFacilityId(request.getFacilityId());
-        }
-
-        if (request.getEmploymentStatus() != null && !request.getEmploymentStatus().equals(staff.getEmploymentStatus())) {
-            changeMap.put("employmentStatus", Map.of("old", staff.getEmploymentStatus(), "new", request.getEmploymentStatus()));
-            staff.setEmploymentStatus(request.getEmploymentStatus());
-        }
-
-        // Save updated staff entity
-        Staff updatedStaff = staffRepository.save(staff);
-
-        // Emit audit event
-        auditEmitter.emitStaffUpdateEvent(staffId, requestingUserId, changeMap);
-
-        // Return response
-        return StaffResponse.fromEntity(updatedStaff);
     }
 
     /**
@@ -307,62 +208,22 @@ public class StaffService {
      */
     @Transactional
     public void deactivateStaff(Long staffId, Long requestingUserId) {
-        try {
-            // Enforce manager-only access
-            roleAuthorizationService.requireManagerRole();
-        } catch (ForbiddenAccessException e) {
-            throw e;
-        }
+        roleAuthorizationService.requireManagerRole();
 
-        // Retrieve Staff entity
         Staff staff = staffRepository.findById(staffId)
                 .orElseThrow(() -> new ResourceNotFoundException("Staff", staffId));
 
-        try {
-            // Validate facility access
-            facilityScopingService.validateFacilityAccess(staff.getFacility().getFacilityId());
-        } catch (ForbiddenAccessException e) {
-            throw e;
-        }
+        facilityScopingService.validateFacilityAccess(staff.getFacilityId());
 
         // Implement idempotency - return silently if already deactivated
         if (!staff.isActive()) {
             return;
         }
 
-        // Deactivate staff
         staff.deactivate(LocalDate.now());
-
-        // Save deactivated staff entity
         staffRepository.save(staff);
 
-        // Emit audit event
         auditEmitter.emitStaffDeactivateEvent(staffId, requestingUserId, "Manager-initiated deactivation");
-    }
-
-    /**
-     * Retrieves staff details by ID with facility scoping validation.
-     *
-     * @param staffId the ID of the staff to retrieve
-     * @param requestingUserId the ID of the user requesting the staff details
-     * @return StaffResponse containing staff information
-     * @throws ForbiddenAccessException if user lacks facility access
-     * @throws ResourceNotFoundException if staff not found
-     */
-    public StaffResponse getStaffById(Long staffId, Long requestingUserId) {
-        // Retrieve Staff entity
-        Staff staff = staffRepository.findById(staffId)
-                .orElseThrow(() -> new ResourceNotFoundException("Staff", staffId));
-
-        try {
-            // Validate facility access
-            facilityScopingService.validateFacilityAccess(staff.getFacility().getFacilityId());
-        } catch (ForbiddenAccessException e) {
-            throw e;
-        }
-
-        // Return response
-        return StaffResponse.fromEntity(staff);
     }
 
     /**
@@ -374,17 +235,10 @@ public class StaffService {
      * @throws ForbiddenAccessException if user lacks facility access
      */
     public List<StaffResponse> listActiveStaff(Long facilityId, Long requestingUserId) {
-        try {
-            // Validate facility access
-            facilityScopingService.validateFacilityAccess(facilityId);
-        } catch (ForbiddenAccessException e) {
-            throw e;
-        }
+        facilityScopingService.validateFacilityAccess(facilityId);
 
-        // Retrieve active staff for facility
         List<Staff> activeStaff = staffRepository.findByFacility_FacilityIdAndEmploymentStatus(facilityId, "ACTIVE");
 
-        // Convert to response DTOs
         return activeStaff.stream()
                 .map(StaffResponse::fromEntity)
                 .collect(Collectors.toList());

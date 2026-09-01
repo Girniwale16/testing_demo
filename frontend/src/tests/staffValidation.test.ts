@@ -7,7 +7,7 @@ import {
   validateContactFormat,
   StaffFormData,
   ValidationErrors
-} from './staffValidation';
+} from '../utils/staffValidation';
 
 describe('staffValidation', () => {
   describe('validateRequiredFields', () => {

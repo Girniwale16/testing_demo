@@ -1,26 +1,17 @@
 package com.visionary.roster.dto;
 
-import jakarta.validation.Constraint;
-import jakarta.validation.ConstraintValidator;
-import jakarta.validation.ConstraintValidatorContext;
-import jakarta.validation.Payload;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Pattern;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
 import java.time.LocalDate;
 import java.util.Objects;
 
 /**
  * Data Transfer Object for updating staff information.
  * Contains validation annotations to ensure data integrity.
+ * Start/end date ordering is validated in StaffService, not here.
  */
-@ValidDateRange
 public class UpdateStaffRequest {
 
     @NotBlank(message = "First name is required")
@@ -30,7 +21,7 @@ public class UpdateStaffRequest {
     private String lastName;
 
     @NotBlank(message = "Contact is required")
-    @Pattern(regexp = "^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}|\\+?[0-9]{10,15})$", 
+    @Pattern(regexp = "^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}|\\+?[0-9]{10,15})$",
              message = "Contact must be a valid email or phone number")
     private String contact;
 
@@ -62,7 +53,7 @@ public class UpdateStaffRequest {
      * @param startDate        the start date
      * @param endDate          the end date
      */
-    public UpdateStaffRequest(String firstName, String lastName, String contact, String role, 
+    public UpdateStaffRequest(String firstName, String lastName, String contact, String role,
                               String employmentStatus, LocalDate startDate, LocalDate endDate) {
         this.firstName = firstName;
         this.lastName = lastName;
@@ -159,44 +150,5 @@ public class UpdateStaffRequest {
                ", startDate=" + startDate +
                ", endDate=" + endDate +
                '}';
-    }
-
-    /**
-     * Custom validation annotation to ensure startDate is before endDate.
-     */
-    @Target({ElementType.TYPE})
-    @Retention(RetentionPolicy.RUNTIME)
-    @Constraint(validatedBy = DateRangeValidator.class)
-    @Documented
-    public @interface ValidDateRange {
-        String message() default "Start date must be before end date";
-        Class<?>[] groups() default {};
-        Class<? extends Payload>[] payload() default {};
-    }
-
-    /**
-     * Validator implementation for ValidDateRange annotation.
-     */
-    public static class DateRangeValidator implements ConstraintValidator<ValidDateRange, UpdateStaffRequest> {
-
-        @Override
-        public void initialize(ValidDateRange constraintAnnotation) {
-        }
-
-        @Override
-        public boolean isValid(UpdateStaffRequest request, ConstraintValidatorContext context) {
-            if (request == null) {
-                return true;
-            }
-
-            LocalDate startDate = request.getStartDate();
-            LocalDate endDate = request.getEndDate();
-
-            if (startDate == null || endDate == null) {
-                return true;
-            }
-
-            return startDate.isBefore(endDate);
-        }
     }
 }

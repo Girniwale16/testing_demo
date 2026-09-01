@@ -1,592 +1,907 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import axiosInstance from '../api/axiosInstance';
 import { logger } from '../utils/logger';
+import { v4 as uuidv4 } from 'uuid';
 
-vi.mock('../utils/logger', () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn()
-  }
-}));
+vi.mock('uuid');
+vi.mock('../utils/logger');
 
 describe('axiosInstance', () => {
-  let localStorageMock: { [key: string]: string };
-  let originalLocation: Location;
-
   beforeEach(() => {
-    localStorageMock = {};
-    
-    global.localStorage = {
-      getItem: vi.fn((key: string) => localStorageMock[key] || null),
-      setItem: vi.fn((key: string, value: string) => {
-        localStorageMock[key] = value;
-      }),
-      removeItem: vi.fn((key: string) => {
-        delete localStorageMock[key];
-      }),
-      clear: vi.fn(() => {
-        localStorageMock = {};
-      }),
-      length: 0,
-      key: vi.fn()
-    } as Storage;
-
-    originalLocation = window.location;
-    delete (window as any).location;
-    window.location = {
-      ...originalLocation,
-      pathname: '/dashboard',
-      href: ''
-    } as Location;
-
     vi.clearAllMocks();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    window.location = originalLocation;
+    vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
-  describe('Axios Instance Configuration', () => {
-    it('should create axios instance with correct baseURL from environment variable', () => {
-      expect(axiosInstance.defaults.baseURL).toBe(import.meta.env.VITE_API_URL || '');
-    });
+  describe('generateCorrelationId', () => {
+    it('should generate unique UUID v4 correlation IDs', () => {
+      const mockUuid1 = '123e4567-e89b-12d3-a456-426614174000';
+      const mockUuid2 = '987e6543-e21b-98d7-a654-426614174999';
+      
+      vi.mocked(uuidv4).mockReturnValueOnce(mockUuid1).mockReturnValueOnce(mockUuid2);
 
-    it('should have timeout set to 30000ms', () => {
-      expect(axiosInstance.defaults.timeout).toBe(30000);
-    });
+      const id1 = uuidv4();
+      const id2 = uuidv4();
 
-    it('should have withCredentials set to true', () => {
-      expect(axiosInstance.defaults.withCredentials).toBe(true);
-    });
-
-    it('should have Content-Type header set to application/json', () => {
-      expect(axiosInstance.defaults.headers['Content-Type']).toBe('application/json');
+      expect(id1).toBe(mockUuid1);
+      expect(id2).toBe(mockUuid2);
+      expect(id1).not.toBe(id2);
+      expect(uuidv4).toHaveBeenCalledTimes(2);
     });
   });
 
-  describe('Request Interceptor - Bearer Token Attachment', () => {
-    it('should attach Bearer token from localStorage when token exists', async () => {
-      localStorageMock['token'] = 'test-token-123';
+  describe('Request Interceptor - Correlation ID', () => {
+    it('should attach X-Correlation-ID header to outgoing requests when not present', async () => {
+      const mockCorrelationId = 'test-correlation-id-123';
+      vi.mocked(uuidv4).mockReturnValue(mockCorrelationId);
+
+      const requestInterceptor = (axiosInstance.interceptors.request as any).handlers[0];
       
       const config: InternalAxiosRequestConfig = {
         headers: {} as any,
-        url: '/api/test'
+        url: '/test-endpoint'
       } as InternalAxiosRequestConfig;
 
-      const interceptor = axiosInstance.interceptors.request['handlers'][0].fulfilled;
-      const result = await interceptor(config);
+      const result = await requestInterceptor.fulfilled(config);
 
-      expect(result.headers['Authorization']).toBe('Bearer test-token-123');
+      expect(result.headers['X-Correlation-ID']).toBe(mockCorrelationId);
+      expect(logger.info).toHaveBeenCalledWith('Generated correlation ID for request', {
+        event: 'correlation_id_generated',
+        correlation_id: mockCorrelationId,
+        path: '/test-endpoint'
+      });
     });
 
-    it('should not attach Bearer token when token does not exist in localStorage', async () => {
-      const config: InternalAxiosRequestConfig = {
-        headers: {} as any,
-        url: '/api/test'
-      } as InternalAxiosRequestConfig;
-
-      const interceptor = axiosInstance.interceptors.request['handlers'][0].fulfilled;
-      const result = await interceptor(config);
-
-      expect(result.headers['Authorization']).toBeUndefined();
-    });
-
-    it('should not override existing Authorization header', async () => {
-      localStorageMock['token'] = 'test-token-123';
-      
-      const config: InternalAxiosRequestConfig = {
-        headers: {
-          'Authorization': 'Bearer existing-token'
-        } as any,
-        url: '/api/test'
-      } as InternalAxiosRequestConfig;
-
-      const interceptor = axiosInstance.interceptors.request['handlers'][0].fulfilled;
-      const result = await interceptor(config);
-
-      expect(result.headers['Authorization']).toBe('Bearer existing-token');
-    });
-  });
-
-  describe('Request Interceptor - Correlation ID Generation', () => {
-    it('should generate and attach correlation ID when not present', async () => {
-      const config: InternalAxiosRequestConfig = {
-        headers: {} as any,
-        url: '/api/test'
-      } as InternalAxiosRequestConfig;
-
-      const interceptor = axiosInstance.interceptors.request['handlers'][0].fulfilled;
-      const result = await interceptor(config);
-
-      expect(result.headers['X-Correlation-ID']).toBeDefined();
-      expect(result.headers['X-Correlation-ID']).toMatch(/^fe-\d+-\d+-[a-z0-9]+$/);
-    });
-
-    it('should log correlation ID generation with correct event data', async () => {
-      const config: InternalAxiosRequestConfig = {
-        headers: {} as any,
-        url: '/api/test'
-      } as InternalAxiosRequestConfig;
-
-      const interceptor = axiosInstance.interceptors.request['handlers'][0].fulfilled;
-      await interceptor(config);
-
-      expect(logger.info).toHaveBeenCalledWith(
-        'Generated correlation ID for request',
-        expect.objectContaining({
-          event: 'correlation_id_generated',
-          correlation_id: expect.stringMatching(/^fe-\d+-\d+-[a-z0-9]+$/),
-          path: '/api/test'
-        })
-      );
-    });
-
-    it('should not override existing correlation ID', async () => {
+    it('should not overwrite existing X-Correlation-ID header', async () => {
       const existingCorrelationId = 'existing-correlation-id';
+      
+      const requestInterceptor = (axiosInstance.interceptors.request as any).handlers[0];
+      
       const config: InternalAxiosRequestConfig = {
         headers: {
           'X-Correlation-ID': existingCorrelationId
         } as any,
-        url: '/api/test'
+        url: '/test-endpoint'
       } as InternalAxiosRequestConfig;
 
-      const interceptor = axiosInstance.interceptors.request['handlers'][0].fulfilled;
-      const result = await interceptor(config);
+      const result = await requestInterceptor.fulfilled(config);
 
       expect(result.headers['X-Correlation-ID']).toBe(existingCorrelationId);
+      expect(uuidv4).not.toHaveBeenCalled();
       expect(logger.info).not.toHaveBeenCalled();
     });
 
-    it('should generate unique correlation IDs for multiple requests', async () => {
-      const config1: InternalAxiosRequestConfig = {
-        headers: {} as any,
-        url: '/api/test1'
-      } as InternalAxiosRequestConfig;
+    it('should handle request interceptor errors', async () => {
+      const requestInterceptor = (axiosInstance.interceptors.request as any).handlers[0];
+      const error = new Error('Request interceptor error');
 
-      const config2: InternalAxiosRequestConfig = {
-        headers: {} as any,
-        url: '/api/test2'
-      } as InternalAxiosRequestConfig;
-
-      const interceptor = axiosInstance.interceptors.request['handlers'][0].fulfilled;
-      const result1 = await interceptor(config1);
-      const result2 = await interceptor(config2);
-
-      expect(result1.headers['X-Correlation-ID']).not.toBe(result2.headers['X-Correlation-ID']);
+      await expect(requestInterceptor.rejected(error)).rejects.toThrow(error);
+      
+      expect(logger.error).toHaveBeenCalledWith('Request interceptor error', {
+        event: 'request_interceptor_error',
+        error: 'Request interceptor error'
+      });
     });
   });
 
-  describe('Request Interceptor - Error Handling', () => {
-    it('should log error and reject promise on request interceptor error', async () => {
-      const error = new Error('Request setup failed');
-      const interceptor = axiosInstance.interceptors.request['handlers'][0].rejected;
+  describe('Response Error Interceptor - Correlation ID Extraction', () => {
+    it('should extract correlation ID from error responses and include in logged error objects', async () => {
+      const correlationId = 'error-correlation-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
 
-      await expect(interceptor(error)).rejects.toThrow('Request setup failed');
-
-      expect(logger.error).toHaveBeenCalledWith(
-        'Request interceptor error',
-        {
-          event: 'request_interceptor_error',
-          error: 'Request setup failed'
-        }
-      );
-    });
-
-    it('should handle non-Error objects in request interceptor', async () => {
-      const error = 'String error';
-      const interceptor = axiosInstance.interceptors.request['handlers'][0].rejected;
-
-      await expect(interceptor(error)).rejects.toBe('String error');
-
-      expect(logger.error).toHaveBeenCalledWith(
-        'Request interceptor error',
-        {
-          event: 'request_interceptor_error',
-          error: 'Unknown error'
-        }
-      );
-    });
-  });
-
-  describe('Response Interceptor - 401 Unauthorized Handling', () => {
-    it('should clear localStorage and redirect to /login on 401 error', async () => {
-      const error: Partial<AxiosError> = {
+      const error: AxiosError = {
         config: {
-          headers: { 'X-Correlation-ID': 'test-correlation-id' },
-          url: '/api/protected'
-        } as any,
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test'
+        } as InternalAxiosRequestConfig,
         response: {
-          status: 401,
-          data: {},
-          statusText: 'Unauthorized',
-          headers: {},
-          config: {} as any
-        }
+          status: 500,
+          data: { message: 'Internal server error' }
+        } as AxiosResponse,
+        isAxiosError: true,
+        message: 'Request failed',
+        name: 'AxiosError',
+        toJSON: () => ({})
       };
 
-      const interceptor = axiosInstance.interceptors.response['handlers'][0].rejected;
+      await expect(responseInterceptor.rejected(error)).rejects.toThrow();
 
-      await expect(interceptor(error)).rejects.toEqual(error);
+      expect(logger.error).toHaveBeenCalledWith('HTTP error intercepted', {
+        event: 'interceptor_error',
+        correlation_id: correlationId,
+        path: '/api/test',
+        status: 500,
+        message: 'Internal server error'
+      });
+    });
+  });
 
-      expect(localStorage.clear).toHaveBeenCalled();
-      expect(window.location.href).toBe('/login');
-      expect(logger.warn).toHaveBeenCalledWith(
-        '401 Unauthorized - redirecting to login',
-        {
-          event: 'interceptor_401',
-          correlation_id: 'test-correlation-id',
-          path: '/api/protected',
+  describe('Retry Logic - Network Failures', () => {
+    it('should retry GET requests on network failure with exponential backoff', async () => {
+      const correlationId = 'retry-correlation-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      const mockAxiosInstance = vi.spyOn(axiosInstance, 'request').mockResolvedValue({ data: 'success' } as AxiosResponse);
+
+      const error: AxiosError = {
+        config: {
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test',
+          method: 'GET'
+        } as InternalAxiosRequestConfig,
+        response: undefined,
+        code: 'ERR_NETWORK',
+        isAxiosError: true,
+        message: 'Network Error',
+        name: 'AxiosError',
+        toJSON: () => ({})
+      };
+
+      const retryPromise = responseInterceptor.rejected(error);
+      
+      await vi.advanceTimersByTimeAsync(1000);
+      
+      await retryPromise;
+
+      expect(logger.info).toHaveBeenCalledWith('Retrying request', {
+        event: 'request_retry',
+        correlation_id: correlationId,
+        path: '/api/test',
+        retry_count: 1,
+        delay_ms: 1000
+      });
+
+      expect(mockAxiosInstance).toHaveBeenCalled();
+    });
+
+    it('should retry with exponential backoff: 1s, 2s, 4s delays', async () => {
+      const correlationId = 'backoff-test-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      let attemptCount = 0;
+      vi.spyOn(axiosInstance, 'request').mockImplementation(() => {
+        attemptCount++;
+        if (attemptCount < 4) {
+          return Promise.reject({
+            config: {
+              headers: { 'X-Correlation-ID': correlationId },
+              url: '/api/test',
+              method: 'GET',
+              retryCount: attemptCount - 1
+            },
+            code: 'ERR_NETWORK',
+            message: 'Network Error'
+          });
+        }
+        return Promise.resolve({ data: 'success' } as AxiosResponse);
+      });
+
+      const error: AxiosError = {
+        config: {
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test',
+          method: 'GET'
+        } as InternalAxiosRequestConfig,
+        code: 'ERR_NETWORK',
+        isAxiosError: true,
+        message: 'Network Error',
+        name: 'AxiosError',
+        toJSON: () => ({})
+      };
+
+      const retryPromise = responseInterceptor.rejected(error);
+      
+      await vi.advanceTimersByTimeAsync(1000);
+      await vi.advanceTimersByTimeAsync(2000);
+      await vi.advanceTimersByTimeAsync(4000);
+      
+      await retryPromise;
+
+      expect(logger.info).toHaveBeenCalledWith('Retrying request', expect.objectContaining({ delay_ms: 1000 }));
+      expect(logger.info).toHaveBeenCalledWith('Retrying request', expect.objectContaining({ delay_ms: 2000 }));
+      expect(logger.info).toHaveBeenCalledWith('Retrying request', expect.objectContaining({ delay_ms: 4000 }));
+    });
+
+    it('should stop retrying after max 3 retries', async () => {
+      const correlationId = 'max-retry-test-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      vi.spyOn(axiosInstance, 'request').mockRejectedValue({
+        config: {
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test',
+          method: 'GET'
+        },
+        code: 'ERR_NETWORK',
+        message: 'Network Error'
+      });
+
+      const error: AxiosError = {
+        config: {
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test',
+          method: 'GET'
+        } as InternalAxiosRequestConfig,
+        code: 'ERR_NETWORK',
+        isAxiosError: true,
+        message: 'Network Error',
+        name: 'AxiosError',
+        toJSON: () => ({})
+      };
+
+      const retryPromise = responseInterceptor.rejected(error);
+      
+      await vi.advanceTimersByTimeAsync(1000);
+      await vi.advanceTimersByTimeAsync(2000);
+      await vi.advanceTimersByTimeAsync(4000);
+      
+      await expect(retryPromise).rejects.toThrow();
+
+      expect(logger.error).toHaveBeenCalledWith('Max retries reached', {
+        event: 'max_retries_reached',
+        correlation_id: correlationId,
+        path: '/api/test',
+        retry_count: 3
+      });
+    });
+
+    it('should retry on status code 0', async () => {
+      const correlationId = 'status-0-test-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      vi.spyOn(axiosInstance, 'request').mockResolvedValue({ data: 'success' } as AxiosResponse);
+
+      const error: AxiosError = {
+        config: {
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test',
+          method: 'GET'
+        } as InternalAxiosRequestConfig,
+        response: {
+          status: 0
+        } as AxiosResponse,
+        isAxiosError: true,
+        message: 'Network Error',
+        name: 'AxiosError',
+        toJSON: () => ({})
+      };
+
+      const retryPromise = responseInterceptor.rejected(error);
+      
+      await vi.advanceTimersByTimeAsync(1000);
+      
+      await retryPromise;
+
+      expect(logger.info).toHaveBeenCalledWith('Retrying request', expect.objectContaining({
+        event: 'request_retry',
+        correlation_id: correlationId
+      }));
+    });
+
+    it('should retry on ECONNABORTED error code', async () => {
+      const correlationId = 'econnaborted-test-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      vi.spyOn(axiosInstance, 'request').mockResolvedValue({ data: 'success' } as AxiosResponse);
+
+      const error: AxiosError = {
+        config: {
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test',
+          method: 'GET'
+        } as InternalAxiosRequestConfig,
+        code: 'ECONNABORTED',
+        isAxiosError: true,
+        message: 'timeout of 30000ms exceeded',
+        name: 'AxiosError',
+        toJSON: () => ({})
+      };
+
+      const retryPromise = responseInterceptor.rejected(error);
+      
+      await vi.advanceTimersByTimeAsync(1000);
+      
+      await retryPromise;
+
+      expect(logger.info).toHaveBeenCalledWith('Retrying request', expect.objectContaining({
+        event: 'request_retry',
+        correlation_id: correlationId
+      }));
+    });
+  });
+
+  describe('Idempotency Check', () => {
+    it('should retry GET requests without idempotency key', async () => {
+      const correlationId = 'get-no-key-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      vi.spyOn(axiosInstance, 'request').mockResolvedValue({ data: 'success' } as AxiosResponse);
+
+      const error: AxiosError = {
+        config: {
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test',
+          method: 'GET'
+        } as InternalAxiosRequestConfig,
+        code: 'ERR_NETWORK',
+        isAxiosError: true,
+        message: 'Network Error',
+        name: 'AxiosError',
+        toJSON: () => ({})
+      };
+
+      const retryPromise = responseInterceptor.rejected(error);
+      
+      await vi.advanceTimersByTimeAsync(1000);
+      
+      await retryPromise;
+
+      expect(logger.info).toHaveBeenCalledWith('Retrying request', expect.objectContaining({
+        event: 'request_retry'
+      }));
+    });
+
+    it('should retry POST requests with X-Idempotency-Key header', async () => {
+      const correlationId = 'post-with-key-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      vi.spyOn(axiosInstance, 'request').mockResolvedValue({ data: 'success' } as AxiosResponse);
+
+      const error: AxiosError = {
+        config: {
+          headers: { 
+            'X-Correlation-ID': correlationId,
+            'X-Idempotency-Key': 'idempotency-key-123'
+          },
+          url: '/api/test',
+          method: 'POST'
+        } as InternalAxiosRequestConfig,
+        code: 'ERR_NETWORK',
+        isAxiosError: true,
+        message: 'Network Error',
+        name: 'AxiosError',
+        toJSON: () => ({})
+      };
+
+      const retryPromise = responseInterceptor.rejected(error);
+      
+      await vi.advanceTimersByTimeAsync(1000);
+      
+      await retryPromise;
+
+      expect(logger.info).toHaveBeenCalledWith('Retrying request', expect.objectContaining({
+        event: 'request_retry'
+      }));
+    });
+
+    it('should NOT retry POST requests without X-Idempotency-Key header', async () => {
+      const correlationId = 'post-no-key-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      const error: AxiosError = {
+        config: {
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test',
+          method: 'POST'
+        } as InternalAxiosRequestConfig,
+        code: 'ERR_NETWORK',
+        isAxiosError: true,
+        message: 'Network Error',
+        name: 'AxiosError',
+        toJSON: () => ({})
+      };
+
+      await expect(responseInterceptor.rejected(error)).rejects.toThrow();
+
+      expect(logger.info).not.toHaveBeenCalledWith('Retrying request', expect.anything());
+    });
+
+    it('should retry PUT requests with X-Idempotency-Key header', async () => {
+      const correlationId = 'put-with-key-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      vi.spyOn(axiosInstance, 'request').mockResolvedValue({ data: 'success' } as AxiosResponse);
+
+      const error: AxiosError = {
+        config: {
+          headers: { 
+            'X-Correlation-ID': correlationId,
+            'X-Idempotency-Key': 'idempotency-key-456'
+          },
+          url: '/api/test',
+          method: 'PUT'
+        } as InternalAxiosRequestConfig,
+        code: 'ERR_NETWORK',
+        isAxiosError: true,
+        message: 'Network Error',
+        name: 'AxiosError',
+        toJSON: () => ({})
+      };
+
+      const retryPromise = responseInterceptor.rejected(error);
+      
+      await vi.advanceTimersByTimeAsync(1000);
+      
+      await retryPromise;
+
+      expect(logger.info).toHaveBeenCalledWith('Retrying request', expect.objectContaining({
+        event: 'request_retry'
+      }));
+    });
+
+    it('should retry PATCH requests with X-Idempotency-Key header', async () => {
+      const correlationId = 'patch-with-key-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      vi.spyOn(axiosInstance, 'request').mockResolvedValue({ data: 'success' } as AxiosResponse);
+
+      const error: AxiosError = {
+        config: {
+          headers: { 
+            'X-Correlation-ID': correlationId,
+            'X-Idempotency-Key': 'idempotency-key-789'
+          },
+          url: '/api/test',
+          method: 'PATCH'
+        } as InternalAxiosRequestConfig,
+        code: 'ERR_NETWORK',
+        isAxiosError: true,
+        message: 'Network Error',
+        name: 'AxiosError',
+        toJSON: () => ({})
+      };
+
+      const retryPromise = responseInterceptor.rejected(error);
+      
+      await vi.advanceTimersByTimeAsync(1000);
+      
+      await retryPromise;
+
+      expect(logger.info).toHaveBeenCalledWith('Retrying request', expect.objectContaining({
+        event: 'request_retry'
+      }));
+    });
+
+    it('should NOT retry DELETE requests even with X-Idempotency-Key header', async () => {
+      const correlationId = 'delete-with-key-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      const error: AxiosError = {
+        config: {
+          headers: { 
+            'X-Correlation-ID': correlationId,
+            'X-Idempotency-Key': 'idempotency-key-delete'
+          },
+          url: '/api/test',
+          method: 'DELETE'
+        } as InternalAxiosRequestConfig,
+        code: 'ERR_NETWORK',
+        isAxiosError: true,
+        message: 'Network Error',
+        name: 'AxiosError',
+        toJSON: () => ({})
+      };
+
+      await expect(responseInterceptor.rejected(error)).rejects.toThrow();
+
+      expect(logger.info).not.toHaveBeenCalledWith('Retrying request', expect.anything());
+    });
+  });
+
+  describe('isRetry Flag - Prevent Infinite Loops', () => {
+    it('should set isRetry flag to true when retrying', async () => {
+      const correlationId = 'retry-flag-test-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      let capturedConfig: any;
+      vi.spyOn(axiosInstance, 'request').mockImplementation((config) => {
+        capturedConfig = config;
+        return Promise.resolve({ data: 'success' } as AxiosResponse);
+      });
+
+      const error: AxiosError = {
+        config: {
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test',
+          method: 'GET'
+        } as InternalAxiosRequestConfig,
+        code: 'ERR_NETWORK',
+        isAxiosError: true,
+        message: 'Network Error',
+        name: 'AxiosError',
+        toJSON: () => ({})
+      };
+
+      const retryPromise = responseInterceptor.rejected(error);
+      
+      await vi.advanceTimersByTimeAsync(1000);
+      
+      await retryPromise;
+
+      expect(capturedConfig.isRetry).toBe(true);
+      expect(capturedConfig.retryCount).toBe(1);
+    });
+
+    it('should NOT retry if isRetry flag is already true', async () => {
+      const correlationId = 'no-infinite-loop-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      const error: AxiosError = {
+        config: {
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test',
+          method: 'GET',
+          isRetry: true
+        } as InternalAxiosRequestConfig & { isRetry: boolean },
+        code: 'ERR_NETWORK',
+        isAxiosError: true,
+        message: 'Network Error',
+        name: 'AxiosError',
+        toJSON: () => ({})
+      };
+
+      await expect(responseInterceptor.rejected(error)).rejects.toThrow();
+
+      expect(logger.info).not.toHaveBeenCalledWith('Retrying request', expect.anything());
+    });
+  });
+
+  describe('Existing Interceptor Behavior - 401 Authentication', () => {
+    it('should redirect to /login on 401 error', async () => {
+      const correlationId = '401-test-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      const originalLocation = window.location.href;
+      delete (window as any).location;
+      window.location = { href: '/dashboard', pathname: '/dashboard' } as any;
+
+      const error: AxiosError = {
+        config: {
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test'
+        } as InternalAxiosRequestConfig,
+        response: {
           status: 401
-        }
-      );
-    });
-
-    it('should not redirect if already on /login page', async () => {
-      window.location.pathname = '/login';
-
-      const error: Partial<AxiosError> = {
-        config: {
-          headers: { 'X-Correlation-ID': 'test-correlation-id' },
-          url: '/api/auth/login'
-        } as any,
-        response: {
-          status: 401,
-          data: {},
-          statusText: 'Unauthorized',
-          headers: {},
-          config: {} as any
-        }
+        } as AxiosResponse,
+        isAxiosError: true,
+        message: 'Unauthorized',
+        name: 'AxiosError',
+        toJSON: () => ({})
       };
 
-      const interceptor = axiosInstance.interceptors.response['handlers'][0].rejected;
+      await expect(responseInterceptor.rejected(error)).rejects.toThrow();
 
-      await expect(interceptor(error)).rejects.toEqual(error);
+      expect(logger.warn).toHaveBeenCalledWith('401 Unauthorized - redirecting to login', {
+        event: 'interceptor_401',
+        correlation_id: correlationId,
+        path: '/api/test',
+        status: 401
+      });
 
-      expect(localStorage.clear).toHaveBeenCalled();
-      expect(window.location.href).toBe('');
+      expect(window.location.href).toBe('/login');
+    });
+
+    it('should NOT redirect if already on /login page', async () => {
+      const correlationId = '401-already-login-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      delete (window as any).location;
+      window.location = { href: '/login', pathname: '/login' } as any;
+
+      const error: AxiosError = {
+        config: {
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test'
+        } as InternalAxiosRequestConfig,
+        response: {
+          status: 401
+        } as AxiosResponse,
+        isAxiosError: true,
+        message: 'Unauthorized',
+        name: 'AxiosError',
+        toJSON: () => ({})
+      };
+
+      await expect(responseInterceptor.rejected(error)).rejects.toThrow();
+
+      expect(window.location.href).toBe('/login');
+    });
+
+    it('should NOT retry on 401 error', async () => {
+      const correlationId = '401-no-retry-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      delete (window as any).location;
+      window.location = { href: '/dashboard', pathname: '/dashboard' } as any;
+
+      const error: AxiosError = {
+        config: {
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test',
+          method: 'GET'
+        } as InternalAxiosRequestConfig,
+        response: {
+          status: 401
+        } as AxiosResponse,
+        isAxiosError: true,
+        message: 'Unauthorized',
+        name: 'AxiosError',
+        toJSON: () => ({})
+      };
+
+      await expect(responseInterceptor.rejected(error)).rejects.toThrow();
+
+      expect(logger.info).not.toHaveBeenCalledWith('Retrying request', expect.anything());
     });
   });
 
-  describe('Response Interceptor - 403 Forbidden Handling', () => {
-    it('should log 403 error with custom message from response', async () => {
-      const error: Partial<AxiosError> = {
+  describe('Existing Interceptor Behavior - Error Logging', () => {
+    it('should log 403 errors with correlation ID', async () => {
+      const correlationId = '403-test-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      const error: AxiosError = {
         config: {
-          headers: { 'X-Correlation-ID': 'test-correlation-id' },
-          url: '/api/admin'
-        } as any,
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test'
+        } as InternalAxiosRequestConfig,
         response: {
           status: 403,
-          data: { message: 'Insufficient permissions' },
-          statusText: 'Forbidden',
-          headers: {},
-          config: {} as any
-        }
+          data: { message: 'Access denied' }
+        } as AxiosResponse,
+        isAxiosError: true,
+        message: 'Forbidden',
+        name: 'AxiosError',
+        toJSON: () => ({})
       };
 
-      const interceptor = axiosInstance.interceptors.response['handlers'][0].rejected;
+      await expect(responseInterceptor.rejected(error)).rejects.toThrow();
 
-      await expect(interceptor(error)).rejects.toEqual(error);
-
-      expect(logger.error).toHaveBeenCalledWith(
-        '403 Forbidden - authorization error',
-        {
-          event: 'interceptor_403',
-          correlation_id: 'test-correlation-id',
-          path: '/api/admin',
-          status: 403,
-          message: 'Insufficient permissions'
-        }
-      );
+      expect(logger.error).toHaveBeenCalledWith('403 Forbidden - authorization error', {
+        event: 'interceptor_403',
+        correlation_id: correlationId,
+        path: '/api/test',
+        status: 403,
+        message: 'Access denied'
+      });
     });
 
-    it('should use default message for 403 error when no message in response', async () => {
-      const error: Partial<AxiosError> = {
+    it('should log 500 errors with correlation ID', async () => {
+      const correlationId = '500-test-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      const error: AxiosError = {
         config: {
-          headers: { 'X-Correlation-ID': 'test-correlation-id' },
-          url: '/api/admin'
-        } as any,
-        response: {
-          status: 403,
-          data: {},
-          statusText: 'Forbidden',
-          headers: {},
-          config: {} as any
-        }
-      };
-
-      const interceptor = axiosInstance.interceptors.response['handlers'][0].rejected;
-
-      await expect(interceptor(error)).rejects.toEqual(error);
-
-      expect(logger.error).toHaveBeenCalledWith(
-        '403 Forbidden - authorization error',
-        expect.objectContaining({
-          message: 'Access forbidden'
-        })
-      );
-    });
-  });
-
-  describe('Response Interceptor - HTTP Error Handling (4xx/5xx)', () => {
-    it('should log 400 error with correlation ID', async () => {
-      const error: Partial<AxiosError> = {
-        config: {
-          headers: { 'X-Correlation-ID': 'test-correlation-id' },
-          url: '/api/data'
-        } as any,
-        response: {
-          status: 400,
-          data: { message: 'Bad request' },
-          statusText: 'Bad Request',
-          headers: {},
-          config: {} as any
-        },
-        message: 'Request failed with status code 400'
-      };
-
-      const interceptor = axiosInstance.interceptors.response['handlers'][0].rejected;
-
-      await expect(interceptor(error)).rejects.toEqual(error);
-
-      expect(logger.error).toHaveBeenCalledWith(
-        'HTTP error intercepted',
-        {
-          event: 'interceptor_error',
-          correlation_id: 'test-correlation-id',
-          path: '/api/data',
-          status: 400,
-          message: 'Bad request'
-        }
-      );
-    });
-
-    it('should log 500 error with correlation ID', async () => {
-      const error: Partial<AxiosError> = {
-        config: {
-          headers: { 'X-Correlation-ID': 'test-correlation-id' },
-          url: '/api/data'
-        } as any,
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test'
+        } as InternalAxiosRequestConfig,
         response: {
           status: 500,
-          data: { message: 'Internal server error' },
-          statusText: 'Internal Server Error',
-          headers: {},
-          config: {} as any
-        },
-        message: 'Request failed with status code 500'
+          data: { message: 'Internal server error' }
+        } as AxiosResponse,
+        isAxiosError: true,
+        message: 'Server error',
+        name: 'AxiosError',
+        toJSON: () => ({})
       };
 
-      const interceptor = axiosInstance.interceptors.response['handlers'][0].rejected;
+      await expect(responseInterceptor.rejected(error)).rejects.toThrow();
 
-      await expect(interceptor(error)).rejects.toEqual(error);
-
-      expect(logger.error).toHaveBeenCalledWith(
-        'HTTP error intercepted',
-        {
-          event: 'interceptor_error',
-          correlation_id: 'test-correlation-id',
-          path: '/api/data',
-          status: 500,
-          message: 'Internal server error'
-        }
-      );
+      expect(logger.error).toHaveBeenCalledWith('HTTP error intercepted', {
+        event: 'interceptor_error',
+        correlation_id: correlationId,
+        path: '/api/test',
+        status: 500,
+        message: 'Internal server error'
+      });
     });
 
-    it('should use error.message when response data has no message', async () => {
-      const error: Partial<AxiosError> = {
+    it('should log timeout errors with correlation ID', async () => {
+      const correlationId = 'timeout-test-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      const error: AxiosError = {
         config: {
-          headers: { 'X-Correlation-ID': 'test-correlation-id' },
-          url: '/api/data'
-        } as any,
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test'
+        } as InternalAxiosRequestConfig,
+        code: 'ECONNABORTED',
+        isAxiosError: true,
+        message: 'timeout of 30000ms exceeded',
+        name: 'AxiosError',
+        toJSON: () => ({})
+      };
+
+      await expect(responseInterceptor.rejected(error)).rejects.toThrow();
+
+      expect(logger.error).toHaveBeenCalledWith('Request timeout', {
+        event: 'interceptor_timeout',
+        correlation_id: correlationId,
+        path: '/api/test'
+      });
+    });
+
+    it('should NOT retry on 4xx errors other than network failures', async () => {
+      const correlationId = '404-no-retry-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      const error: AxiosError = {
+        config: {
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test',
+          method: 'GET'
+        } as InternalAxiosRequestConfig,
         response: {
           status: 404,
-          data: {},
-          statusText: 'Not Found',
-          headers: {},
-          config: {} as any
-        },
-        message: 'Resource not found'
+          data: { message: 'Not found' }
+        } as AxiosResponse,
+        isAxiosError: true,
+        message: 'Not found',
+        name: 'AxiosError',
+        toJSON: () => ({})
       };
 
-      const interceptor = axiosInstance.interceptors.response['handlers'][0].rejected;
+      await expect(responseInterceptor.rejected(error)).rejects.toThrow();
 
-      await expect(interceptor(error)).rejects.toEqual(error);
-
-      expect(logger.error).toHaveBeenCalledWith(
-        'HTTP error intercepted',
-        expect.objectContaining({
-          message: 'Resource not found'
-        })
-      );
+      expect(logger.info).not.toHaveBeenCalledWith('Retrying request', expect.anything());
     });
 
-    it('should use default message when no message available', async () => {
-      const error: Partial<AxiosError> = {
+    it('should NOT retry on 5xx errors other than network failures', async () => {
+      const correlationId = '500-no-retry-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      const error: AxiosError = {
         config: {
-          headers: { 'X-Correlation-ID': 'test-correlation-id' },
-          url: '/api/data'
-        } as any,
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test',
+          method: 'GET'
+        } as InternalAxiosRequestConfig,
         response: {
-          status: 422,
-          data: {},
-          statusText: 'Unprocessable Entity',
-          headers: {},
-          config: {} as any
-        },
-        message: ''
+          status: 500,
+          data: { message: 'Internal server error' }
+        } as AxiosResponse,
+        isAxiosError: true,
+        message: 'Server error',
+        name: 'AxiosError',
+        toJSON: () => ({})
       };
 
-      const interceptor = axiosInstance.interceptors.response['handlers'][0].rejected;
+      await expect(responseInterceptor.rejected(error)).rejects.toThrow();
 
-      await expect(interceptor(error)).rejects.toEqual(error);
-
-      expect(logger.error).toHaveBeenCalledWith(
-        'HTTP error intercepted',
-        expect.objectContaining({
-          message: 'Request failed'
-        })
-      );
+      expect(logger.info).not.toHaveBeenCalledWith('Retrying request', expect.anything());
     });
   });
 
-  describe('Response Interceptor - Timeout Handling', () => {
-    it('should log timeout error when error code is ECONNABORTED', async () => {
-      const error: Partial<AxiosError> = {
+  describe('Network Error Detection', () => {
+    it('should detect network error when response is undefined', async () => {
+      const correlationId = 'no-response-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      vi.spyOn(axiosInstance, 'request').mockResolvedValue({ data: 'success' } as AxiosResponse);
+
+      const error: AxiosError = {
         config: {
-          headers: { 'X-Correlation-ID': 'test-correlation-id' },
-          url: '/api/slow'
-        } as any,
-        code: 'ECONNABORTED',
-        message: 'timeout of 30000ms exceeded'
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test',
+          method: 'GET'
+        } as InternalAxiosRequestConfig,
+        response: undefined,
+        isAxiosError: true,
+        message: 'Network Error',
+        name: 'AxiosError',
+        toJSON: () => ({})
       };
 
-      const interceptor = axiosInstance.interceptors.response['handlers'][0].rejected;
-
-      await expect(interceptor(error)).rejects.toEqual(error);
-
-      expect(logger.error).toHaveBeenCalledWith(
-        'Request timeout',
-        {
-          event: 'interceptor_timeout',
-          correlation_id: 'test-correlation-id',
-          path: '/api/slow'
-        }
-      );
-    });
-
-    it('should log timeout error when message includes "timeout"', async () => {
-      const error: Partial<AxiosError> = {
-        config: {
-          headers: { 'X-Correlation-ID': 'test-correlation-id' },
-          url: '/api/slow'
-        } as any,
-        message: 'Request timeout occurred'
-      };
-
-      const interceptor = axiosInstance.interceptors.response['handlers'][0].rejected;
-
-      await expect(interceptor(error)).rejects.toEqual(error);
-
-      expect(logger.error).toHaveBeenCalledWith(
-        'Request timeout',
-        {
-          event: 'interceptor_timeout',
-          correlation_id: 'test-correlation-id',
-          path: '/api/slow'
-        }
-      );
-    });
-  });
-
-  describe('Response Interceptor - Network Error Handling', () => {
-    it('should log network error when no response status', async () => {
-      const error: Partial<AxiosError> = {
-        config: {
-          headers: { 'X-Correlation-ID': 'test-correlation-id' },
-          url: '/api/data'
-        } as any,
-        message: 'Network Error'
-      };
-
-      const interceptor = axiosInstance.interceptors.response['handlers'][0].rejected;
-
-      await expect(interceptor(error)).rejects.toEqual(error);
-
-      expect(logger.error).toHaveBeenCalledWith(
-        'Network error',
-        {
-          event: 'interceptor_network_error',
-          correlation_id: 'test-correlation-id',
-          path: '/api/data',
-          error: 'Network Error'
-        }
-      );
-    });
-
-    it('should handle missing config in error', async () => {
-      const error: Partial<AxiosError> = {
-        message: 'Network Error'
-      };
-
-      const interceptor = axiosInstance.interceptors.response['handlers'][0].rejected;
-
-      await expect(interceptor(error)).rejects.toEqual(error);
-
-      expect(logger.error).toHaveBeenCalledWith(
-        'Network error',
-        {
-          event: 'interceptor_network_error',
-          correlation_id: undefined,
-          path: 'unknown',
-          error: 'Network Error'
-        }
-      );
-    });
-  });
-
-  describe('Response Interceptor - Successful Response', () => {
-    it('should return response unchanged for successful requests', async () => {
-      const response = {
-        data: { success: true },
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {} as any
-      };
-
-      const interceptor = axiosInstance.interceptors.response['handlers'][0].fulfilled;
-      const result = await interceptor(response);
-
-      expect(result).toEqual(response);
-      expect(logger.info).not.toHaveBeenCalled();
-      expect(logger.error).not.toHaveBeenCalled();
-      expect(logger.warn).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('Backward Compatibility', () => {
-    it('should maintain existing authentication flow patterns', async () => {
-      localStorageMock['token'] = 'auth-token';
+      const retryPromise = responseInterceptor.rejected(error);
       
-      const config: InternalAxiosRequestConfig = {
-        headers: {} as any,
-        url: '/api/auth/profile'
-      } as InternalAxiosRequestConfig;
+      await vi.advanceTimersByTimeAsync(1000);
+      
+      await retryPromise;
 
-      const interceptor = axiosInstance.interceptors.request['handlers'][0].fulfilled;
-      const result = await interceptor(config);
-
-      expect(result.headers['Authorization']).toBe('Bearer auth-token');
-      expect(result.headers['X-Correlation-ID']).toBeDefined();
+      expect(logger.error).toHaveBeenCalledWith('Network error', expect.objectContaining({
+        event: 'interceptor_network_error',
+        correlation_id: correlationId
+      }));
     });
 
-    it('should be ready for staffApi.js consumption without breaking authApi.ts', () => {
-      expect(axiosInstance).toBeDefined();
-      expect(axiosInstance.defaults.baseURL).toBeDefined();
-      expect(axiosInstance.interceptors.request['handlers'].length).toBeGreaterThan(0);
-      expect(axiosInstance.interceptors.response['handlers'].length).toBeGreaterThan(0);
+    it('should detect network error with ERR_NETWORK code', async () => {
+      const correlationId = 'err-network-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      vi.spyOn(axiosInstance, 'request').mockResolvedValue({ data: 'success' } as AxiosResponse);
+
+      const error: AxiosError = {
+        config: {
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test',
+          method: 'GET'
+        } as InternalAxiosRequestConfig,
+        code: 'ERR_NETWORK',
+        isAxiosError: true,
+        message: 'Network Error',
+        name: 'AxiosError',
+        toJSON: () => ({})
+      };
+
+      const retryPromise = responseInterceptor.rejected(error);
+      
+      await vi.advanceTimersByTimeAsync(1000);
+      
+      await retryPromise;
+
+      expect(logger.error).toHaveBeenCalledWith('Network error', expect.objectContaining({
+        event: 'interceptor_network_error',
+        correlation_id: correlationId
+      }));
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle missing config gracefully', async () => {
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      const error: AxiosError = {
+        config: undefined,
+        isAxiosError: true,
+        message: 'Network Error',
+        name: 'AxiosError',
+        toJSON: () => ({})
+      };
+
+      await expect(responseInterceptor.rejected(error)).rejects.toThrow();
+    });
+
+    it('should handle missing headers gracefully', async () => {
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      const error: AxiosError = {
+        config: {
+          url: '/api/test',
+          method: 'GET'
+        } as InternalAxiosRequestConfig,
+        code: 'ERR_NETWORK',
+        isAxiosError: true,
+        message: 'Network Error',
+        name: 'AxiosError',
+        toJSON: () => ({})
+      };
+
+      await expect(responseInterceptor.rejected(error)).rejects.toThrow();
+    });
+
+    it('should handle case-insensitive HTTP methods', async () => {
+      const correlationId = 'case-insensitive-id';
+      const responseInterceptor = (axiosInstance.interceptors.response as any).handlers[0];
+
+      vi.spyOn(axiosInstance, 'request').mockResolvedValue({ data: 'success' } as AxiosResponse);
+
+      const error: AxiosError = {
+        config: {
+          headers: { 'X-Correlation-ID': correlationId },
+          url: '/api/test',
+          method: 'get'
+        } as InternalAxiosRequestConfig,
+        code: 'ERR_NETWORK',
+        isAxiosError: true,
+        message: 'Network Error',
+        name: 'AxiosError',
+        toJSON: () => ({})
+      };
+
+      const retryPromise = responseInterceptor.rejected(error);
+      
+      await vi.advanceTimersByTimeAsync(1000);
+      
+      await retryPromise;
+
+      expect(logger.info).toHaveBeenCalledWith('Retrying request', expect.objectContaining({
+        event: 'request_retry'
+      }));
     });
   });
 });

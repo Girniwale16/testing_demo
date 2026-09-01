@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import axiosInstance from './axiosInstance';
+import axiosInstance from '../api/axiosInstance';
 import {
   createStaff,
   updateStaff,
@@ -8,9 +8,9 @@ import {
   CreateStaffRequest,
   UpdateStaffRequest,
   StaffResponse,
-} from './staffApi';
+} from '../api/staffApi';
 
-vi.mock('./axiosInstance');
+vi.mock('../api/axiosInstance');
 
 describe('staffApi', () => {
   const mockStaffResponse: StaffResponse = {

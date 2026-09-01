@@ -2,7 +2,6 @@ package com.visionary.roster.controller;
 
 import com.visionary.roster.dto.CreateStaffRequest;
 import com.visionary.roster.dto.StaffResponse;
-import com.visionary.roster.dto.StaffUpdateRequest;
 import com.visionary.roster.dto.UpdateStaffRequest;
 import com.visionary.roster.service.StaffService;
 import org.slf4j.Logger;
@@ -101,7 +100,7 @@ public class StaffController {
      * @return ResponseEntity containing the staff response with 200 OK status
      */
     @GetMapping("/staff/{staffId}")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'STAFF')")
     public ResponseEntity<StaffResponse> getStaff(@PathVariable Long staffId) {
         Long userId = currentUserId();
         StaffResponse response = staffService.getStaff(staffId, userId);
@@ -116,7 +115,7 @@ public class StaffController {
      * @return ResponseEntity containing list of staff responses with 200 OK status
      */
     @GetMapping("/facilities/{facilityId}/staff")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'STAFF')")
     public ResponseEntity<List<StaffResponse>> listStaff(@PathVariable Long facilityId) {
         Long userId = currentUserId();
         List<StaffResponse> staffList = staffService.listStaff(facilityId, userId);
@@ -145,7 +144,7 @@ public class StaffController {
      * @return ResponseEntity containing list of active staff responses
      */
     @GetMapping("/staff")
-    @PreAuthorize("hasRole('MANAGER')")
+    @PreAuthorize("hasAnyRole('MANAGER', 'STAFF')")
     public ResponseEntity<List<StaffResponse>> listActiveStaff(@RequestParam Long facilityId) {
         Long requestingUserId = currentUserId();
         List<StaffResponse> staffList = staffService.listActiveStaff(facilityId, requestingUserId);

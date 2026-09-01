@@ -1,28 +1,25 @@
 package com.visionary.roster.model;
 
-import org.springframework.data.annotation.CreatedBy;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedBy;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import com.visionary.roster.dto.CreateStaffRequest;
+import com.visionary.roster.dto.UpdateStaffRequest;
+import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
-import javax.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
- * Staff entity class representing staff members in the roster system.
- * Maps to the 'staff' table in the database.
+ * JPA Entity representing a Staff member in the roster system.
+ * Maps to the "staff" table in the database.
  */
 @Entity
 @Table(name = "staff")
-@EntityListeners(AuditingEntityListener.class)
 public class Staff {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
     private Long id;
 
     @Column(name = "first_name", nullable = false, length = 100)
@@ -31,16 +28,19 @@ public class Staff {
     @Column(name = "last_name", nullable = false, length = 100)
     private String lastName;
 
+    @Column(name = "email", nullable = false, unique = true, length = 255)
+    private String email;
+
     @Column(name = "contact", length = 50)
     private String contact;
 
-    @Column(name = "role", nullable = false, length = 100)
+    @Column(name = "role", nullable = false, length = 50)
     private String role;
 
-    @Column(name = "employment_status", nullable = false, length = 50)
-    private String employmentStatus;
+    @Column(name = "employment_status", nullable = false, length = 20)
+    private String employmentStatus = "ACTIVE";
 
-    @Column(name = "start_date", nullable = false)
+    @Column(name = "start_date")
     private LocalDate startDate;
 
     @Column(name = "end_date")
@@ -49,67 +49,39 @@ public class Staff {
     @Column(name = "facility_id", nullable = false)
     private Long facilityId;
 
-    @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @LastModifiedDate
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
-    @CreatedBy
-    @Column(name = "created_by", length = 100)
-    private String createdBy;
-
-    @LastModifiedBy
-    @Column(name = "updated_by", length = 100)
-    private String updatedBy;
-
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "facility_id", insertable = false, updatable = false)
     private Facility facility;
 
+    @Column(name = "created_at", nullable = false, updatable = false)
+    @CreationTimestamp
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
+
     /**
-     * No-args constructor required by JPA.
+     * Default constructor
      */
     public Staff() {
     }
 
     /**
-     * All-args constructor.
-     */
-    public Staff(Long id, String firstName, String lastName, String contact, String role, 
-                 String employmentStatus, LocalDate startDate, LocalDate endDate, Long facilityId, 
-                 LocalDateTime createdAt, LocalDateTime updatedAt, String createdBy, String updatedBy) {
-        this.id = id;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.contact = contact;
-        this.role = role;
-        this.employmentStatus = employmentStatus;
-        this.startDate = startDate;
-        this.endDate = endDate;
-        this.facilityId = facilityId;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-        this.createdBy = createdBy;
-        this.updatedBy = updatedBy;
-    }
-
-    /**
-     * Static factory method to create Staff entity from CreateStaffRequest.
+     * Static factory method to create a Staff entity from a CreateStaffRequest.
      *
      * @param request the create staff request
-     * @param facilityId the facility ID
-     * @return new Staff instance
+     * @param facilityId the facility the staff member belongs to
+     * @return a new Staff instance populated from the request
      */
     public static Staff toEntity(CreateStaffRequest request, Long facilityId) {
         Staff staff = new Staff();
         staff.setFirstName(request.getFirstName());
         staff.setLastName(request.getLastName());
+        staff.setEmail(request.getEmail());
         staff.setContact(request.getContact());
         staff.setRole(request.getRole());
-        staff.setEmploymentStatus(request.getEmploymentStatus());
+        staff.setEmploymentStatus(request.getEmploymentStatus() != null ? request.getEmploymentStatus() : "ACTIVE");
         staff.setStartDate(request.getStartDate());
         staff.setEndDate(request.getEndDate());
         staff.setFacilityId(facilityId);
@@ -117,8 +89,8 @@ public class Staff {
     }
 
     /**
-     * Updates the staff entity from UpdateStaffRequest.
-     * Only updates non-null fields from the request.
+     * Updates this staff entity from an UpdateStaffRequest.
+     * Only non-null fields on the request are applied.
      *
      * @param request the update staff request
      */
@@ -146,8 +118,6 @@ public class Staff {
         }
     }
 
-    // Getters and Setters
-
     public Long getId() {
         return id;
     }
@@ -170,6 +140,14 @@ public class Staff {
 
     public void setLastName(String lastName) {
         this.lastName = lastName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getContact() {
@@ -220,6 +198,14 @@ public class Staff {
         this.facilityId = facilityId;
     }
 
+    public Facility getFacility() {
+        return facility;
+    }
+
+    public void setFacility(Facility facility) {
+        this.facility = facility;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -236,36 +222,32 @@ public class Staff {
         this.updatedAt = updatedAt;
     }
 
-    public String getCreatedBy() {
-        return createdBy;
+    /**
+     * Checks if the staff member is currently active.
+     *
+     * @return true if employment status is ACTIVE, false otherwise
+     */
+    public boolean isActive() {
+        return "ACTIVE".equals(employmentStatus);
     }
 
-    public void setCreatedBy(String createdBy) {
-        this.createdBy = createdBy;
-    }
-
-    public String getUpdatedBy() {
-        return updatedBy;
-    }
-
-    public void setUpdatedBy(String updatedBy) {
-        this.updatedBy = updatedBy;
-    }
-
-    public Facility getFacility() {
-        return facility;
-    }
-
-    public void setFacility(Facility facility) {
-        this.facility = facility;
+    /**
+     * Deactivates the staff member by setting employment status to INACTIVE
+     * and recording the end date.
+     *
+     * @param endDate the date when employment ends
+     */
+    public void deactivate(LocalDate endDate) {
+        this.employmentStatus = "INACTIVE";
+        this.endDate = endDate;
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Staff staff = (Staff) o;
-        return Objects.equals(id, staff.id);
+        Staff that = (Staff) o;
+        return Objects.equals(id, that.id);
     }
 
     @Override
@@ -279,16 +261,12 @@ public class Staff {
                 "id=" + id +
                 ", firstName='" + firstName + '\'' +
                 ", lastName='" + lastName + '\'' +
-                ", contact='" + contact + '\'' +
+                ", email='" + email + '\'' +
                 ", role='" + role + '\'' +
                 ", employmentStatus='" + employmentStatus + '\'' +
                 ", startDate=" + startDate +
                 ", endDate=" + endDate +
                 ", facilityId=" + facilityId +
-                ", createdAt=" + createdAt +
-                ", updatedAt=" + updatedAt +
-                ", createdBy='" + createdBy + '\'' +
-                ", updatedBy='" + updatedBy + '\'' +
                 '}';
     }
 }

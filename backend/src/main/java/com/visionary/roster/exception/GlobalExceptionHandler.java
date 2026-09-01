@@ -50,7 +50,7 @@ public class GlobalExceptionHandler {
                 .remediation("Please check the request body and ensure all required fields are provided with valid values")
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.UNPROCESSABLE_ENTITY.value())
-                .errors(errors)
+                .fieldErrors(errors)
                 .build();
 
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorResponse);
