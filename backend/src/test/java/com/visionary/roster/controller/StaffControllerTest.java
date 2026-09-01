@@ -1,7 +1,8 @@
 package com.visionary.roster.controller;
 
+import com.visionary.roster.dto.CreateStaffRequest;
 import com.visionary.roster.dto.StaffResponse;
-import com.visionary.roster.dto.StaffUpdateRequest;
+import com.visionary.roster.dto.UpdateStaffRequest;
 import com.visionary.roster.service.StaffService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,8 +12,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 
@@ -20,10 +24,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-/**
- * Unit tests for StaffController.
- * Tests all REST endpoints for staff management operations.
- */
 @ExtendWith(MockitoExtension.class)
 class StaffControllerTest {
 
@@ -31,329 +31,413 @@ class StaffControllerTest {
     private StaffService staffService;
 
     @Mock
-    private UserDetails userDetails;
+    private SecurityContext securityContext;
+
+    @Mock
+    private Authentication authentication;
 
     @InjectMocks
     private StaffController staffController;
 
-    private StaffResponse mockStaffResponse;
-    private StaffUpdateRequest mockUpdateRequest;
-    private static final Long STAFF_ID = 1L;
-    private static final Long FACILITY_ID = 100L;
-    private static final String REQUESTING_USER_ID = "user123";
+    private static final Long TEST_USER_ID = 100L;
+    private static final Long TEST_FACILITY_ID = 200L;
+    private static final Long TEST_STAFF_ID = 300L;
+    private static final String TEST_CORRELATION_ID = "test-correlation-123";
 
     @BeforeEach
     void setUp() {
-        mockStaffResponse = new StaffResponse();
-        mockStaffResponse.setId(STAFF_ID);
-        mockStaffResponse.setName("John Doe");
-        mockStaffResponse.setActive(true);
-
-        mockUpdateRequest = new StaffUpdateRequest();
-        mockUpdateRequest.setName("John Doe Updated");
-        mockUpdateRequest.setEmail("john.doe@example.com");
-
-        when(userDetails.getUsername()).thenReturn(REQUESTING_USER_ID);
+        SecurityContextHolder.setContext(securityContext);
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        when(authentication.getPrincipal()).thenReturn(TEST_USER_ID);
     }
 
-    // ==================== updateStaff Tests ====================
-
     @Test
-    void updateStaff_Success_ReturnsOkWithStaffResponse() {
+    void createStaff_shouldReturnCreatedStatusWithLocationHeader() {
         // Arrange
-        when(staffService.updateStaff(eq(STAFF_ID), eq(mockUpdateRequest), eq(REQUESTING_USER_ID)))
-                .thenReturn(mockStaffResponse);
+        CreateStaffRequest request = new CreateStaffRequest();
+        request.setFacilityId(TEST_FACILITY_ID);
+        request.setFirstName("John");
+        request.setLastName("Doe");
+        request.setEmail("john.doe@example.com");
+
+        StaffResponse response = new StaffResponse();
+        response.setId(TEST_STAFF_ID);
+        response.setFirstName("John");
+        response.setLastName("Doe");
+        response.setEmail("john.doe@example.com");
+
+        when(staffService.createStaff(request, TEST_FACILITY_ID, TEST_USER_ID)).thenReturn(response);
 
         // Act
-        ResponseEntity<StaffResponse> response = staffController.updateStaff(STAFF_ID, mockUpdateRequest, userDetails);
+        ResponseEntity<StaffResponse> result = staffController.createStaff(request, TEST_CORRELATION_ID);
 
         // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(STAFF_ID, response.getBody().getId());
-        assertEquals("John Doe", response.getBody().getName());
-        verify(staffService, times(1)).updateStaff(eq(STAFF_ID), eq(mockUpdateRequest), eq(REQUESTING_USER_ID));
-        verify(userDetails, times(1)).getUsername();
+        assertNotNull(result);
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals(TEST_STAFF_ID, result.getBody().getId());
+        assertNotNull(result.getHeaders().getLocation());
+        assertTrue(result.getHeaders().getLocation().toString().contains("/api/staff/" + TEST_STAFF_ID));
+        
+        verify(staffService, times(1)).createStaff(request, TEST_FACILITY_ID, TEST_USER_ID);
     }
 
     @Test
-    void updateStaff_ExtractsCorrectUserIdFromUserDetails() {
+    void createStaff_shouldExtractUserIdFromSecurityContext() {
         // Arrange
-        when(staffService.updateStaff(anyLong(), any(StaffUpdateRequest.class), anyString()))
-                .thenReturn(mockStaffResponse);
+        CreateStaffRequest request = new CreateStaffRequest();
+        request.setFacilityId(TEST_FACILITY_ID);
+
+        StaffResponse response = new StaffResponse();
+        response.setId(TEST_STAFF_ID);
+
+        when(staffService.createStaff(any(), anyLong(), anyLong())).thenReturn(response);
 
         // Act
-        staffController.updateStaff(STAFF_ID, mockUpdateRequest, userDetails);
+        staffController.createStaff(request, TEST_CORRELATION_ID);
 
         // Assert
-        verify(userDetails, times(1)).getUsername();
-        verify(staffService, times(1)).updateStaff(eq(STAFF_ID), eq(mockUpdateRequest), eq(REQUESTING_USER_ID));
+        verify(authentication, times(1)).getPrincipal();
+        verify(staffService, times(1)).createStaff(request, TEST_FACILITY_ID, TEST_USER_ID);
     }
 
     @Test
-    void updateStaff_CallsServiceWithCorrectParameters() {
+    void createStaff_shouldExtractFacilityIdFromRequestBody() {
         // Arrange
-        when(staffService.updateStaff(eq(STAFF_ID), eq(mockUpdateRequest), eq(REQUESTING_USER_ID)))
-                .thenReturn(mockStaffResponse);
+        CreateStaffRequest request = new CreateStaffRequest();
+        request.setFacilityId(TEST_FACILITY_ID);
+
+        StaffResponse response = new StaffResponse();
+        response.setId(TEST_STAFF_ID);
+
+        when(staffService.createStaff(any(), anyLong(), anyLong())).thenReturn(response);
 
         // Act
-        staffController.updateStaff(STAFF_ID, mockUpdateRequest, userDetails);
+        staffController.createStaff(request, TEST_CORRELATION_ID);
 
         // Assert
-        verify(staffService, times(1)).updateStaff(
-                eq(STAFF_ID),
-                eq(mockUpdateRequest),
-                eq(REQUESTING_USER_ID)
-        );
+        verify(staffService, times(1)).createStaff(request, TEST_FACILITY_ID, TEST_USER_ID);
     }
 
     @Test
-    void updateStaff_ServiceThrowsException_ExceptionPropagates() {
+    void updateStaff_shouldReturnOkStatusWithUpdatedStaff() {
         // Arrange
-        when(staffService.updateStaff(anyLong(), any(StaffUpdateRequest.class), anyString()))
-                .thenThrow(new RuntimeException("Service error"));
+        UpdateStaffRequest request = new UpdateStaffRequest();
+        request.setFirstName("Jane");
+        request.setLastName("Smith");
 
-        // Act & Assert
-        assertThrows(RuntimeException.class, () -> {
-            staffController.updateStaff(STAFF_ID, mockUpdateRequest, userDetails);
-        });
-        verify(staffService, times(1)).updateStaff(eq(STAFF_ID), eq(mockUpdateRequest), eq(REQUESTING_USER_ID));
-    }
+        StaffResponse response = new StaffResponse();
+        response.setId(TEST_STAFF_ID);
+        response.setFirstName("Jane");
+        response.setLastName("Smith");
 
-    // ==================== deactivateStaff Tests ====================
-
-    @Test
-    void deactivateStaff_Success_ReturnsOkWithNoContent() {
-        // Arrange
-        doNothing().when(staffService).deactivateStaff(eq(STAFF_ID), eq(REQUESTING_USER_ID));
+        when(staffService.updateStaff(TEST_STAFF_ID, request, TEST_USER_ID)).thenReturn(response);
 
         // Act
-        ResponseEntity<Void> response = staffController.deactivateStaff(STAFF_ID, userDetails);
+        ResponseEntity<StaffResponse> result = staffController.updateStaff(TEST_STAFF_ID, request, TEST_CORRELATION_ID);
 
         // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNull(response.getBody());
-        verify(staffService, times(1)).deactivateStaff(eq(STAFF_ID), eq(REQUESTING_USER_ID));
-        verify(userDetails, times(1)).getUsername();
+        assertNotNull(result);
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals(TEST_STAFF_ID, result.getBody().getId());
+        assertEquals("Jane", result.getBody().getFirstName());
+        assertEquals("Smith", result.getBody().getLastName());
+        
+        verify(staffService, times(1)).updateStaff(TEST_STAFF_ID, request, TEST_USER_ID);
     }
 
     @Test
-    void deactivateStaff_ExtractsCorrectUserIdFromUserDetails() {
+    void updateStaff_shouldExtractUserIdFromSecurityContext() {
         // Arrange
-        doNothing().when(staffService).deactivateStaff(anyLong(), anyString());
+        UpdateStaffRequest request = new UpdateStaffRequest();
+        StaffResponse response = new StaffResponse();
+        response.setId(TEST_STAFF_ID);
+
+        when(staffService.updateStaff(anyLong(), any(), anyLong())).thenReturn(response);
 
         // Act
-        staffController.deactivateStaff(STAFF_ID, userDetails);
+        staffController.updateStaff(TEST_STAFF_ID, request, TEST_CORRELATION_ID);
 
         // Assert
-        verify(userDetails, times(1)).getUsername();
-        verify(staffService, times(1)).deactivateStaff(eq(STAFF_ID), eq(REQUESTING_USER_ID));
+        verify(authentication, times(1)).getPrincipal();
+        verify(staffService, times(1)).updateStaff(TEST_STAFF_ID, request, TEST_USER_ID);
     }
 
     @Test
-    void deactivateStaff_CallsServiceWithCorrectParameters() {
+    void getStaff_shouldReturnOkStatusWithStaffDetails() {
         // Arrange
-        doNothing().when(staffService).deactivateStaff(eq(STAFF_ID), eq(REQUESTING_USER_ID));
+        StaffResponse response = new StaffResponse();
+        response.setId(TEST_STAFF_ID);
+        response.setFirstName("John");
+        response.setLastName("Doe");
+
+        when(staffService.getStaff(TEST_STAFF_ID, TEST_USER_ID)).thenReturn(response);
 
         // Act
-        staffController.deactivateStaff(STAFF_ID, userDetails);
+        ResponseEntity<StaffResponse> result = staffController.getStaff(TEST_STAFF_ID);
 
         // Assert
-        verify(staffService, times(1)).deactivateStaff(eq(STAFF_ID), eq(REQUESTING_USER_ID));
+        assertNotNull(result);
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals(TEST_STAFF_ID, result.getBody().getId());
+        assertEquals("John", result.getBody().getFirstName());
+        
+        verify(staffService, times(1)).getStaff(TEST_STAFF_ID, TEST_USER_ID);
     }
 
     @Test
-    void deactivateStaff_IdempotentOperation_ReturnsOk() {
-        // Arrange - Service handles idempotency, controller just returns OK
-        doNothing().when(staffService).deactivateStaff(eq(STAFF_ID), eq(REQUESTING_USER_ID));
+    void getStaff_shouldExtractUserIdFromSecurityContext() {
+        // Arrange
+        StaffResponse response = new StaffResponse();
+        response.setId(TEST_STAFF_ID);
+
+        when(staffService.getStaff(anyLong(), anyLong())).thenReturn(response);
 
         // Act
-        ResponseEntity<Void> response = staffController.deactivateStaff(STAFF_ID, userDetails);
+        staffController.getStaff(TEST_STAFF_ID);
 
         // Assert
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(staffService, times(1)).deactivateStaff(eq(STAFF_ID), eq(REQUESTING_USER_ID));
+        verify(authentication, times(1)).getPrincipal();
+        verify(staffService, times(1)).getStaff(TEST_STAFF_ID, TEST_USER_ID);
     }
 
     @Test
-    void deactivateStaff_ServiceThrowsException_ExceptionPropagates() {
-        // Arrange
-        doThrow(new RuntimeException("Deactivation error"))
-                .when(staffService).deactivateStaff(anyLong(), anyString());
-
-        // Act & Assert
-        assertThrows(RuntimeException.class, () -> {
-            staffController.deactivateStaff(STAFF_ID, userDetails);
-        });
-        verify(staffService, times(1)).deactivateStaff(eq(STAFF_ID), eq(REQUESTING_USER_ID));
-    }
-
-    // ==================== getStaff Tests ====================
-
-    @Test
-    void getStaff_Success_ReturnsOkWithStaffResponse() {
-        // Arrange
-        when(staffService.getStaff(eq(STAFF_ID))).thenReturn(mockStaffResponse);
-
-        // Act
-        ResponseEntity<StaffResponse> response = staffController.getStaff(STAFF_ID, userDetails);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(STAFF_ID, response.getBody().getId());
-        assertEquals("John Doe", response.getBody().getName());
-        assertTrue(response.getBody().isActive());
-        verify(staffService, times(1)).getStaff(eq(STAFF_ID));
-    }
-
-    @Test
-    void getStaff_CallsServiceWithCorrectId() {
-        // Arrange
-        when(staffService.getStaff(eq(STAFF_ID))).thenReturn(mockStaffResponse);
-
-        // Act
-        staffController.getStaff(STAFF_ID, userDetails);
-
-        // Assert
-        verify(staffService, times(1)).getStaff(eq(STAFF_ID));
-    }
-
-    @Test
-    void getStaff_ServiceThrowsException_ExceptionPropagates() {
-        // Arrange
-        when(staffService.getStaff(anyLong()))
-                .thenThrow(new RuntimeException("Staff not found"));
-
-        // Act & Assert
-        assertThrows(RuntimeException.class, () -> {
-            staffController.getStaff(STAFF_ID, userDetails);
-        });
-        verify(staffService, times(1)).getStaff(eq(STAFF_ID));
-    }
-
-    @Test
-    void getStaff_UserDetailsProvided_DoesNotAffectRetrieval() {
-        // Arrange
-        when(staffService.getStaff(eq(STAFF_ID))).thenReturn(mockStaffResponse);
-
-        // Act
-        ResponseEntity<StaffResponse> response = staffController.getStaff(STAFF_ID, userDetails);
-
-        // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(staffService, times(1)).getStaff(eq(STAFF_ID));
-        verify(userDetails, never()).getUsername();
-    }
-
-    // ==================== listActiveStaff Tests ====================
-
-    @Test
-    void listActiveStaff_Success_ReturnsOkWithStaffList() {
+    void listStaff_shouldReturnOkStatusWithStaffList() {
         // Arrange
         StaffResponse staff1 = new StaffResponse();
         staff1.setId(1L);
-        staff1.setName("Staff One");
+        staff1.setFirstName("John");
+
+        StaffResponse staff2 = new StaffResponse();
+        staff2.setId(2L);
+        staff2.setFirstName("Jane");
+
+        List<StaffResponse> staffList = Arrays.asList(staff1, staff2);
+
+        when(staffService.listStaff(TEST_FACILITY_ID, TEST_USER_ID)).thenReturn(staffList);
+
+        // Act
+        ResponseEntity<List<StaffResponse>> result = staffController.listStaff(TEST_FACILITY_ID);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals(2, result.getBody().size());
+        assertEquals("John", result.getBody().get(0).getFirstName());
+        assertEquals("Jane", result.getBody().get(1).getFirstName());
+        
+        verify(staffService, times(1)).listStaff(TEST_FACILITY_ID, TEST_USER_ID);
+    }
+
+    @Test
+    void listStaff_shouldExtractUserIdFromSecurityContext() {
+        // Arrange
+        List<StaffResponse> staffList = Arrays.asList(new StaffResponse());
+
+        when(staffService.listStaff(anyLong(), anyLong())).thenReturn(staffList);
+
+        // Act
+        staffController.listStaff(TEST_FACILITY_ID);
+
+        // Assert
+        verify(authentication, times(1)).getPrincipal();
+        verify(staffService, times(1)).listStaff(TEST_FACILITY_ID, TEST_USER_ID);
+    }
+
+    @Test
+    void listStaff_shouldReturnEmptyListWhenNoStaffFound() {
+        // Arrange
+        List<StaffResponse> emptyList = Arrays.asList();
+
+        when(staffService.listStaff(TEST_FACILITY_ID, TEST_USER_ID)).thenReturn(emptyList);
+
+        // Act
+        ResponseEntity<List<StaffResponse>> result = staffController.listStaff(TEST_FACILITY_ID);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertTrue(result.getBody().isEmpty());
+        
+        verify(staffService, times(1)).listStaff(TEST_FACILITY_ID, TEST_USER_ID);
+    }
+
+    @Test
+    void deactivateStaff_shouldReturnOkStatus() {
+        // Arrange
+        doNothing().when(staffService).deactivateStaff(TEST_STAFF_ID, TEST_USER_ID);
+
+        // Act
+        ResponseEntity<Void> result = staffController.deactivateStaff(TEST_STAFF_ID);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNull(result.getBody());
+        
+        verify(staffService, times(1)).deactivateStaff(TEST_STAFF_ID, TEST_USER_ID);
+    }
+
+    @Test
+    void deactivateStaff_shouldExtractUserIdFromSecurityContext() {
+        // Arrange
+        doNothing().when(staffService).deactivateStaff(anyLong(), anyLong());
+
+        // Act
+        staffController.deactivateStaff(TEST_STAFF_ID);
+
+        // Assert
+        verify(authentication, times(1)).getPrincipal();
+        verify(staffService, times(1)).deactivateStaff(TEST_STAFF_ID, TEST_USER_ID);
+    }
+
+    @Test
+    void listActiveStaff_shouldReturnOkStatusWithActiveStaffList() {
+        // Arrange
+        StaffResponse staff1 = new StaffResponse();
+        staff1.setId(1L);
+        staff1.setFirstName("Active1");
         staff1.setActive(true);
 
         StaffResponse staff2 = new StaffResponse();
         staff2.setId(2L);
-        staff2.setName("Staff Two");
+        staff2.setFirstName("Active2");
         staff2.setActive(true);
 
-        List<StaffResponse> staffList = Arrays.asList(staff1, staff2);
-        when(staffService.listActiveStaff(eq(FACILITY_ID))).thenReturn(staffList);
+        List<StaffResponse> activeStaffList = Arrays.asList(staff1, staff2);
+
+        when(staffService.listActiveStaff(TEST_FACILITY_ID, TEST_USER_ID)).thenReturn(activeStaffList);
 
         // Act
-        ResponseEntity<List<StaffResponse>> response = staffController.listActiveStaff(FACILITY_ID, userDetails);
+        ResponseEntity<List<StaffResponse>> result = staffController.listActiveStaff(TEST_FACILITY_ID);
 
         // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(2, response.getBody().size());
-        assertEquals("Staff One", response.getBody().get(0).getName());
-        assertEquals("Staff Two", response.getBody().get(1).getName());
-        verify(staffService, times(1)).listActiveStaff(eq(FACILITY_ID));
+        assertNotNull(result);
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals(2, result.getBody().size());
+        assertTrue(result.getBody().get(0).isActive());
+        assertTrue(result.getBody().get(1).isActive());
+        
+        verify(staffService, times(1)).listActiveStaff(TEST_FACILITY_ID, TEST_USER_ID);
     }
 
     @Test
-    void listActiveStaff_EmptyList_ReturnsOkWithEmptyList() {
+    void listActiveStaff_shouldExtractUserIdFromSecurityContext() {
         // Arrange
-        when(staffService.listActiveStaff(eq(FACILITY_ID))).thenReturn(Arrays.asList());
+        List<StaffResponse> activeStaffList = Arrays.asList(new StaffResponse());
+
+        when(staffService.listActiveStaff(anyLong(), anyLong())).thenReturn(activeStaffList);
 
         // Act
-        ResponseEntity<List<StaffResponse>> response = staffController.listActiveStaff(FACILITY_ID, userDetails);
+        staffController.listActiveStaff(TEST_FACILITY_ID);
 
         // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertTrue(response.getBody().isEmpty());
-        verify(staffService, times(1)).listActiveStaff(eq(FACILITY_ID));
+        verify(authentication, times(1)).getPrincipal();
+        verify(staffService, times(1)).listActiveStaff(TEST_FACILITY_ID, TEST_USER_ID);
     }
 
     @Test
-    void listActiveStaff_CallsServiceWithCorrectFacilityId() {
+    void createStaff_shouldCallServiceWithCorrectParameters() {
         // Arrange
-        when(staffService.listActiveStaff(eq(FACILITY_ID))).thenReturn(Arrays.asList());
+        CreateStaffRequest request = new CreateStaffRequest();
+        request.setFacilityId(TEST_FACILITY_ID);
+        request.setFirstName("Test");
+        request.setLastName("User");
+        request.setEmail("test@example.com");
+
+        StaffResponse response = new StaffResponse();
+        response.setId(TEST_STAFF_ID);
+
+        when(staffService.createStaff(request, TEST_FACILITY_ID, TEST_USER_ID)).thenReturn(response);
 
         // Act
-        staffController.listActiveStaff(FACILITY_ID, userDetails);
+        staffController.createStaff(request, TEST_CORRELATION_ID);
 
         // Assert
-        verify(staffService, times(1)).listActiveStaff(eq(FACILITY_ID));
+        verify(staffService, times(1)).createStaff(
+            argThat(req -> req.getFirstName().equals("Test") && 
+                          req.getLastName().equals("User") && 
+                          req.getEmail().equals("test@example.com")),
+            eq(TEST_FACILITY_ID),
+            eq(TEST_USER_ID)
+        );
     }
 
     @Test
-    void listActiveStaff_ServiceThrowsException_ExceptionPropagates() {
+    void updateStaff_shouldCallServiceWithCorrectParameters() {
         // Arrange
-        when(staffService.listActiveStaff(anyLong()))
-                .thenThrow(new RuntimeException("Facility not found"));
+        UpdateStaffRequest request = new UpdateStaffRequest();
+        request.setFirstName("Updated");
+        request.setLastName("Name");
 
-        // Act & Assert
-        assertThrows(RuntimeException.class, () -> {
-            staffController.listActiveStaff(FACILITY_ID, userDetails);
-        });
-        verify(staffService, times(1)).listActiveStaff(eq(FACILITY_ID));
-    }
+        StaffResponse response = new StaffResponse();
+        response.setId(TEST_STAFF_ID);
 
-    @Test
-    void listActiveStaff_UserDetailsProvided_DoesNotAffectListing() {
-        // Arrange
-        when(staffService.listActiveStaff(eq(FACILITY_ID))).thenReturn(Arrays.asList());
+        when(staffService.updateStaff(TEST_STAFF_ID, request, TEST_USER_ID)).thenReturn(response);
 
         // Act
-        ResponseEntity<List<StaffResponse>> response = staffController.listActiveStaff(FACILITY_ID, userDetails);
+        staffController.updateStaff(TEST_STAFF_ID, request, TEST_CORRELATION_ID);
 
         // Assert
-        assertNotNull(response);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(staffService, times(1)).listActiveStaff(eq(FACILITY_ID));
-        verify(userDetails, never()).getUsername();
-    }
-
-    // ==================== Constructor Tests ====================
-
-    @Test
-    void constructor_InjectsStaffServiceCorrectly() {
-        // Arrange & Act
-        StaffController controller = new StaffController(staffService);
-
-        // Assert
-        assertNotNull(controller);
+        verify(staffService, times(1)).updateStaff(
+            eq(TEST_STAFF_ID),
+            argThat(req -> req.getFirstName().equals("Updated") && 
+                          req.getLastName().equals("Name")),
+            eq(TEST_USER_ID)
+        );
     }
 
     @Test
-    void constructor_NullStaffService_AllowsInstantiation() {
-        // Arrange & Act
-        StaffController controller = new StaffController(null);
+    void createStaff_shouldBuildCorrectLocationUri() {
+        // Arrange
+        CreateStaffRequest request = new CreateStaffRequest();
+        request.setFacilityId(TEST_FACILITY_ID);
+
+        StaffResponse response = new StaffResponse();
+        response.setId(TEST_STAFF_ID);
+
+        when(staffService.createStaff(any(), anyLong(), anyLong())).thenReturn(response);
+
+        // Act
+        ResponseEntity<StaffResponse> result = staffController.createStaff(request, TEST_CORRELATION_ID);
 
         // Assert
-        assertNotNull(controller);
+        URI location = result.getHeaders().getLocation();
+        assertNotNull(location);
+        assertTrue(location.toString().endsWith("/api/staff/" + TEST_STAFF_ID));
+    }
+
+    @Test
+    void allEndpoints_shouldExtractUserIdFromSecurityContextCorrectly() {
+        // Arrange
+        CreateStaffRequest createRequest = new CreateStaffRequest();
+        createRequest.setFacilityId(TEST_FACILITY_ID);
+        UpdateStaffRequest updateRequest = new UpdateStaffRequest();
+        StaffResponse response = new StaffResponse();
+        response.setId(TEST_STAFF_ID);
+        List<StaffResponse> staffList = Arrays.asList(response);
+
+        when(staffService.createStaff(any(), anyLong(), anyLong())).thenReturn(response);
+        when(staffService.updateStaff(anyLong(), any(), anyLong())).thenReturn(response);
+        when(staffService.getStaff(anyLong(), anyLong())).thenReturn(response);
+        when(staffService.listStaff(anyLong(), anyLong())).thenReturn(staffList);
+        when(staffService.listActiveStaff(anyLong(), anyLong())).thenReturn(staffList);
+        doNothing().when(staffService).deactivateStaff(anyLong(), anyLong());
+
+        // Act
+        staffController.createStaff(createRequest, TEST_CORRELATION_ID);
+        staffController.updateStaff(TEST_STAFF_ID, updateRequest, TEST_CORRELATION_ID);
+        staffController.getStaff(TEST_STAFF_ID);
+        staffController.listStaff(TEST_FACILITY_ID);
+        staffController.listActiveStaff(TEST_FACILITY_ID);
+        staffController.deactivateStaff(TEST_STAFF_ID);
+
+        // Assert - verify authentication.getPrincipal() was called 6 times (once per endpoint)
+        verify(authentication, times(6)).getPrincipal();
     }
 }
