@@ -1,242 +1,373 @@
 package com.visionary.roster.exception;
 
 import com.visionary.roster.dto.ErrorResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
 
-import javax.persistence.EntityNotFoundException;
-import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import jakarta.persistence.EntityNotFoundException;
 
-@RestControllerAdvice
-public class GlobalExceptionHandler {
+import java.util.Arrays;
+import java.util.List;
 
-    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex) {
-        String correlationId = getOrGenerateCorrelationId();
-        
-        Map<String, String> fieldErrors = new HashMap<>();
-        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
-            fieldErrors.put(error.getField(), error.getDefaultMessage());
-        }
+@ExtendWith(MockitoExtension.class)
+class GlobalExceptionHandlerTest {
 
-        String details = ex.getBindingResult().getFieldErrors().stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                .collect(Collectors.joining(", "));
+    @InjectMocks
+    private GlobalExceptionHandler globalExceptionHandler;
 
-        logger.warn("Validation exception occurred. CorrelationId: {}, Errors: {}", correlationId, details);
+    @Mock
+    private WebRequest webRequest;
 
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.UNPROCESSABLE_ENTITY.value())
-                .errorCode("VALIDATION_ERROR")
-                .message("Request validation failed")
-                .details(details)
-                .correlationId(correlationId)
-                .fieldErrors(fieldErrors)
-                .remediation("Please check the request body and ensure all required fields are valid")
-                .build();
+    @Mock
+    private MethodArgumentNotValidException methodArgumentNotValidException;
 
-        return new ResponseEntity<>(errorResponse, HttpStatus.UNPROCESSABLE_ENTITY);
+    @Mock
+    private BindingResult bindingResult;
+
+    private static final String TEST_CORRELATION_ID = "test-correlation-id-12345";
+    private static final String CORRELATION_ID_HEADER = "X-Correlation-ID";
+
+    @BeforeEach
+    void setUp() {
+        MDC.clear();
     }
 
-    @ExceptionHandler(InvalidCredentialsException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidCredentialsException(InvalidCredentialsException ex) {
-        String correlationId = getOrGenerateCorrelationId();
-        
-        logger.warn("Invalid credentials exception. CorrelationId: {}", correlationId);
-
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.UNAUTHORIZED.value())
-                .errorCode("INVALID_CREDENTIALS")
-                .message("Invalid username or password")
-                .details(ex.getMessage())
-                .correlationId(correlationId)
-                .remediation("Please verify your username and password and try again")
-                .build();
-
-        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+    @AfterEach
+    void tearDown() {
+        MDC.clear();
     }
 
-    @ExceptionHandler(InactiveAccountException.class)
-    public ResponseEntity<ErrorResponse> handleInactiveAccountException(InactiveAccountException ex) {
-        String correlationId = getOrGenerateCorrelationId();
-        
-        logger.warn("Inactive account exception. CorrelationId: {}, UserId: {}", correlationId, ex.getUserId());
+    @Test
+    void testHandleFacilityAccessDeniedException_WithCorrelationIdFromHeader() {
+        // Arrange
+        FacilityAccessDeniedException exception = new FacilityAccessDeniedException("User does not have access to facility");
+        when(webRequest.getHeader(CORRELATION_ID_HEADER)).thenReturn(TEST_CORRELATION_ID);
 
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.FORBIDDEN.value())
-                .errorCode("ACCOUNT_INACTIVE")
-                .message(ex.getMessage())
-                .details("User account with ID " + ex.getUserId() + " is inactive")
-                .correlationId(correlationId)
-                .remediation("Please contact your administrator to activate your account")
-                .build();
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleFacilityAccessDeniedException(exception, webRequest);
 
-        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
+        // Assert
+        assertThat(response).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getCorrelationId()).isEqualTo(TEST_CORRELATION_ID);
+        assertThat(response.getBody().getErrorCode()).isEqualTo("FACILITY_ACCESS_DENIED");
+        assertThat(response.getBody().getMessage()).isEqualTo("No facility access");
+        assertThat(response.getBody().getRemediation()).isEqualTo("Please contact your system administrator if you believe you should have access to this facility");
+        assertThat(response.getBody().getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
+        assertThat(response.getBody().getTimestamp()).isNotNull();
+
+        verify(webRequest, times(1)).getHeader(CORRELATION_ID_HEADER);
     }
 
-    @ExceptionHandler(ForbiddenAccessException.class)
-    public ResponseEntity<ErrorResponse> handleForbiddenAccessException(ForbiddenAccessException ex) {
-        String correlationId = getOrGenerateCorrelationId();
-        
-        logger.warn("Forbidden access exception. CorrelationId: {}, UserId: {}, FacilityId: {}", 
-                correlationId, ex.getUserId(), ex.getFacilityId());
+    @Test
+    void testHandleFacilityAccessDeniedException_WithCorrelationIdFromMDC() {
+        // Arrange
+        FacilityAccessDeniedException exception = new FacilityAccessDeniedException("Facility access denied");
+        when(webRequest.getHeader(CORRELATION_ID_HEADER)).thenReturn(null);
+        MDC.put("correlationId", TEST_CORRELATION_ID);
 
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.FORBIDDEN.value())
-                .errorCode("FORBIDDEN_ACCESS")
-                .message(ex.getMessage())
-                .details("User " + ex.getUserId() + " does not have access to facility " + ex.getFacilityId())
-                .correlationId(correlationId)
-                .remediation("Please contact your administrator to request access to this facility")
-                .build();
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleFacilityAccessDeniedException(exception, webRequest);
 
-        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
+        // Assert
+        assertThat(response).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getCorrelationId()).isEqualTo(TEST_CORRELATION_ID);
+        assertThat(response.getBody().getErrorCode()).isEqualTo("FACILITY_ACCESS_DENIED");
+        assertThat(response.getBody().getMessage()).isEqualTo("No facility access");
+        assertThat(response.getBody().getStatus()).isEqualTo(403);
+
+        verify(webRequest, times(1)).getHeader(CORRELATION_ID_HEADER);
     }
 
-    @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex) {
-        String correlationId = getOrGenerateCorrelationId();
-        
-        String resourceType = ex.getResourceType() != null ? ex.getResourceType() : "Resource";
-        String resourceId = ex.getResourceId() != null ? ex.getResourceId() : "unknown";
-        String message = resourceType + " with ID " + resourceId + " not found";
+    @Test
+    void testHandleFacilityAccessDeniedException_WithGeneratedCorrelationId() {
+        // Arrange
+        FacilityAccessDeniedException exception = new FacilityAccessDeniedException("No facility access");
+        when(webRequest.getHeader(CORRELATION_ID_HEADER)).thenReturn(null);
 
-        logger.warn("Resource not found exception. CorrelationId: {}, ResourceType: {}, ResourceId: {}", 
-                correlationId, resourceType, resourceId);
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleFacilityAccessDeniedException(exception, webRequest);
 
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.NOT_FOUND.value())
-                .errorCode("RESOURCE_NOT_FOUND")
-                .message(message)
-                .details(ex.getMessage())
-                .correlationId(correlationId)
-                .remediation("Please verify the resource ID and try again")
-                .build();
+        // Assert
+        assertThat(response).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getCorrelationId()).isNotNull();
+        assertThat(response.getBody().getCorrelationId()).isNotEmpty();
+        assertThat(response.getBody().getErrorCode()).isEqualTo("FACILITY_ACCESS_DENIED");
+        assertThat(response.getBody().getMessage()).isEqualTo("No facility access");
+        assertThat(response.getBody().getRemediation()).contains("system administrator");
+        assertThat(response.getBody().getStatus()).isEqualTo(403);
+        assertThat(response.getBody().getTimestamp()).isNotNull();
 
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        verify(webRequest, times(1)).getHeader(CORRELATION_ID_HEADER);
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
-        String correlationId = getOrGenerateCorrelationId();
-        
-        logger.warn("Illegal argument exception. CorrelationId: {}", correlationId, ex);
+    @Test
+    void testHandleFacilityAccessDeniedException_ErrorResponseStructureConsistency() {
+        // Arrange
+        FacilityAccessDeniedException exception = new FacilityAccessDeniedException("Access denied to facility");
+        when(webRequest.getHeader(CORRELATION_ID_HEADER)).thenReturn(TEST_CORRELATION_ID);
 
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.BAD_REQUEST.value())
-                .errorCode("BAD_REQUEST")
-                .message(ex.getMessage())
-                .details(ex.getMessage())
-                .correlationId(correlationId)
-                .remediation("Please check your request parameters and try again")
-                .build();
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleFacilityAccessDeniedException(exception, webRequest);
 
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+        // Assert - Verify ErrorResponse DTO structure consistency
+        ErrorResponse errorResponse = response.getBody();
+        assertThat(errorResponse).isNotNull();
+        assertThat(errorResponse.getCorrelationId()).isNotNull();
+        assertThat(errorResponse.getErrorCode()).isNotNull();
+        assertThat(errorResponse.getMessage()).isNotNull();
+        assertThat(errorResponse.getRemediation()).isNotNull();
+        assertThat(errorResponse.getTimestamp()).isNotNull();
+        assertThat(errorResponse.getStatus()).isNotNull();
     }
 
-    @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException ex) {
-        String correlationId = getOrGenerateCorrelationId();
-        
-        logger.warn("Entity not found exception. CorrelationId: {}", correlationId);
+    @Test
+    void testHandleFacilityAccessDeniedException_HttpStatusCode() {
+        // Arrange
+        FacilityAccessDeniedException exception = new FacilityAccessDeniedException("Facility access denied");
+        when(webRequest.getHeader(CORRELATION_ID_HEADER)).thenReturn(TEST_CORRELATION_ID);
 
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.NOT_FOUND.value())
-                .errorCode("NOT_FOUND")
-                .message(ex.getMessage())
-                .details(ex.getMessage())
-                .correlationId(correlationId)
-                .remediation("Please verify the entity ID and try again")
-                .build();
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleFacilityAccessDeniedException(exception, webRequest);
 
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+        // Assert - Verify HTTP 403 FORBIDDEN status code
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getStatusCode().value()).isEqualTo(403);
+        assertThat(response.getBody().getStatus()).isEqualTo(403);
     }
 
-    @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex) {
-        String correlationId = getOrGenerateCorrelationId();
-        
-        logger.warn("Authentication exception. CorrelationId: {}", correlationId);
+    @Test
+    void testHandleValidationException_BackwardCompatibility() {
+        // Arrange
+        FieldError fieldError1 = new FieldError("user", "email", "must not be blank");
+        FieldError fieldError2 = new FieldError("user", "name", "size must be between 2 and 50");
+        List<FieldError> fieldErrors = Arrays.asList(fieldError1, fieldError2);
 
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.UNAUTHORIZED.value())
-                .errorCode("AUTHENTICATION_FAILED")
-                .message("Authentication required")
-                .details(ex.getMessage())
-                .correlationId(correlationId)
-                .remediation("Please provide valid authentication credentials")
-                .build();
+        when(methodArgumentNotValidException.getBindingResult()).thenReturn(bindingResult);
+        when(bindingResult.getFieldErrors()).thenReturn(fieldErrors);
+        when(webRequest.getHeader(CORRELATION_ID_HEADER)).thenReturn(TEST_CORRELATION_ID);
 
-        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleValidationException(methodArgumentNotValidException, webRequest);
+
+        // Assert - Verify existing handler still works
+        assertThat(response).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getErrorCode()).isEqualTo("VALIDATION_ERROR");
+        assertThat(response.getBody().getMessage()).isEqualTo("Request validation failed");
+        assertThat(response.getBody().getFieldErrors()).isNotNull();
+        assertThat(response.getBody().getFieldErrors()).hasSize(2);
     }
 
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex) {
-        String correlationId = getOrGenerateCorrelationId();
-        
-        logger.warn("Access denied exception. CorrelationId: {}", correlationId);
+    @Test
+    void testHandleInvalidCredentialsException_BackwardCompatibility() {
+        // Arrange
+        InvalidCredentialsException exception = new InvalidCredentialsException("Invalid credentials");
+        when(webRequest.getHeader(CORRELATION_ID_HEADER)).thenReturn(TEST_CORRELATION_ID);
 
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.FORBIDDEN.value())
-                .errorCode("ACCESS_DENIED")
-                .message(ex.getMessage())
-                .details(ex.getMessage())
-                .correlationId(correlationId)
-                .remediation("You do not have permission to access this resource")
-                .build();
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleInvalidCredentialsException(exception, webRequest);
 
-        return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
+        // Assert - Verify existing handler still works
+        assertThat(response).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getErrorCode()).isEqualTo("INVALID_CREDENTIALS");
+        assertThat(response.getBody().getMessage()).isEqualTo("Invalid username or password");
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
-        String correlationId = getOrGenerateCorrelationId();
-        
-        logger.error("Unexpected exception occurred. CorrelationId: {}", correlationId, ex);
+    @Test
+    void testHandleInactiveAccountException_BackwardCompatibility() {
+        // Arrange
+        InactiveAccountException exception = new InactiveAccountException(123L, "Account is inactive");
+        when(webRequest.getHeader(CORRELATION_ID_HEADER)).thenReturn(TEST_CORRELATION_ID);
 
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
-                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .errorCode("INTERNAL_SERVER_ERROR")
-                .message("An unexpected error occurred")
-                .details(ex.getMessage())
-                .correlationId(correlationId)
-                .remediation("Please contact support if the problem persists")
-                .build();
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleInactiveAccountException(exception, webRequest);
 
-        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        // Assert - Verify existing handler still works
+        assertThat(response).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getErrorCode()).isEqualTo("ACCOUNT_INACTIVE");
+        assertThat(response.getBody().getMessage()).isEqualTo("Account is inactive");
     }
 
-    private String getOrGenerateCorrelationId() {
-        String correlationId = MDC.get("correlationId");
-        if (correlationId == null || correlationId.isEmpty()) {
-            correlationId = UUID.randomUUID().toString();
-            MDC.put("correlationId", correlationId);
-        }
-        return correlationId;
+    @Test
+    void testHandleForbiddenAccessException_BackwardCompatibility() {
+        // Arrange
+        ForbiddenAccessException exception = new ForbiddenAccessException(123L, 456L, "Resource", "No access");
+        when(webRequest.getHeader(CORRELATION_ID_HEADER)).thenReturn(TEST_CORRELATION_ID);
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleForbiddenAccessException(exception, webRequest);
+
+        // Assert - Verify existing handler still works
+        assertThat(response).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getErrorCode()).isEqualTo("FORBIDDEN_ACCESS");
+    }
+
+    @Test
+    void testHandleResourceNotFoundException_BackwardCompatibility() {
+        // Arrange
+        ResourceNotFoundException exception = new ResourceNotFoundException("User", 123L);
+        when(webRequest.getHeader(CORRELATION_ID_HEADER)).thenReturn(TEST_CORRELATION_ID);
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleResourceNotFoundException(exception, webRequest);
+
+        // Assert - Verify existing handler still works
+        assertThat(response).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getErrorCode()).isEqualTo("RESOURCE_NOT_FOUND");
+    }
+
+    @Test
+    void testHandleIllegalArgumentException_BackwardCompatibility() {
+        // Arrange
+        IllegalArgumentException exception = new IllegalArgumentException("Invalid argument");
+        when(webRequest.getHeader(CORRELATION_ID_HEADER)).thenReturn(TEST_CORRELATION_ID);
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleIllegalArgumentException(exception, webRequest);
+
+        // Assert - Verify existing handler still works
+        assertThat(response).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getErrorCode()).isEqualTo("BAD_REQUEST");
+    }
+
+    @Test
+    void testHandleEntityNotFoundException_BackwardCompatibility() {
+        // Arrange
+        EntityNotFoundException exception = new EntityNotFoundException("Entity not found");
+        when(webRequest.getHeader(CORRELATION_ID_HEADER)).thenReturn(TEST_CORRELATION_ID);
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleEntityNotFoundException(exception, webRequest);
+
+        // Assert - Verify existing handler still works
+        assertThat(response).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getErrorCode()).isEqualTo("NOT_FOUND");
+    }
+
+    @Test
+    void testHandleAuthenticationException_BackwardCompatibility() {
+        // Arrange
+        AuthenticationException exception = mock(AuthenticationException.class);
+        when(exception.getMessage()).thenReturn("Authentication failed");
+        when(webRequest.getHeader(CORRELATION_ID_HEADER)).thenReturn(TEST_CORRELATION_ID);
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleAuthenticationException(exception, webRequest);
+
+        // Assert - Verify existing handler still works
+        assertThat(response).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getErrorCode()).isEqualTo("AUTHENTICATION_FAILED");
+    }
+
+    @Test
+    void testHandleAccessDeniedException_BackwardCompatibility() {
+        // Arrange
+        AccessDeniedException exception = new AccessDeniedException("Access denied");
+        when(webRequest.getHeader(CORRELATION_ID_HEADER)).thenReturn(TEST_CORRELATION_ID);
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleAccessDeniedException(exception, webRequest);
+
+        // Assert - Verify existing handler still works
+        assertThat(response).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getErrorCode()).isEqualTo("ACCESS_DENIED");
+    }
+
+    @Test
+    void testHandleGenericException_BackwardCompatibility() {
+        // Arrange
+        Exception exception = new Exception("Unexpected error");
+        when(webRequest.getHeader(CORRELATION_ID_HEADER)).thenReturn(TEST_CORRELATION_ID);
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleGenericException(exception, webRequest);
+
+        // Assert - Verify existing handler still works
+        assertThat(response).isNotNull();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getErrorCode()).isEqualTo("INTERNAL_SERVER_ERROR");
+    }
+
+    @Test
+    void testFacilityAccessDeniedException_MessageContent() {
+        // Arrange
+        FacilityAccessDeniedException exception = new FacilityAccessDeniedException("Custom facility message");
+        when(webRequest.getHeader(CORRELATION_ID_HEADER)).thenReturn(TEST_CORRELATION_ID);
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleFacilityAccessDeniedException(exception, webRequest);
+
+        // Assert - Verify message is always "No facility access" regardless of exception message
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getMessage()).isEqualTo("No facility access");
+    }
+
+    @Test
+    void testFacilityAccessDeniedException_RemediationMessage() {
+        // Arrange
+        FacilityAccessDeniedException exception = new FacilityAccessDeniedException("Access denied");
+        when(webRequest.getHeader(CORRELATION_ID_HEADER)).thenReturn(TEST_CORRELATION_ID);
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleFacilityAccessDeniedException(exception, webRequest);
+
+        // Assert - Verify remediation message
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getRemediation()).isEqualTo("Please contact your system administrator if you believe you should have access to this facility");
+    }
+
+    @Test
+    void testFacilityAccessDeniedException_ErrorCodeValue() {
+        // Arrange
+        FacilityAccessDeniedException exception = new FacilityAccessDeniedException("Denied");
+        when(webRequest.getHeader(CORRELATION_ID_HEADER)).thenReturn(TEST_CORRELATION_ID);
+
+        // Act
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleFacilityAccessDeniedException(exception, webRequest);
+
+        // Assert - Verify error code is exactly "FACILITY_ACCESS_DENIED"
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getErrorCode()).isEqualTo("FACILITY_ACCESS_DENIED");
     }
 }

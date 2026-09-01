@@ -8,7 +8,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -135,6 +137,30 @@ public class StaffController {
         Long requestingUserId = currentUserId();
         staffService.deactivateStaff(id, requestingUserId);
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Deactivates a staff member by ID.
+     * Requires MANAGER role for authorization (defense in depth with Spring Security).
+     * 
+     * This endpoint allows managers to deactivate staff members within their facility.
+     * The operation enforces facility-level access control through the service layer.
+     * 
+     * @param staffId the ID of the staff member to deactivate
+     * @param userDetails the authenticated user details containing user ID
+     * @return ResponseEntity with HTTP 204 No Content on successful deactivation
+     * @throws ForbiddenAccessException if the requesting user lacks permission (HTTP 403)
+     * @throws ResourceNotFoundException if the staff member is not found (HTTP 404)
+     * @throws FacilityAccessDeniedException if the user cannot access the staff's facility (HTTP 403)
+     */
+    @PostMapping("/api/staff/{staffId}/deactivate")
+    @PreAuthorize("hasRole('MANAGER')")
+    public ResponseEntity<Void> deactivateStaff(
+            @PathVariable Long staffId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long userId = (Long) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        staffService.deactivateStaff(staffId, userId);
+        return ResponseEntity.noContent().build();
     }
 
     /**

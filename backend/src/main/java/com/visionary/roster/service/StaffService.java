@@ -199,31 +199,72 @@ public class StaffService {
 
     /**
      * Deactivates a staff member with manager authorization and facility scoping validation.
-     * Implements idempotency - returns silently if staff is already deactivated.
+     * 
+     * <p>This method enforces MANAGER role requirement and validates facility access before
+     * deactivating a staff member. The method implements idempotency - if the staff member
+     * is already inactive, the method returns successfully without throwing an exception.</p>
+     * 
+     * <p>Authorization and Access Control:</p>
+     * <ul>
+     *   <li>Requires MANAGER role via roleAuthorizationService.requireManagerRole(userId)</li>
+     *   <li>Validates facility access via facilityScopingService.validateFacilityAccess(userId, facilityId)</li>
+     *   <li>Throws ForbiddenAccessException if role or facility access validation fails</li>
+     *   <li>Throws FacilityAccessDeniedException if facility scoping validation fails</li>
+     * </ul>
+     * 
+     * <p>Idempotency Behavior:</p>
+     * <ul>
+     *   <li>If staff.isActive() is already false, the method skips setActive(false)</li>
+     *   <li>No exception is thrown for already-inactive staff</li>
+     *   <li>Returns successfully to support idempotent API calls</li>
+     * </ul>
+     * 
+     * <p>Audit Trail:</p>
+     * <ul>
+     *   <li>Emits audit event via auditEmitter.emitStaffUpdateEvent(staffId, userId, metadata)</li>
+     *   <li>Metadata includes: userRole, requiredRole="MANAGER", authorizationResult="AUTHORIZED", action="DEACTIVATE"</li>
+     * </ul>
      *
      * @param staffId the ID of the staff to deactivate
-     * @param requestingUserId the ID of the user requesting the deactivation
-     * @throws ForbiddenAccessException if user lacks manager role or facility access
+     * @param userId the ID of the user requesting the deactivation (must have MANAGER role)
+     * @throws ForbiddenAccessException if user lacks manager role
+     * @throws com.visionary.roster.exception.FacilityAccessDeniedException if user lacks facility access
      * @throws ResourceNotFoundException if staff not found
      */
     @Transactional
-    public void deactivateStaff(Long staffId, Long requestingUserId) {
-        roleAuthorizationService.requireManagerRole();
+    public void deactivateStaff(Long staffId, Long userId) {
+        // Validate MANAGER role with userId parameter
+        roleAuthorizationService.requireManagerRole(userId);
 
+        // Retrieve Staff entity by staffId
         Staff staff = staffRepository.findById(staffId)
-                .orElseThrow(() -> new ResourceNotFoundException("Staff", staffId));
+                .orElseThrow(() -> new ResourceNotFoundException("Staff member not found"));
 
-        facilityScopingService.validateFacilityAccess(staff.getFacilityId());
+        // Extract facilityId and validate facility access with both userId and facilityId
+        Long facilityId = staff.getFacilityId();
+        facilityScopingService.validateFacilityAccess(userId, facilityId);
 
-        // Implement idempotency - return silently if already deactivated
+        // Implement idempotency: if staff is already inactive, skip setActive(false) but still return success
         if (!staff.isActive()) {
+            // Staff is already inactive, return without exception (idempotent behavior)
             return;
         }
 
-        staff.deactivate(LocalDate.now());
+        // Set staff as inactive
+        staff.setActive(false);
+
+        // Save updated Staff entity within @Transactional context
         staffRepository.save(staff);
 
-        auditEmitter.emitStaffDeactivateEvent(staffId, requestingUserId, "Manager-initiated deactivation");
+        // Create metadata Map with required keys
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("userRole", "MANAGER");
+        metadata.put("requiredRole", "MANAGER");
+        metadata.put("authorizationResult", "AUTHORIZED");
+        metadata.put("action", "DEACTIVATE");
+
+        // Emit audit event for staff update
+        auditEmitter.emitStaffUpdateEvent(staffId, userId, metadata);
     }
 
     /**

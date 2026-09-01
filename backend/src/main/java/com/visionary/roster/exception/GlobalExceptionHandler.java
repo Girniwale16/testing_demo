@@ -112,6 +112,24 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
     }
 
+    @ExceptionHandler(FacilityAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleFacilityAccessDeniedException(FacilityAccessDeniedException ex, WebRequest request) {
+        String correlationId = extractCorrelationId(request);
+
+        logger.warn("Facility access denied - correlationId: {}, message: {}", correlationId, ex.getMessage());
+
+        ErrorResponse errorResponse = ErrorResponse.builder()
+                .correlationId(correlationId)
+                .errorCode("FACILITY_ACCESS_DENIED")
+                .message("No facility access")
+                .remediation("Please contact your system administrator if you believe you should have access to this facility")
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.FORBIDDEN.value())
+                .build();
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex, WebRequest request) {
         String correlationId = extractCorrelationId(request);

@@ -65,4 +65,23 @@ public interface StaffRepository extends JpaRepository<Staff, Long> {
      * @return Optional containing the staff if found
      */
     Optional<Staff> findByEmail(String email);
+
+    /**
+     * Retrieves all staff members filtered by active status.
+     * Used for filtering active/inactive staff across the system.
+     *
+     * @param active the active status (true for active, false for inactive)
+     * @return list of staff matching the active status
+     */
+    List<Staff> findByActive(boolean active);
+
+    /**
+     * Retrieves staff members for a specific facility filtered by active status.
+     * Used for facility-scoped active staff queries.
+     *
+     * @param facilityId the ID of the facility
+     * @param active the active status (true for active, false for inactive)
+     * @return list of staff matching the facility and active status
+     */
+    List<Staff> findByFacilityIdAndActive(Long facilityId, boolean active);
 }
