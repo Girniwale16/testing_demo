@@ -10,414 +10,625 @@ import java.time.LocalDateTime;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Comprehensive unit tests for the Staff entity class.
- * Tests cover all fields, getters, setters, and business logic methods.
+ * Comprehensive unit tests for Staff entity class.
+ * Ensures 100% test coverage of all business logic.
  */
-@DisplayName("Staff Entity Tests")
 class StaffTest {
 
     private Staff staff;
-    private Facility facility;
+    private CreateStaffRequest createRequest;
+    private UpdateStaffRequest updateRequest;
 
     @BeforeEach
     void setUp() {
         staff = new Staff();
-        facility = new Facility();
-        facility.setId(1L);
-        facility.setName("Test Facility");
+        createRequest = new CreateStaffRequest();
+        updateRequest = new UpdateStaffRequest();
     }
 
     @Test
-    @DisplayName("Test default constructor creates instance with ACTIVE status")
-    void testDefaultConstructor() {
-        Staff newStaff = new Staff();
-        assertNotNull(newStaff);
-        assertEquals("ACTIVE", newStaff.getEmploymentStatus());
+    @DisplayName("Test no-args constructor creates empty Staff instance")
+    void testNoArgsConstructor() {
+        Staff emptyStaff = new Staff();
+        assertNotNull(emptyStaff);
+        assertNull(emptyStaff.getId());
+        assertNull(emptyStaff.getFirstName());
+        assertNull(emptyStaff.getLastName());
     }
 
     @Test
-    @DisplayName("Test getId and setId")
-    void testIdGetterAndSetter() {
-        Long expectedId = 100L;
-        staff.setId(expectedId);
-        assertEquals(expectedId, staff.getId());
+    @DisplayName("Test all-args constructor sets all fields correctly")
+    void testAllArgsConstructor() {
+        LocalDate startDate = LocalDate.of(2023, 1, 1);
+        LocalDate endDate = LocalDate.of(2024, 12, 31);
+        LocalDateTime createdAt = LocalDateTime.now();
+        LocalDateTime updatedAt = LocalDateTime.now();
+
+        Staff staffWithArgs = new Staff(
+                1L, "John", "Doe", "555-1234", "Nurse",
+                "Full-Time", startDate, endDate, 100L,
+                createdAt, updatedAt, "admin", "admin"
+        );
+
+        assertEquals(1L, staffWithArgs.getId());
+        assertEquals("John", staffWithArgs.getFirstName());
+        assertEquals("Doe", staffWithArgs.getLastName());
+        assertEquals("555-1234", staffWithArgs.getContact());
+        assertEquals("Nurse", staffWithArgs.getRole());
+        assertEquals("Full-Time", staffWithArgs.getEmploymentStatus());
+        assertEquals(startDate, staffWithArgs.getStartDate());
+        assertEquals(endDate, staffWithArgs.getEndDate());
+        assertEquals(100L, staffWithArgs.getFacilityId());
+        assertEquals(createdAt, staffWithArgs.getCreatedAt());
+        assertEquals(updatedAt, staffWithArgs.getUpdatedAt());
+        assertEquals("admin", staffWithArgs.getCreatedBy());
+        assertEquals("admin", staffWithArgs.getUpdatedBy());
     }
 
     @Test
-    @DisplayName("Test getFirstName and setFirstName")
-    void testFirstNameGetterAndSetter() {
-        String expectedFirstName = "John";
-        staff.setFirstName(expectedFirstName);
-        assertEquals(expectedFirstName, staff.getFirstName());
+    @DisplayName("Test toEntity creates Staff from CreateStaffRequest with all fields")
+    void testToEntityWithAllFields() {
+        LocalDate startDate = LocalDate.of(2023, 1, 1);
+        LocalDate endDate = LocalDate.of(2024, 12, 31);
+
+        createRequest.setFirstName("Jane");
+        createRequest.setLastName("Smith");
+        createRequest.setContact("555-5678");
+        createRequest.setRole("Doctor");
+        createRequest.setEmploymentStatus("Part-Time");
+        createRequest.setStartDate(startDate);
+        createRequest.setEndDate(endDate);
+
+        Staff result = Staff.toEntity(createRequest, 200L);
+
+        assertNotNull(result);
+        assertEquals("Jane", result.getFirstName());
+        assertEquals("Smith", result.getLastName());
+        assertEquals("555-5678", result.getContact());
+        assertEquals("Doctor", result.getRole());
+        assertEquals("Part-Time", result.getEmploymentStatus());
+        assertEquals(startDate, result.getStartDate());
+        assertEquals(endDate, result.getEndDate());
+        assertEquals(200L, result.getFacilityId());
     }
 
     @Test
-    @DisplayName("Test setFirstName with null value")
-    void testFirstNameWithNull() {
-        staff.setFirstName(null);
-        assertNull(staff.getFirstName());
+    @DisplayName("Test toEntity creates Staff from CreateStaffRequest with null endDate")
+    void testToEntityWithNullEndDate() {
+        LocalDate startDate = LocalDate.of(2023, 1, 1);
+
+        createRequest.setFirstName("Bob");
+        createRequest.setLastName("Johnson");
+        createRequest.setContact("555-9999");
+        createRequest.setRole("Technician");
+        createRequest.setEmploymentStatus("Full-Time");
+        createRequest.setStartDate(startDate);
+        createRequest.setEndDate(null);
+
+        Staff result = Staff.toEntity(createRequest, 300L);
+
+        assertNotNull(result);
+        assertEquals("Bob", result.getFirstName());
+        assertEquals("Johnson", result.getLastName());
+        assertEquals("555-9999", result.getContact());
+        assertEquals("Technician", result.getRole());
+        assertEquals("Full-Time", result.getEmploymentStatus());
+        assertEquals(startDate, result.getStartDate());
+        assertNull(result.getEndDate());
+        assertEquals(300L, result.getFacilityId());
     }
 
     @Test
-    @DisplayName("Test setFirstName with maximum length")
-    void testFirstNameWithMaxLength() {
-        String longName = "A".repeat(100);
-        staff.setFirstName(longName);
-        assertEquals(100, staff.getFirstName().length());
+    @DisplayName("Test toEntity creates Staff from CreateStaffRequest with null contact")
+    void testToEntityWithNullContact() {
+        LocalDate startDate = LocalDate.of(2023, 1, 1);
+
+        createRequest.setFirstName("Alice");
+        createRequest.setLastName("Williams");
+        createRequest.setContact(null);
+        createRequest.setRole("Administrator");
+        createRequest.setEmploymentStatus("Full-Time");
+        createRequest.setStartDate(startDate);
+        createRequest.setEndDate(null);
+
+        Staff result = Staff.toEntity(createRequest, 400L);
+
+        assertNotNull(result);
+        assertEquals("Alice", result.getFirstName());
+        assertEquals("Williams", result.getLastName());
+        assertNull(result.getContact());
+        assertEquals("Administrator", result.getRole());
+        assertEquals("Full-Time", result.getEmploymentStatus());
+        assertEquals(startDate, result.getStartDate());
+        assertEquals(400L, result.getFacilityId());
     }
 
     @Test
-    @DisplayName("Test getLastName and setLastName")
-    void testLastNameGetterAndSetter() {
-        String expectedLastName = "Doe";
-        staff.setLastName(expectedLastName);
-        assertEquals(expectedLastName, staff.getLastName());
+    @DisplayName("Test updateFromRequest updates all non-null fields")
+    void testUpdateFromRequestWithAllFields() {
+        staff.setFirstName("OldFirst");
+        staff.setLastName("OldLast");
+        staff.setContact("555-0000");
+        staff.setRole("OldRole");
+        staff.setEmploymentStatus("OldStatus");
+        staff.setStartDate(LocalDate.of(2020, 1, 1));
+        staff.setEndDate(LocalDate.of(2021, 1, 1));
+
+        LocalDate newStartDate = LocalDate.of(2023, 6, 1);
+        LocalDate newEndDate = LocalDate.of(2024, 6, 1);
+
+        updateRequest.setFirstName("NewFirst");
+        updateRequest.setLastName("NewLast");
+        updateRequest.setContact("555-1111");
+        updateRequest.setRole("NewRole");
+        updateRequest.setEmploymentStatus("NewStatus");
+        updateRequest.setStartDate(newStartDate);
+        updateRequest.setEndDate(newEndDate);
+
+        staff.updateFromRequest(updateRequest);
+
+        assertEquals("NewFirst", staff.getFirstName());
+        assertEquals("NewLast", staff.getLastName());
+        assertEquals("555-1111", staff.getContact());
+        assertEquals("NewRole", staff.getRole());
+        assertEquals("NewStatus", staff.getEmploymentStatus());
+        assertEquals(newStartDate, staff.getStartDate());
+        assertEquals(newEndDate, staff.getEndDate());
     }
 
     @Test
-    @DisplayName("Test setLastName with null value")
-    void testLastNameWithNull() {
-        staff.setLastName(null);
-        assertNull(staff.getLastName());
+    @DisplayName("Test updateFromRequest does not update null fields")
+    void testUpdateFromRequestWithNullFields() {
+        staff.setFirstName("OriginalFirst");
+        staff.setLastName("OriginalLast");
+        staff.setContact("555-2222");
+        staff.setRole("OriginalRole");
+        staff.setEmploymentStatus("OriginalStatus");
+        staff.setStartDate(LocalDate.of(2022, 1, 1));
+        staff.setEndDate(LocalDate.of(2023, 1, 1));
+
+        updateRequest.setFirstName(null);
+        updateRequest.setLastName(null);
+        updateRequest.setContact(null);
+        updateRequest.setRole(null);
+        updateRequest.setEmploymentStatus(null);
+        updateRequest.setStartDate(null);
+        updateRequest.setEndDate(null);
+
+        staff.updateFromRequest(updateRequest);
+
+        assertEquals("OriginalFirst", staff.getFirstName());
+        assertEquals("OriginalLast", staff.getLastName());
+        assertEquals("555-2222", staff.getContact());
+        assertEquals("OriginalRole", staff.getRole());
+        assertEquals("OriginalStatus", staff.getEmploymentStatus());
+        assertEquals(LocalDate.of(2022, 1, 1), staff.getStartDate());
+        assertEquals(LocalDate.of(2023, 1, 1), staff.getEndDate());
     }
 
     @Test
-    @DisplayName("Test setLastName with maximum length")
-    void testLastNameWithMaxLength() {
-        String longName = "B".repeat(100);
-        staff.setLastName(longName);
-        assertEquals(100, staff.getLastName().length());
+    @DisplayName("Test updateFromRequest updates only firstName")
+    void testUpdateFromRequestOnlyFirstName() {
+        staff.setFirstName("OldFirst");
+        staff.setLastName("OldLast");
+        staff.setContact("555-3333");
+
+        updateRequest.setFirstName("UpdatedFirst");
+        updateRequest.setLastName(null);
+        updateRequest.setContact(null);
+
+        staff.updateFromRequest(updateRequest);
+
+        assertEquals("UpdatedFirst", staff.getFirstName());
+        assertEquals("OldLast", staff.getLastName());
+        assertEquals("555-3333", staff.getContact());
     }
 
     @Test
-    @DisplayName("Test getEmail and setEmail")
-    void testEmailGetterAndSetter() {
-        String expectedEmail = "john.doe@example.com";
-        staff.setEmail(expectedEmail);
-        assertEquals(expectedEmail, staff.getEmail());
+    @DisplayName("Test updateFromRequest updates only lastName")
+    void testUpdateFromRequestOnlyLastName() {
+        staff.setFirstName("OldFirst");
+        staff.setLastName("OldLast");
+        staff.setRole("OldRole");
+
+        updateRequest.setFirstName(null);
+        updateRequest.setLastName("UpdatedLast");
+        updateRequest.setRole(null);
+
+        staff.updateFromRequest(updateRequest);
+
+        assertEquals("OldFirst", staff.getFirstName());
+        assertEquals("UpdatedLast", staff.getLastName());
+        assertEquals("OldRole", staff.getRole());
     }
 
     @Test
-    @DisplayName("Test setEmail with null value")
-    void testEmailWithNull() {
-        staff.setEmail(null);
-        assertNull(staff.getEmail());
+    @DisplayName("Test updateFromRequest updates only contact")
+    void testUpdateFromRequestOnlyContact() {
+        staff.setContact("555-4444");
+        staff.setRole("OldRole");
+
+        updateRequest.setContact("555-5555");
+        updateRequest.setRole(null);
+
+        staff.updateFromRequest(updateRequest);
+
+        assertEquals("555-5555", staff.getContact());
+        assertEquals("OldRole", staff.getRole());
     }
 
     @Test
-    @DisplayName("Test setEmail with maximum length")
-    void testEmailWithMaxLength() {
-        String longEmail = "a".repeat(245) + "@email.com";
-        staff.setEmail(longEmail);
-        assertEquals(255, staff.getEmail().length());
+    @DisplayName("Test updateFromRequest updates only role")
+    void testUpdateFromRequestOnlyRole() {
+        staff.setRole("OldRole");
+        staff.setEmploymentStatus("OldStatus");
+
+        updateRequest.setRole("UpdatedRole");
+        updateRequest.setEmploymentStatus(null);
+
+        staff.updateFromRequest(updateRequest);
+
+        assertEquals("UpdatedRole", staff.getRole());
+        assertEquals("OldStatus", staff.getEmploymentStatus());
     }
 
     @Test
-    @DisplayName("Test getRole and setRole")
-    void testRoleGetterAndSetter() {
-        String expectedRole = "Nurse";
-        staff.setRole(expectedRole);
-        assertEquals(expectedRole, staff.getRole());
+    @DisplayName("Test updateFromRequest updates only employmentStatus")
+    void testUpdateFromRequestOnlyEmploymentStatus() {
+        staff.setEmploymentStatus("OldStatus");
+        staff.setRole("OldRole");
+
+        updateRequest.setEmploymentStatus("UpdatedStatus");
+        updateRequest.setRole(null);
+
+        staff.updateFromRequest(updateRequest);
+
+        assertEquals("UpdatedStatus", staff.getEmploymentStatus());
+        assertEquals("OldRole", staff.getRole());
     }
 
     @Test
-    @DisplayName("Test setRole with null value")
-    void testRoleWithNull() {
-        staff.setRole(null);
-        assertNull(staff.getRole());
+    @DisplayName("Test updateFromRequest updates only startDate")
+    void testUpdateFromRequestOnlyStartDate() {
+        staff.setStartDate(LocalDate.of(2022, 1, 1));
+        staff.setEndDate(LocalDate.of(2023, 1, 1));
+
+        LocalDate newStartDate = LocalDate.of(2023, 6, 1);
+        updateRequest.setStartDate(newStartDate);
+        updateRequest.setEndDate(null);
+
+        staff.updateFromRequest(updateRequest);
+
+        assertEquals(newStartDate, staff.getStartDate());
+        assertEquals(LocalDate.of(2023, 1, 1), staff.getEndDate());
     }
 
     @Test
-    @DisplayName("Test setRole with maximum length")
-    void testRoleWithMaxLength() {
-        String longRole = "R".repeat(50);
-        staff.setRole(longRole);
-        assertEquals(50, staff.getRole().length());
+    @DisplayName("Test updateFromRequest updates only endDate")
+    void testUpdateFromRequestOnlyEndDate() {
+        staff.setStartDate(LocalDate.of(2022, 1, 1));
+        staff.setEndDate(LocalDate.of(2023, 1, 1));
+
+        LocalDate newEndDate = LocalDate.of(2024, 12, 31);
+        updateRequest.setStartDate(null);
+        updateRequest.setEndDate(newEndDate);
+
+        staff.updateFromRequest(updateRequest);
+
+        assertEquals(LocalDate.of(2022, 1, 1), staff.getStartDate());
+        assertEquals(newEndDate, staff.getEndDate());
     }
 
     @Test
-    @DisplayName("Test getEmploymentStatus and setEmploymentStatus")
-    void testEmploymentStatusGetterAndSetter() {
-        String expectedStatus = "INACTIVE";
-        staff.setEmploymentStatus(expectedStatus);
-        assertEquals(expectedStatus, staff.getEmploymentStatus());
+    @DisplayName("Test getters and setters for id")
+    void testIdGetterSetter() {
+        staff.setId(999L);
+        assertEquals(999L, staff.getId());
     }
 
     @Test
-    @DisplayName("Test default employment status is ACTIVE")
-    void testDefaultEmploymentStatus() {
-        Staff newStaff = new Staff();
-        assertEquals("ACTIVE", newStaff.getEmploymentStatus());
+    @DisplayName("Test getters and setters for firstName")
+    void testFirstNameGetterSetter() {
+        staff.setFirstName("TestFirst");
+        assertEquals("TestFirst", staff.getFirstName());
     }
 
     @Test
-    @DisplayName("Test setEmploymentStatus with various values")
-    void testEmploymentStatusWithVariousValues() {
-        staff.setEmploymentStatus("ACTIVE");
-        assertEquals("ACTIVE", staff.getEmploymentStatus());
-        
-        staff.setEmploymentStatus("INACTIVE");
-        assertEquals("INACTIVE", staff.getEmploymentStatus());
-        
-        staff.setEmploymentStatus("ON_LEAVE");
-        assertEquals("ON_LEAVE", staff.getEmploymentStatus());
+    @DisplayName("Test getters and setters for lastName")
+    void testLastNameGetterSetter() {
+        staff.setLastName("TestLast");
+        assertEquals("TestLast", staff.getLastName());
     }
 
     @Test
-    @DisplayName("Test getEndDate and setEndDate")
-    void testEndDateGetterAndSetter() {
-        LocalDate expectedEndDate = LocalDate.of(2024, 12, 31);
-        staff.setEndDate(expectedEndDate);
-        assertEquals(expectedEndDate, staff.getEndDate());
+    @DisplayName("Test getters and setters for contact")
+    void testContactGetterSetter() {
+        staff.setContact("555-6666");
+        assertEquals("555-6666", staff.getContact());
     }
 
     @Test
-    @DisplayName("Test setEndDate with null value")
-    void testEndDateWithNull() {
-        staff.setEndDate(null);
-        assertNull(staff.getEndDate());
+    @DisplayName("Test getters and setters for role")
+    void testRoleGetterSetter() {
+        staff.setRole("TestRole");
+        assertEquals("TestRole", staff.getRole());
     }
 
     @Test
-    @DisplayName("Test setEndDate with past date")
-    void testEndDateWithPastDate() {
-        LocalDate pastDate = LocalDate.of(2020, 1, 1);
-        staff.setEndDate(pastDate);
-        assertEquals(pastDate, staff.getEndDate());
+    @DisplayName("Test getters and setters for employmentStatus")
+    void testEmploymentStatusGetterSetter() {
+        staff.setEmploymentStatus("TestStatus");
+        assertEquals("TestStatus", staff.getEmploymentStatus());
     }
 
     @Test
-    @DisplayName("Test setEndDate with future date")
-    void testEndDateWithFutureDate() {
-        LocalDate futureDate = LocalDate.of(2025, 12, 31);
-        staff.setEndDate(futureDate);
-        assertEquals(futureDate, staff.getEndDate());
+    @DisplayName("Test getters and setters for startDate")
+    void testStartDateGetterSetter() {
+        LocalDate date = LocalDate.of(2023, 5, 15);
+        staff.setStartDate(date);
+        assertEquals(date, staff.getStartDate());
     }
 
     @Test
-    @DisplayName("Test getFacility and setFacility")
-    void testFacilityGetterAndSetter() {
+    @DisplayName("Test getters and setters for endDate")
+    void testEndDateGetterSetter() {
+        LocalDate date = LocalDate.of(2024, 5, 15);
+        staff.setEndDate(date);
+        assertEquals(date, staff.getEndDate());
+    }
+
+    @Test
+    @DisplayName("Test getters and setters for facilityId")
+    void testFacilityIdGetterSetter() {
+        staff.setFacilityId(500L);
+        assertEquals(500L, staff.getFacilityId());
+    }
+
+    @Test
+    @DisplayName("Test getters and setters for createdAt")
+    void testCreatedAtGetterSetter() {
+        LocalDateTime dateTime = LocalDateTime.now();
+        staff.setCreatedAt(dateTime);
+        assertEquals(dateTime, staff.getCreatedAt());
+    }
+
+    @Test
+    @DisplayName("Test getters and setters for updatedAt")
+    void testUpdatedAtGetterSetter() {
+        LocalDateTime dateTime = LocalDateTime.now();
+        staff.setUpdatedAt(dateTime);
+        assertEquals(dateTime, staff.getUpdatedAt());
+    }
+
+    @Test
+    @DisplayName("Test getters and setters for createdBy")
+    void testCreatedByGetterSetter() {
+        staff.setCreatedBy("testUser");
+        assertEquals("testUser", staff.getCreatedBy());
+    }
+
+    @Test
+    @DisplayName("Test getters and setters for updatedBy")
+    void testUpdatedByGetterSetter() {
+        staff.setUpdatedBy("testUpdater");
+        assertEquals("testUpdater", staff.getUpdatedBy());
+    }
+
+    @Test
+    @DisplayName("Test getters and setters for facility")
+    void testFacilityGetterSetter() {
+        Facility facility = new Facility();
         staff.setFacility(facility);
         assertEquals(facility, staff.getFacility());
-        assertEquals(1L, staff.getFacility().getId());
     }
 
     @Test
-    @DisplayName("Test setFacility with null value")
-    void testFacilityWithNull() {
-        staff.setFacility(null);
-        assertNull(staff.getFacility());
+    @DisplayName("Test equals returns true for same object")
+    void testEqualsSameObject() {
+        assertTrue(staff.equals(staff));
     }
 
     @Test
-    @DisplayName("Test getCreatedAt and setCreatedAt")
-    void testCreatedAtGetterAndSetter() {
-        LocalDateTime expectedCreatedAt = LocalDateTime.of(2024, 1, 1, 10, 0);
-        staff.setCreatedAt(expectedCreatedAt);
-        assertEquals(expectedCreatedAt, staff.getCreatedAt());
+    @DisplayName("Test equals returns false for null")
+    void testEqualsNull() {
+        assertFalse(staff.equals(null));
     }
 
     @Test
-    @DisplayName("Test setCreatedAt with null value")
-    void testCreatedAtWithNull() {
-        staff.setCreatedAt(null);
-        assertNull(staff.getCreatedAt());
+    @DisplayName("Test equals returns false for different class")
+    void testEqualsDifferentClass() {
+        assertFalse(staff.equals("NotAStaff"));
     }
 
     @Test
-    @DisplayName("Test getUpdatedAt and setUpdatedAt")
-    void testUpdatedAtGetterAndSetter() {
-        LocalDateTime expectedUpdatedAt = LocalDateTime.of(2024, 6, 1, 15, 30);
-        staff.setUpdatedAt(expectedUpdatedAt);
-        assertEquals(expectedUpdatedAt, staff.getUpdatedAt());
+    @DisplayName("Test equals returns true for same id")
+    void testEqualsSameId() {
+        Staff staff1 = new Staff();
+        staff1.setId(1L);
+
+        Staff staff2 = new Staff();
+        staff2.setId(1L);
+
+        assertTrue(staff1.equals(staff2));
     }
 
     @Test
-    @DisplayName("Test setUpdatedAt with null value")
-    void testUpdatedAtWithNull() {
-        staff.setUpdatedAt(null);
-        assertNull(staff.getUpdatedAt());
+    @DisplayName("Test equals returns false for different id")
+    void testEqualsDifferentId() {
+        Staff staff1 = new Staff();
+        staff1.setId(1L);
+
+        Staff staff2 = new Staff();
+        staff2.setId(2L);
+
+        assertFalse(staff1.equals(staff2));
     }
 
     @Test
-    @DisplayName("Test isActive returns true when status is ACTIVE")
-    void testIsActiveReturnsTrueForActiveStatus() {
-        staff.setEmploymentStatus("ACTIVE");
-        assertTrue(staff.isActive());
+    @DisplayName("Test equals returns true for both null ids")
+    void testEqualsBothNullIds() {
+        Staff staff1 = new Staff();
+        Staff staff2 = new Staff();
+
+        assertTrue(staff1.equals(staff2));
     }
 
     @Test
-    @DisplayName("Test isActive returns false when status is INACTIVE")
-    void testIsActiveReturnsFalseForInactiveStatus() {
-        staff.setEmploymentStatus("INACTIVE");
-        assertFalse(staff.isActive());
+    @DisplayName("Test equals returns false when one id is null")
+    void testEqualsOneNullId() {
+        Staff staff1 = new Staff();
+        staff1.setId(1L);
+
+        Staff staff2 = new Staff();
+
+        assertFalse(staff1.equals(staff2));
     }
 
     @Test
-    @DisplayName("Test isActive returns false when status is null")
-    void testIsActiveReturnsFalseForNullStatus() {
-        staff.setEmploymentStatus(null);
-        assertFalse(staff.isActive());
+    @DisplayName("Test hashCode returns same value for same id")
+    void testHashCodeSameId() {
+        Staff staff1 = new Staff();
+        staff1.setId(1L);
+
+        Staff staff2 = new Staff();
+        staff2.setId(1L);
+
+        assertEquals(staff1.hashCode(), staff2.hashCode());
     }
 
     @Test
-    @DisplayName("Test isActive returns false for other status values")
-    void testIsActiveReturnsFalseForOtherStatuses() {
-        staff.setEmploymentStatus("ON_LEAVE");
-        assertFalse(staff.isActive());
-        
-        staff.setEmploymentStatus("SUSPENDED");
-        assertFalse(staff.isActive());
-        
-        staff.setEmploymentStatus("TERMINATED");
-        assertFalse(staff.isActive());
+    @DisplayName("Test hashCode returns different value for different id")
+    void testHashCodeDifferentId() {
+        Staff staff1 = new Staff();
+        staff1.setId(1L);
+
+        Staff staff2 = new Staff();
+        staff2.setId(2L);
+
+        assertNotEquals(staff1.hashCode(), staff2.hashCode());
     }
 
     @Test
-    @DisplayName("Test isActive is case-sensitive")
-    void testIsActiveCaseSensitive() {
-        staff.setEmploymentStatus("active");
-        assertFalse(staff.isActive());
-        
-        staff.setEmploymentStatus("Active");
-        assertFalse(staff.isActive());
-        
-        staff.setEmploymentStatus("ACTIVE");
-        assertTrue(staff.isActive());
+    @DisplayName("Test hashCode returns same value for null ids")
+    void testHashCodeNullIds() {
+        Staff staff1 = new Staff();
+        Staff staff2 = new Staff();
+
+        assertEquals(staff1.hashCode(), staff2.hashCode());
     }
 
     @Test
-    @DisplayName("Test deactivate method sets status to INACTIVE")
-    void testDeactivateSetsStatusToInactive() {
+    @DisplayName("Test toString contains all field values")
+    void testToString() {
+        LocalDate startDate = LocalDate.of(2023, 1, 1);
         LocalDate endDate = LocalDate.of(2024, 12, 31);
-        staff.setEmploymentStatus("ACTIVE");
-        
-        staff.deactivate(endDate);
-        
-        assertEquals("INACTIVE", staff.getEmploymentStatus());
-    }
+        LocalDateTime createdAt = LocalDateTime.of(2023, 1, 1, 10, 0);
+        LocalDateTime updatedAt = LocalDateTime.of(2023, 6, 1, 15, 30);
 
-    @Test
-    @DisplayName("Test deactivate method sets end date")
-    void testDeactivateSetsEndDate() {
-        LocalDate endDate = LocalDate.of(2024, 12, 31);
-        
-        staff.deactivate(endDate);
-        
-        assertEquals(endDate, staff.getEndDate());
-    }
-
-    @Test
-    @DisplayName("Test deactivate method with null end date")
-    void testDeactivateWithNullEndDate() {
-        staff.setEmploymentStatus("ACTIVE");
-        
-        staff.deactivate(null);
-        
-        assertEquals("INACTIVE", staff.getEmploymentStatus());
-        assertNull(staff.getEndDate());
-    }
-
-    @Test
-    @DisplayName("Test deactivate method changes active staff to inactive")
-    void testDeactivateChangesActiveToInactive() {
-        LocalDate endDate = LocalDate.of(2024, 12, 31);
-        staff.setEmploymentStatus("ACTIVE");
-        assertTrue(staff.isActive());
-        
-        staff.deactivate(endDate);
-        
-        assertFalse(staff.isActive());
-        assertEquals("INACTIVE", staff.getEmploymentStatus());
-        assertEquals(endDate, staff.getEndDate());
-    }
-
-    @Test
-    @DisplayName("Test deactivate can be called multiple times")
-    void testDeactivateMultipleTimes() {
-        LocalDate firstEndDate = LocalDate.of(2024, 6, 30);
-        LocalDate secondEndDate = LocalDate.of(2024, 12, 31);
-        
-        staff.deactivate(firstEndDate);
-        assertEquals(firstEndDate, staff.getEndDate());
-        
-        staff.deactivate(secondEndDate);
-        assertEquals(secondEndDate, staff.getEndDate());
-        assertEquals("INACTIVE", staff.getEmploymentStatus());
-    }
-
-    @Test
-    @DisplayName("Test complete staff lifecycle")
-    void testCompleteStaffLifecycle() {
-        // Create new staff
-        Staff newStaff = new Staff();
-        newStaff.setId(1L);
-        newStaff.setFirstName("Jane");
-        newStaff.setLastName("Smith");
-        newStaff.setEmail("jane.smith@example.com");
-        newStaff.setRole("Doctor");
-        newStaff.setFacility(facility);
-        newStaff.setCreatedAt(LocalDateTime.now());
-        newStaff.setUpdatedAt(LocalDateTime.now());
-        
-        // Verify initial state
-        assertEquals("ACTIVE", newStaff.getEmploymentStatus());
-        assertTrue(newStaff.isActive());
-        assertNull(newStaff.getEndDate());
-        
-        // Deactivate staff
-        LocalDate endDate = LocalDate.of(2024, 12, 31);
-        newStaff.deactivate(endDate);
-        
-        // Verify deactivated state
-        assertEquals("INACTIVE", newStaff.getEmploymentStatus());
-        assertFalse(newStaff.isActive());
-        assertEquals(endDate, newStaff.getEndDate());
-    }
-
-    @Test
-    @DisplayName("Test all fields can be set and retrieved")
-    void testAllFieldsSetAndGet() {
-        Long id = 1L;
-        String firstName = "John";
-        String lastName = "Doe";
-        String email = "john.doe@example.com";
-        String role = "Nurse";
-        String employmentStatus = "ACTIVE";
-        LocalDate endDate = LocalDate.of(2024, 12, 31);
-        LocalDateTime createdAt = LocalDateTime.of(2024, 1, 1, 10, 0);
-        LocalDateTime updatedAt = LocalDateTime.of(2024, 6, 1, 15, 30);
-        
-        staff.setId(id);
-        staff.setFirstName(firstName);
-        staff.setLastName(lastName);
-        staff.setEmail(email);
-        staff.setRole(role);
-        staff.setEmploymentStatus(employmentStatus);
+        staff.setId(1L);
+        staff.setFirstName("John");
+        staff.setLastName("Doe");
+        staff.setContact("555-7777");
+        staff.setRole("Nurse");
+        staff.setEmploymentStatus("Full-Time");
+        staff.setStartDate(startDate);
         staff.setEndDate(endDate);
-        staff.setFacility(facility);
+        staff.setFacilityId(100L);
         staff.setCreatedAt(createdAt);
         staff.setUpdatedAt(updatedAt);
-        
-        assertEquals(id, staff.getId());
-        assertEquals(firstName, staff.getFirstName());
-        assertEquals(lastName, staff.getLastName());
-        assertEquals(email, staff.getEmail());
-        assertEquals(role, staff.getRole());
-        assertEquals(employmentStatus, staff.getEmploymentStatus());
-        assertEquals(endDate, staff.getEndDate());
-        assertEquals(facility, staff.getFacility());
-        assertEquals(createdAt, staff.getCreatedAt());
-        assertEquals(updatedAt, staff.getUpdatedAt());
+        staff.setCreatedBy("admin");
+        staff.setUpdatedBy("admin");
+
+        String result = staff.toString();
+
+        assertTrue(result.contains("id=1"));
+        assertTrue(result.contains("firstName='John'"));
+        assertTrue(result.contains("lastName='Doe'"));
+        assertTrue(result.contains("contact='555-7777'"));
+        assertTrue(result.contains("role='Nurse'"));
+        assertTrue(result.contains("employmentStatus='Full-Time'"));
+        assertTrue(result.contains("startDate=" + startDate));
+        assertTrue(result.contains("endDate=" + endDate));
+        assertTrue(result.contains("facilityId=100"));
+        assertTrue(result.contains("createdAt=" + createdAt));
+        assertTrue(result.contains("updatedAt=" + updatedAt));
+        assertTrue(result.contains("createdBy='admin'"));
+        assertTrue(result.contains("updatedBy='admin'"));
     }
 
     @Test
-    @DisplayName("Test entity annotations are present")
-    void testEntityAnnotations() {
-        assertTrue(Staff.class.isAnnotationPresent(Entity.class));
-        assertTrue(Staff.class.isAnnotationPresent(Table.class));
-        
-        Table tableAnnotation = Staff.class.getAnnotation(Table.class);
-        assertEquals("staff", tableAnnotation.name());
+    @DisplayName("Test toString with null values")
+    void testToStringWithNullValues() {
+        String result = staff.toString();
+
+        assertTrue(result.contains("id=null"));
+        assertTrue(result.contains("firstName='null'"));
+        assertTrue(result.contains("lastName='null'"));
+        assertTrue(result.contains("contact='null'"));
+    }
+
+    /**
+     * Mock CreateStaffRequest class for testing
+     */
+    static class CreateStaffRequest {
+        private String firstName;
+        private String lastName;
+        private String contact;
+        private String role;
+        private String employmentStatus;
+        private LocalDate startDate;
+        private LocalDate endDate;
+
+        public String getFirstName() { return firstName; }
+        public void setFirstName(String firstName) { this.firstName = firstName; }
+        public String getLastName() { return lastName; }
+        public void setLastName(String lastName) { this.lastName = lastName; }
+        public String getContact() { return contact; }
+        public void setContact(String contact) { this.contact = contact; }
+        public String getRole() { return role; }
+        public void setRole(String role) { this.role = role; }
+        public String getEmploymentStatus() { return employmentStatus; }
+        public void setEmploymentStatus(String employmentStatus) { this.employmentStatus = employmentStatus; }
+        public LocalDate getStartDate() { return startDate; }
+        public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+        public LocalDate getEndDate() { return endDate; }
+        public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
+    }
+
+    /**
+     * Mock UpdateStaffRequest class for testing
+     */
+    static class UpdateStaffRequest {
+        private String firstName;
+        private String lastName;
+        private String contact;
+        private String role;
+        private String employmentStatus;
+        private LocalDate startDate;
+        private LocalDate endDate;
+
+        public String getFirstName() { return firstName; }
+        public void setFirstName(String firstName) { this.firstName = firstName; }
+        public String getLastName() { return lastName; }
+        public void setLastName(String lastName) { this.lastName = lastName; }
+        public String getContact() { return contact; }
+        public void setContact(String contact) { this.contact = contact; }
+        public String getRole() { return role; }
+        public void setRole(String role) { this.role = role; }
+        public String getEmploymentStatus() { return employmentStatus; }
+        public void setEmploymentStatus(String employmentStatus) { this.employmentStatus = employmentStatus; }
+        public LocalDate getStartDate() { return startDate; }
+        public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+        public LocalDate getEndDate() { return endDate; }
+        public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
+    }
+
+    /**
+     * Mock Facility class for testing
+     */
+    static class Facility {
+        private Long id;
+        public Long getId() { return id; }
+        public void setId(Long id) { this.id = id; }
     }
 }

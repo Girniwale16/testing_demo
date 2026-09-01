@@ -1,11 +1,14 @@
 package com.visionary.roster.model;
 
+import com.visionary.roster.dto.CreateStaffRequest;
+import com.visionary.roster.dto.UpdateStaffRequest;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 /**
  * JPA Entity representing a Staff member in the roster system.
@@ -28,17 +31,26 @@ public class Staff {
     @Column(name = "email", nullable = false, unique = true, length = 255)
     private String email;
 
+    @Column(name = "contact", length = 50)
+    private String contact;
+
     @Column(name = "role", nullable = false, length = 50)
     private String role;
 
     @Column(name = "employment_status", nullable = false, length = 20)
     private String employmentStatus = "ACTIVE";
 
+    @Column(name = "start_date")
+    private LocalDate startDate;
+
     @Column(name = "end_date")
     private LocalDate endDate;
 
+    @Column(name = "facility_id", nullable = false)
+    private Long facilityId;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "facility_id", nullable = false)
+    @JoinColumn(name = "facility_id", insertable = false, updatable = false)
     private Facility facility;
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -56,181 +68,156 @@ public class Staff {
     }
 
     /**
-     * Gets the unique identifier of the staff member.
+     * Static factory method to create a Staff entity from a CreateStaffRequest.
      *
-     * @return the staff id
+     * @param request the create staff request
+     * @param facilityId the facility the staff member belongs to
+     * @return a new Staff instance populated from the request
      */
+    public static Staff toEntity(CreateStaffRequest request, Long facilityId) {
+        Staff staff = new Staff();
+        staff.setFirstName(request.getFirstName());
+        staff.setLastName(request.getLastName());
+        staff.setEmail(request.getEmail());
+        staff.setContact(request.getContact());
+        staff.setRole(request.getRole());
+        staff.setEmploymentStatus(request.getEmploymentStatus() != null ? request.getEmploymentStatus() : "ACTIVE");
+        staff.setStartDate(request.getStartDate());
+        staff.setEndDate(request.getEndDate());
+        staff.setFacilityId(facilityId);
+        return staff;
+    }
+
+    /**
+     * Updates this staff entity from an UpdateStaffRequest.
+     * Only non-null fields on the request are applied.
+     *
+     * @param request the update staff request
+     */
+    public void updateFromRequest(UpdateStaffRequest request) {
+        if (request.getFirstName() != null) {
+            this.firstName = request.getFirstName();
+        }
+        if (request.getLastName() != null) {
+            this.lastName = request.getLastName();
+        }
+        if (request.getContact() != null) {
+            this.contact = request.getContact();
+        }
+        if (request.getRole() != null) {
+            this.role = request.getRole();
+        }
+        if (request.getEmploymentStatus() != null) {
+            this.employmentStatus = request.getEmploymentStatus();
+        }
+        if (request.getStartDate() != null) {
+            this.startDate = request.getStartDate();
+        }
+        if (request.getEndDate() != null) {
+            this.endDate = request.getEndDate();
+        }
+    }
+
     public Long getId() {
         return id;
     }
 
-    /**
-     * Sets the unique identifier of the staff member.
-     *
-     * @param id the staff id
-     */
     public void setId(Long id) {
         this.id = id;
     }
 
-    /**
-     * Gets the first name of the staff member.
-     *
-     * @return the first name
-     */
     public String getFirstName() {
         return firstName;
     }
 
-    /**
-     * Sets the first name of the staff member.
-     *
-     * @param firstName the first name
-     */
     public void setFirstName(String firstName) {
         this.firstName = firstName;
     }
 
-    /**
-     * Gets the last name of the staff member.
-     *
-     * @return the last name
-     */
     public String getLastName() {
         return lastName;
     }
 
-    /**
-     * Sets the last name of the staff member.
-     *
-     * @param lastName the last name
-     */
     public void setLastName(String lastName) {
         this.lastName = lastName;
     }
 
-    /**
-     * Gets the email address of the staff member.
-     *
-     * @return the email
-     */
     public String getEmail() {
         return email;
     }
 
-    /**
-     * Sets the email address of the staff member.
-     *
-     * @param email the email
-     */
     public void setEmail(String email) {
         this.email = email;
     }
 
-    /**
-     * Gets the role of the staff member.
-     *
-     * @return the role
-     */
+    public String getContact() {
+        return contact;
+    }
+
+    public void setContact(String contact) {
+        this.contact = contact;
+    }
+
     public String getRole() {
         return role;
     }
 
-    /**
-     * Sets the role of the staff member.
-     *
-     * @param role the role
-     */
     public void setRole(String role) {
         this.role = role;
     }
 
-    /**
-     * Gets the employment status of the staff member.
-     *
-     * @return the employment status
-     */
     public String getEmploymentStatus() {
         return employmentStatus;
     }
 
-    /**
-     * Sets the employment status of the staff member.
-     *
-     * @param employmentStatus the employment status
-     */
     public void setEmploymentStatus(String employmentStatus) {
         this.employmentStatus = employmentStatus;
     }
 
-    /**
-     * Gets the end date of employment.
-     *
-     * @return the end date
-     */
+    public LocalDate getStartDate() {
+        return startDate;
+    }
+
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
+
     public LocalDate getEndDate() {
         return endDate;
     }
 
-    /**
-     * Sets the end date of employment.
-     *
-     * @param endDate the end date
-     */
     public void setEndDate(LocalDate endDate) {
         this.endDate = endDate;
     }
 
-    /**
-     * Gets the facility where the staff member works.
-     *
-     * @return the facility
-     */
+    public Long getFacilityId() {
+        return facilityId;
+    }
+
+    public void setFacilityId(Long facilityId) {
+        this.facilityId = facilityId;
+    }
+
     public Facility getFacility() {
         return facility;
     }
 
-    /**
-     * Sets the facility where the staff member works.
-     *
-     * @param facility the facility
-     */
     public void setFacility(Facility facility) {
         this.facility = facility;
     }
 
-    /**
-     * Gets the timestamp when the staff record was created.
-     *
-     * @return the creation timestamp
-     */
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
-    /**
-     * Sets the timestamp when the staff record was created.
-     *
-     * @param createdAt the creation timestamp
-     */
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
 
-    /**
-     * Gets the timestamp when the staff record was last updated.
-     *
-     * @return the update timestamp
-     */
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
 
-    /**
-     * Sets the timestamp when the staff record was last updated.
-     *
-     * @param updatedAt the update timestamp
-     */
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
@@ -253,5 +240,33 @@ public class Staff {
     public void deactivate(LocalDate endDate) {
         this.employmentStatus = "INACTIVE";
         this.endDate = endDate;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Staff that = (Staff) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+
+    @Override
+    public String toString() {
+        return "Staff{" +
+                "id=" + id +
+                ", firstName='" + firstName + '\'' +
+                ", lastName='" + lastName + '\'' +
+                ", email='" + email + '\'' +
+                ", role='" + role + '\'' +
+                ", employmentStatus='" + employmentStatus + '\'' +
+                ", startDate=" + startDate +
+                ", endDate=" + endDate +
+                ", facilityId=" + facilityId +
+                '}';
     }
 }

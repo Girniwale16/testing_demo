@@ -24,6 +24,23 @@ public interface StaffRepository extends JpaRepository<Staff, Long> {
     List<Staff> findByFacility_FacilityIdAndEmploymentStatus(Long facilityId, String employmentStatus);
 
     /**
+     * Retrieves all staff members for a given facility, regardless of employment status.
+     *
+     * @param facilityId the ID of the facility
+     * @return list of staff belonging to the facility
+     */
+    List<Staff> findByFacilityId(Long facilityId);
+
+    /**
+     * Checks if a staff member with the given email already exists.
+     * Used for email uniqueness validation during creation.
+     *
+     * @param email the email to check
+     * @return true if a staff member with this email exists, false otherwise
+     */
+    boolean existsByEmail(String email);
+
+    /**
      * Retrieves all staff members by employment status.
      *
      * @param employmentStatus the employment status

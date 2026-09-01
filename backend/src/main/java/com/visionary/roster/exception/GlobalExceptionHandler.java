@@ -12,6 +12,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
 
 import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDateTime;
@@ -24,21 +25,22 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger("com.visionary.roster.security");
+    private static final String CORRELATION_ID_HEADER = "X-Correlation-ID";
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex) {
-        String correlationId = getOrGenerateCorrelationId();
+    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex, WebRequest request) {
+        String correlationId = extractCorrelationId(request);
         
-        Map<String, String> fieldErrors = new HashMap<>();
+        Map<String, String> errors = new HashMap<>();
         for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
-            fieldErrors.put(fieldError.getField(), fieldError.getDefaultMessage());
+            errors.put(fieldError.getField(), fieldError.getDefaultMessage());
         }
 
         String details = ex.getBindingResult().getFieldErrors().stream()
                 .map(error -> error.getField() + ": " + error.getDefaultMessage())
                 .collect(Collectors.joining("; "));
 
-        logger.warn("Validation error - correlationId: {}, details: {}", correlationId, details);
+        logger.warn("Validation failure - correlationId: {}, fieldErrors: {}", correlationId, details);
 
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .correlationId(correlationId)
@@ -48,15 +50,15 @@ public class GlobalExceptionHandler {
                 .remediation("Please check the request body and ensure all required fields are provided with valid values")
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.UNPROCESSABLE_ENTITY.value())
-                .fieldErrors(fieldErrors)
+                .fieldErrors(errors)
                 .build();
 
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorResponse);
     }
 
     @ExceptionHandler(InvalidCredentialsException.class)
-    public ResponseEntity<ErrorResponse> handleInvalidCredentialsException(InvalidCredentialsException ex) {
-        String correlationId = getOrGenerateCorrelationId();
+    public ResponseEntity<ErrorResponse> handleInvalidCredentialsException(InvalidCredentialsException ex, WebRequest request) {
+        String correlationId = extractCorrelationId(request);
 
         logger.warn("Invalid credentials - correlationId: {}, message: {}", correlationId, ex.getMessage());
 
@@ -73,8 +75,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(InactiveAccountException.class)
-    public ResponseEntity<ErrorResponse> handleInactiveAccountException(InactiveAccountException ex) {
-        String correlationId = getOrGenerateCorrelationId();
+    public ResponseEntity<ErrorResponse> handleInactiveAccountException(InactiveAccountException ex, WebRequest request) {
+        String correlationId = extractCorrelationId(request);
 
         logger.warn("Inactive account access attempt - correlationId: {}, userId: {}, message: {}", 
                    correlationId, ex.getUserId(), ex.getMessage());
@@ -92,8 +94,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ForbiddenAccessException.class)
-    public ResponseEntity<ErrorResponse> handleForbiddenAccessException(ForbiddenAccessException ex) {
-        String correlationId = getOrGenerateCorrelationId();
+    public ResponseEntity<ErrorResponse> handleForbiddenAccessException(ForbiddenAccessException ex, WebRequest request) {
+        String correlationId = extractCorrelationId(request);
 
         logger.warn("Forbidden access - correlationId: {}, userId: {}, facilityId: {}, resource: {}, reason: {}",
                 correlationId, ex.getUserId(), ex.getFacilityId(), ex.getResource(), ex.getReason());
@@ -111,8 +113,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex) {
-        String correlationId = getOrGenerateCorrelationId();
+    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex, WebRequest request) {
+        String correlationId = extractCorrelationId(request);
 
         String resourceType = ex.getResourceType() != null ? ex.getResourceType() : "Resource";
         String resourceId = ex.getResourceId() != null ? String.valueOf(ex.getResourceId()) : "unknown";
@@ -135,8 +137,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
-        String correlationId = getOrGenerateCorrelationId();
+    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex, WebRequest request) {
+        String correlationId = extractCorrelationId(request);
 
         logger.warn("Illegal argument - correlationId: {}, message: {}", correlationId, ex.getMessage());
 
@@ -153,8 +155,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException ex) {
-        String correlationId = getOrGenerateCorrelationId();
+    public ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException ex, WebRequest request) {
+        String correlationId = extractCorrelationId(request);
 
         logger.warn("Entity not found - correlationId: {}, message: {}", correlationId, ex.getMessage());
 
@@ -171,8 +173,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AuthenticationException.class)
-    public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex) {
-        String correlationId = getOrGenerateCorrelationId();
+    public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex, WebRequest request) {
+        String correlationId = extractCorrelationId(request);
 
         logger.warn("Authentication failed - correlationId: {}, message: {}", correlationId, ex.getMessage());
 
@@ -189,8 +191,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex) {
-        String correlationId = getOrGenerateCorrelationId();
+    public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex, WebRequest request) {
+        String correlationId = extractCorrelationId(request);
 
         logger.warn("Access denied - correlationId: {}, message: {}", correlationId, ex.getMessage());
 
@@ -207,8 +209,8 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
-        String correlationId = getOrGenerateCorrelationId();
+    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, WebRequest request) {
+        String correlationId = extractCorrelationId(request);
 
         logger.error("Unexpected error - correlationId: {}, exception: {}, message: {}", 
                     correlationId, ex.getClass().getName(), ex.getMessage(), ex);
@@ -225,8 +227,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
 
-    private String getOrGenerateCorrelationId() {
-        String correlationId = MDC.get("correlationId");
+    private String extractCorrelationId(WebRequest request) {
+        String correlationId = request.getHeader(CORRELATION_ID_HEADER);
+        if (correlationId == null || correlationId.isEmpty()) {
+            correlationId = MDC.get("correlationId");
+        }
         if (correlationId == null || correlationId.isEmpty()) {
             correlationId = UUID.randomUUID().toString();
             MDC.put("correlationId", correlationId);
