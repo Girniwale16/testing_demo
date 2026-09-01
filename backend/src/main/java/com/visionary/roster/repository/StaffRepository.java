@@ -21,16 +21,7 @@ public interface StaffRepository extends JpaRepository<Staff, Long> {
      * @param employmentStatus the employment status (e.g., "ACTIVE", "INACTIVE")
      * @return list of staff matching the criteria
      */
-    List<Staff> findByFacilityIdAndEmploymentStatus(Long facilityId, String employmentStatus);
-
-    /**
-     * Finds a staff member by ID within a specific facility scope.
-     *
-     * @param id the staff ID
-     * @param facilityId the facility ID
-     * @return Optional containing the staff if found
-     */
-    Optional<Staff> findByIdAndFacilityId(Long id, Long facilityId);
+    List<Staff> findByFacility_FacilityIdAndEmploymentStatus(Long facilityId, String employmentStatus);
 
     /**
      * Retrieves all staff members by employment status.
