@@ -1,0 +1,274 @@
+{
+    "backend/src/main/java/com/visionary/roster/VisApplication.java": {
+        "purpose": "Serves as the main entry point for the Visionary Roster Spring Boot application. This class bootstraps the entire application context by invoking SpringApplication.run() with the primary configuration class, enabling auto-configuration and component scanning for the roster management system.",
+        "functions": [
+            {
+                "signature": "public static void main(String[] args)",
+                "purpose": "Application entry point that launches the Spring Boot application by delegating to SpringApplication.run() with the VisApplication class and command-line arguments."
+            }
+        ]
+    },
+    "backend/src/main/java/com/visionary/roster/controller/AuthController.java": {
+        "purpose": "Provides REST API endpoints for authentication operations in the roster management system. Handles user login, logout, and session validation with comprehensive security logging including correlation IDs, IP addresses, and MDC context tracking for audit trails.",
+        "functions": [
+            {
+                "signature": "public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest request)",
+                "purpose": "Authenticates a user with username, password, and facility ID credentials. Logs security events and returns authentication token and user details upon successful login."
+            },
+            {
+                "signature": "public ResponseEntity<Map<String, String>> logout(HttpServletRequest request)",
+                "purpose": "Terminates the current user session and logs the logout event with correlation tracking."
+            },
+            {
+                "signature": "public ResponseEntity<SessionResponse> getSession(HttpServletRequest request)",
+                "purpose": "Retrieves the current authenticated user's session information including user ID and facility ID."
+            }
+        ]
+    },
+    "backend/src/main/java/com/visionary/roster/dto/LoginRequest.java": {
+        "purpose": "Defines a Data Transfer Object (DTO) for user login requests in the roster management system. Encapsulates username, password, and facility ID with validation constraints to ensure all required authentication fields are provided before processing.",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/dto/CreateStaffRequest.java": {
+        "purpose": "Data Transfer Object for creating new staff members in the roster system. Captures staff creation requests from the client with validation constraints and converts the DTO to a StaffMember entity for persistence, with facilityId injected by the service layer from authenticated user context.",
+        "functions": [
+            {
+                "signature": "public CreateStaffRequest()",
+                "purpose": "No-args constructor for instantiating an empty CreateStaffRequest object."
+            },
+            {
+                "signature": "public CreateStaffRequest(String name, String contact, String role, String employmentStatus, LocalDate startDate, LocalDate endDate)",
+                "purpose": "All-args constructor for instantiating a CreateStaffRequest with all staff member fields populated."
+            },
+            {
+                "signature": "public StaffMember toEntity(Long facilityId)",
+                "purpose": "Converts this DTO to a StaffMember entity by populating it with the DTO's data and the provided facilityId for persistence."
+            }
+        ]
+    },
+    "backend/src/main/java/com/visionary/roster/dto/ErrorResponse.java": {
+        "purpose": "Defines a standardized error response Data Transfer Object (DTO) for the roster management system. This class encapsulates comprehensive error information including correlation tracking, error codes, messages, remediation guidance, timestamps, HTTP status codes, and field-level validation errors for API responses.",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/config/SecurityConfig.java": {
+        "purpose": "Configures Spring Security for the Roster application, defining authentication and authorization rules for REST API endpoints. Establishes session management policies, role-based access control for staff management operations, and disables CSRF protection for stateless API interactions.",
+        "functions": [
+            {
+                "signature": "public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception",
+                "purpose": "Configures the security filter chain with CSRF disabled, session management settings, endpoint authorization rules based on roles (MANAGER, STAFF), and exception handling for unauthorized access."
+            },
+            {
+                "signature": "public PasswordEncoder passwordEncoder()",
+                "purpose": "Provides a BCrypt password encoder bean for secure password hashing and validation throughout the application."
+            }
+        ]
+    },
+    "backend/src/main/java/com/visionary/roster/config/CorrelationIdFilter.java": {
+        "purpose": "Implements a servlet filter that manages correlation IDs for distributed tracing across HTTP requests. Extracts or generates a unique correlation ID from incoming requests, stores it in the SLF4J MDC context for logging, and ensures it is propagated in the response header for end-to-end request tracking.",
+        "functions": [
+            {
+                "signature": "public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException",
+                "purpose": "Intercepts HTTP requests to extract or generate a correlation ID, stores it in the MDC logging context, adds it to the response header, and ensures cleanup after request processing completes."
+            }
+        ]
+    },
+    "backend/src/main/java/com/visionary/roster/audit/AuditEmitter.java": {
+        "purpose": "Defines the contract for emitting audit events in the roster management system. Provides a standardized interface for publishing audit trails of staff updates, deactivations, and generic auditable actions to audit logging or event streaming infrastructure with correlation ID support for distributed tracing.",
+        "functions": [
+            {
+                "signature": "void emitStaffUpdateEvent(Long staffId, Long userId, Map<String, Object> changes)",
+                "purpose": "Emits an audit event when staff information is updated, capturing the staff ID, user performing the update, and a map of changed fields with their new values."
+            },
+            {
+                "signature": "void emitStaffDeactivateEvent(Long staffId, Long userId, String reason)",
+                "purpose": "Emits an audit event when a staff member is deactivated, recording the staff ID, user performing the action, and the reason for deactivation for compliance and accountability."
+            },
+            {
+                "signature": "void emitAuditEvent(String eventType, String entityType, Long entityId, Long userId, Map<String, Object> metadata)",
+                "purpose": "Emits a generic audit event for any auditable action in the system, providing flexibility for custom events with automatic correlation ID inclusion for end-to-end request tracing."
+            }
+        ]
+    },
+    "backend/src/main/java/com/visionary/roster/dto/LoginResponse.java": {
+        "purpose": "Serves as a Data Transfer Object (DTO) for encapsulating authentication response data in the roster management system. Contains user credentials, role information, facility assignment details, and response messages returned after successful login operations.",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/dto/SessionResponse.java": {
+        "purpose": "Represents a Data Transfer Object (DTO) for session response data in the roster management system. Encapsulates authenticated user session information including user identity, role, facility assignment, and active status for transmission between application layers.",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/dto/StaffUpdateRequest.java": {
+        "purpose": "Data Transfer Object for staff update requests in the roster management system. Encapsulates validated staff information including personal details, role, facility assignment, and employment status for update operations.",
+        "functions": [
+            {
+                "signature": "public String getFirstName()",
+                "purpose": "Returns the first name of the staff member being updated."
+            },
+            {
+                "signature": "public void setFirstName(String firstName)",
+                "purpose": "Sets the first name of the staff member with validation constraints for required and maximum length."
+            },
+            {
+                "signature": "public String getLastName()",
+                "purpose": "Returns the last name of the staff member being updated."
+            },
+            {
+                "signature": "public void setLastName(String lastName)",
+                "purpose": "Sets the last name of the staff member with validation constraints for required and maximum length."
+            },
+            {
+                "signature": "public String getEmail()",
+                "purpose": "Returns the email address of the staff member being updated."
+            },
+            {
+                "signature": "public void setEmail(String email)",
+                "purpose": "Sets the email address with validation for required, valid email format, and maximum length."
+            },
+            {
+                "signature": "public String getRole()",
+                "purpose": "Returns the role assigned to the staff member."
+            },
+            {
+                "signature": "public void setRole(String role)",
+                "purpose": "Sets the role for the staff member with required validation constraint."
+            },
+            {
+                "signature": "public Long getFacilityId()",
+                "purpose": "Returns the facility ID where the staff member is assigned."
+            },
+            {
+                "signature": "public void setFacilityId(Long facilityId)",
+                "purpose": "Sets the facility ID with required validation constraint."
+            },
+            {
+                "signature": "public String getEmploymentStatus()",
+                "purpose": "Returns the employment status of the staff member."
+            },
+            {
+                "signature": "public void setEmploymentStatus(String employmentStatus)",
+                "purpose": "Sets the employment status of the staff member without validation constraints."
+            }
+        ]
+    },
+    "backend/src/main/java/com/visionary/roster/dto/StaffResponse.java": {
+        "purpose": "Data Transfer Object for Staff entity responses in the roster management system. Encapsulates staff information including personal details, employment status, facility association, and timestamps for transfer to the client layer. Provides a factory method to convert Staff entities into response objects.",
+        "functions": [
+            {
+                "signature": "public static StaffResponse fromEntity(Staff staff)",
+                "purpose": "Factory method that creates and populates a StaffResponse object from a Staff entity, including facility information if available."
+            }
+        ]
+    },
+    "backend/src/main/java/com/visionary/roster/exception/InactiveAccountException.java": {
+        "purpose": "Defines a custom runtime exception for handling inactive user account scenarios in the roster management system. Encapsulates the user ID associated with the inactive account to provide context for exception handling and logging.",
+        "functions": [
+            {
+                "signature": "public InactiveAccountException(String message, Long userId)",
+                "purpose": "Constructs the exception with a descriptive error message and the ID of the user whose account is inactive."
+            },
+            {
+                "signature": "public Long getUserId()",
+                "purpose": "Returns the user ID associated with the inactive account exception for downstream error handling and auditing."
+            }
+        ]
+    },
+    "backend/src/main/java/com/visionary/roster/exception/GlobalExceptionHandler.java": {
+        "purpose": "Provides centralized exception handling for the Roster application using Spring's @RestControllerAdvice. Intercepts various exception types (validation errors, authentication failures, access denials, resource not found) and transforms them into standardized ErrorResponse objects with correlation IDs, error codes, HTTP status codes, and remediation guidance for API consumers.",
+        "functions": [
+            {
+                "signature": "public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex)",
+                "purpose": "Handles validation errors from request body validation, extracts field-level errors, and returns a 422 UNPROCESSABLE_ENTITY response with detailed field error mappings."
+            },
+            {
+                "signature": "public ResponseEntity<ErrorResponse> handleInvalidCredentialsException(InvalidCredentialsException ex)",
+                "purpose": "Handles invalid login credentials and returns a 401 UNAUTHORIZED response with guidance to verify credentials."
+            },
+            {
+                "signature": "public ResponseEntity<ErrorResponse> handleInactiveAccountException(InactiveAccountException ex)",
+                "purpose": "Handles attempts to access the system with an inactive account and returns a 403 FORBIDDEN response with instructions to contact an administrator."
+            },
+            {
+                "signature": "public ResponseEntity<ErrorResponse> handleForbiddenAccessException(ForbiddenAccessException ex)",
+                "purpose": "Handles forbidden access attempts when users lack permissions for specific resources or facilities and returns a 403 FORBIDDEN response with contextual logging."
+            },
+            {
+                "signature": "public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex)",
+                "purpose": "Handles cases where requested resources cannot be found, formats resource type and ID information, and returns a 404 NOT_FOUND response."
+            },
+            {
+                "signature": "public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex)",
+                "purpose": "Handles illegal argument exceptions from invalid request parameters and returns a 400 BAD_REQUEST response."
+            },
+            {
+                "signature": "public ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException ex)",
+                "purpose": "Handles JPA entity not found exceptions and returns a 404 NOT_FOUND response with generic resource not found messaging."
+            },
+            {
+                "signature": "public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex)",
+                "purpose": "Handles Spring Security authentication failures and returns a 401 UNAUTHORIZED response prompting users to log in."
+            },
+            {
+                "signature": "public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex)",
+                "purpose": "Handles Spring Security access denied exceptions when authenticated users lack required permissions and returns a 403 FORBIDDEN response."
+            },
+            {
+                "signature": "public ResponseEntity<ErrorResponse> handleGenericException(Exception ex)",
+                "purpose": "Catches all unhandled exceptions as a fallback, logs full stack traces, and returns a 500 INTERNAL_SERVER_ERROR response with a correlation ID for support tracking."
+            }
+        ]
+    },
+    "backend/src/main/java/com/visionary/roster/exception/ResourceNotFoundException.java": {
+        "purpose": "Custom exception class for resource not found scenarios in the roster management system. Extends RuntimeException to provide specialized handling when requested resources cannot be located, automatically mapping to HTTP 404 status. Captures resource type and ID metadata for detailed error reporting.",
+        "functions": [
+            {
+                "signature": "public ResourceNotFoundException(String message)",
+                "purpose": "Constructs a new ResourceNotFoundException with a custom detail message for generic resource not found scenarios."
+            },
+            {
+                "signature": "public ResourceNotFoundException(String resourceType, Long resourceId)",
+                "purpose": "Constructs a new ResourceNotFoundException with resource type and ID, automatically formatting the error message as '{resourceType} with ID {resourceId} not found'."
+            },
+            {
+                "signature": "public String getResourceType()",
+                "purpose": "Returns the type of resource that was not found."
+            },
+            {
+                "signature": "public Long getResourceId()",
+                "purpose": "Returns the ID of the resource that was not found."
+            }
+        ]
+    },
+    "backend/src/main/java/com/visionary/roster/model/Facility.java": {
+        "purpose": "Represents a Facility entity in the roster management system, mapping to a database table with JPA annotations. Manages facility metadata including name, timezone, region, and audit fields, while maintaining a bidirectional one-to-many relationship with Staff members. Provides lifecycle callbacks for automatic timestamp management and methods for managing staff associations.",
+        "functions": [
+            {
+                "signature": "public Set<Staff> getStaffMembers()",
+                "purpose": "Returns an unmodifiable view of the staff members associated with this facility to prevent external modification of the internal collection."
+            },
+            {
+                "signature": "public void addStaff(Staff staff)",
+                "purpose": "Adds a staff member to this facility and establishes the bidirectional relationship by setting the facility reference on the staff object."
+            },
+            {
+                "signature": "public void removeStaff(Staff staff)",
+                "purpose": "Removes a staff member from this facility and clears the bidirectional relationship by nullifying the facility reference on the staff object."
+            }
+        ]
+    },
+    "backend/src/main/java/com/visionary/roster/audit/AuditEmitterImpl.java": {
+        "purpose": "Delayed response - Exceeded 5 minutes.",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/controller/StaffController.java": {
+        "purpose": "Delayed response - Exceeded 5 minutes.",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/exception/ForbiddenAccessException.java": {
+        "purpose": "Delayed response - Exceeded 5 minutes.",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/exception/InvalidCredentialsException.java": {
+        "purpose": "Delayed response - Exceeded 5 minutes.",
+        "functions": []
+    }
+}
