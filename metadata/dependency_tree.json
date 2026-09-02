@@ -33,5 +33,86 @@
     "backend/src/main/java/com/visionary/roster/controller/StaffController.java": [],
     "backend/src/main/java/com/visionary/roster/model/Facility.java": [
         "com.visionary.roster.model.Staff"
-    ]
+    ],
+    "frontend/src/components/ErrorAlert.jsx": [
+        "./ErrorAlert"
+    ],
+    "frontend/src/api/authApi.ts": [
+        "./axiosInstance",
+        "../types/auth.types",
+        "../utils/logger"
+    ],
+    "frontend/src/api/axiosInstance.ts": [
+        "../utils/logger"
+    ],
+    "frontend/src/components/ErrorBanner.tsx": [
+        "../utils/logger"
+    ],
+    "frontend/src/api/staffApi.js": [
+        "../staffApi",
+        "../../api/axiosInstance.ts"
+    ],
+    "frontend/src/components/EmptyState.jsx": [
+        "./EmptyState"
+    ],
+    "frontend/src/components/LoadingSkeleton.jsx": [
+        "./LoadingSkeleton"
+    ],
+    "frontend/src/components/LoginForm.tsx": [
+        "../utils/logger"
+    ],
+    "frontend/src/components/Pagination.jsx": [
+        "./Pagination"
+    ],
+    "frontend/src/components/RetryBanner.jsx": [
+        "./RetryBanner"
+    ],
+    "frontend/src/components/ProtectedRoute.tsx": [
+        "../hooks/useAuth",
+        "../utils/logger"
+    ],
+    "frontend/src/components/StaffList.jsx": [
+        "./StaffList",
+        "../hooks/useStaffApi",
+        "../api/staffApi",
+        "./LoadingSkeleton",
+        "./EmptyState",
+        "./StaffTable",
+        "./Pagination",
+        "./RetryBanner",
+        "./ErrorAlert"
+    ],
+    "frontend/src/hooks/useAuth.ts": [
+        "../api/authApi",
+        "../types/auth.types",
+        "../utils/logger"
+    ],
+    "frontend/src/components/StaffTable.jsx": [
+        "./StaffTable"
+    ],
+    "frontend/src/main.tsx": [
+        "./App"
+    ],
+    "frontend/src/hooks/useStaffApi.js": [
+        "../useStaffApi",
+        "../../api/staffApi"
+    ],
+    "frontend/src/pages/LoginPage.tsx": [
+        "../components/LoginForm",
+        "../components/ErrorBanner",
+        "../hooks/useAuth",
+        "../utils/logger"
+    ],
+    "frontend/src/tests/App.component.test.tsx": [
+        "../App",
+        "../utils/logger",
+        "../pages/LoginPage",
+        "../components/ProtectedRoute",
+        "../components/StaffList.jsx"
+    ],
+    "frontend/src/tests/ErrorBanner.test.tsx": [
+        "../components/ErrorBanner",
+        "../utils/logger"
+    ],
+    "frontend/src/App.tsx": []
 }
