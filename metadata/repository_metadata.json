@@ -340,5 +340,144 @@
                 "purpose": "Removes a staff member from this facility and clears the bidirectional relationship by nullifying the facility reference on the staff object."
             }
         ]
+    },
+    "frontend/src/components/ErrorAlert.jsx": {
+        "purpose": "Comprehensive test suite for the ErrorAlert React component that validates rendering behavior, accessibility attributes, conditional details display, CSS styling, security considerations, and integration capabilities. Ensures the component properly displays error messages with appropriate ARIA attributes while preventing exposure of sensitive system information like stack traces, internal error codes, or database connection details.",
+        "functions": []
+    },
+    "frontend/src/api/authApi.ts": {
+        "purpose": "Provides a centralized API client module for authentication operations in the frontend application. Exposes methods for user login, logout, and session retrieval, with comprehensive logging for all API calls and error handling.",
+        "functions": [
+            {
+                "signature": "login: async (credentials: LoginRequest): Promise<LoginResponse>",
+                "purpose": "Authenticates a user by sending login credentials to the backend API and returns the authentication response including user data and tokens."
+            },
+            {
+                "signature": "logout: async (): Promise<void>",
+                "purpose": "Terminates the current user session by calling the backend logout endpoint and clearing authentication state."
+            },
+            {
+                "signature": "getCurrentUser: async (): Promise<UserProfile>",
+                "purpose": "Retrieves the currently authenticated user's profile information from the active session."
+            }
+        ]
+    },
+    "frontend/src/api/axiosInstance.ts": {
+        "purpose": "Configures and exports a centralized Axios HTTP client instance for the frontend application with request/response interceptors. Automatically generates and attaches correlation IDs to all outgoing requests for distributed tracing. Handles global error responses including authentication redirects for 401 errors and structured logging for all HTTP failures.",
+        "functions": [
+            {
+                "signature": "function generateCorrelationId(): string",
+                "purpose": "Generates a unique correlation ID combining timestamp, counter, and random string for request tracing across the distributed system."
+            }
+        ]
+    },
+    "frontend/src/components/ErrorBanner.tsx": {
+        "purpose": "Provides a reusable React component that displays error messages to users in an accessible banner format with optional dismiss functionality. Integrates with the application's logging system to track error display and dismissal events, including correlation IDs for debugging and monitoring purposes.",
+        "functions": [
+            {
+                "signature": "function ErrorBanner({ message, onDismiss, correlationId }: ErrorBannerProps)",
+                "purpose": "Renders an accessible error banner that displays an error message, logs the display event, automatically focuses the banner for screen readers, and provides an optional dismiss button that triggers logging and callback execution."
+            }
+        ]
+    },
+    "frontend/src/api/staffApi.js": {
+        "purpose": "Provides comprehensive unit test coverage for the staffApi module, validating all CRUD operations (list, create, update, deactivate) for staff members. Tests verify correct API endpoint calls, request parameter handling, response data mapping to DTOs, and standardized error handling with retry logic for various HTTP status codes and network failures.",
+        "functions": []
+    },
+    "frontend/src/components/EmptyState.jsx": {
+        "purpose": "This is a comprehensive test suite for the EmptyState React component. It validates rendering behavior, accessibility compliance, navigation logic, custom callback handling, CSS class application, and integration scenarios using Jest and React Testing Library.",
+        "functions": []
+    },
+    "frontend/src/components/LoadingSkeleton.jsx": {
+        "purpose": "This file contains a comprehensive test suite for the LoadingSkeleton React component. It validates the component's rendering behavior, accessibility attributes (ARIA roles and labels), skeleton row and cell structure (5 rows with 4 cells each), CSS styling (colors, dimensions, animations), and the pulse animation keyframes used to create a loading effect for a staff list table.",
+        "functions": []
+    },
+    "frontend/src/components/LoginForm.tsx": {
+        "purpose": "Implements a React login form component that manages username and password input state, performs client-side validation, and handles asynchronous form submission with loading states. Integrates comprehensive logging for form events including validation failures, submission attempts, and errors.",
+        "functions": [
+            {
+                "signature": "function LoginForm({ onSubmit }: LoginFormProps)",
+                "purpose": "Renders a controlled login form with username and password fields, validates input, manages loading state, and invokes the provided onSubmit callback with credentials upon successful validation."
+            }
+        ]
+    },
+    "frontend/src/components/Pagination.jsx": {
+        "purpose": "Provides comprehensive unit test coverage for the Pagination React component. Tests component rendering, button functionality, keyboard navigation, accessibility features, CSS classes, edge cases, and prop handling using React Testing Library and Jest.",
+        "functions": []
+    },
+    "frontend/src/components/RetryBanner.jsx": {
+        "purpose": "Provides comprehensive unit test coverage for the RetryBanner React component. Tests component rendering, accessibility attributes, user interactions (click, hover, focus), styling validation, and prop handling to ensure the error banner displays correctly and triggers retry callbacks appropriately.",
+        "functions": []
+    },
+    "frontend/src/components/ProtectedRoute.tsx": {
+        "purpose": "Implements a React route guard component that protects application routes from unauthenticated access. Checks user authentication status, displays a loading state during authentication verification, and redirects unauthenticated users to the login page while logging all access attempts.",
+        "functions": [
+            {
+                "signature": "function ProtectedRoute({ children }: ProtectedRouteProps)",
+                "purpose": "Wraps child components to enforce authentication requirements, rendering children only if user is authenticated, otherwise redirecting to login page with location state preserved."
+            }
+        ]
+    },
+    "frontend/src/components/StaffList.jsx": {
+        "purpose": "Comprehensive test suite for the StaffList React component. Validates all component behaviors including loading states, error handling, pagination, staff CRUD operations, retry mechanisms, and integration with custom hooks (useStaffApi, useNavigate). Ensures proper rendering of child components (LoadingSkeleton, EmptyState, StaffTable, Pagination, RetryBanner, ErrorAlert) under various conditions.",
+        "functions": []
+    },
+    "frontend/src/hooks/useAuth.ts": {
+        "purpose": "Provides a React custom hook for managing authentication state and operations in the frontend application. Handles user session validation on mount, login/logout flows, and exposes authentication state (user profile, loading, error) along with authentication methods to consuming components.",
+        "functions": [
+            {
+                "signature": "export function useAuth()",
+                "purpose": "Main hook that manages authentication state and returns user profile, loading status, error state, and authentication methods (login, logout, clearError). Automatically validates the user session on component mount."
+            },
+            {
+                "signature": "const login = async (username: string, password: string)",
+                "purpose": "Authenticates a user with provided credentials, updates the user state with the returned profile, and logs the authentication attempt and result."
+            },
+            {
+                "signature": "const logout = async ()",
+                "purpose": "Terminates the current user session by calling the logout API, clears the user state, and logs the logout operation."
+            },
+            {
+                "signature": "const clearError = ()",
+                "purpose": "Resets the error state to null, allowing the UI to clear displayed authentication error messages."
+            }
+        ]
+    },
+    "frontend/src/components/StaffTable.jsx": {
+        "purpose": "Comprehensive test suite for the StaffTable React component that validates rendering, accessibility (WCAG 2.1 AA compliance), keyboard navigation, user interactions (edit/deactivate actions), responsive design behavior, and edge cases. Ensures the component correctly displays staff member data in a table format with proper ARIA labels, semantic HTML, and callback functionality.",
+        "functions": []
+    },
+    "frontend/src/main.tsx": {
+        "purpose": "Serves as the application entry point for the React frontend. Initializes the React root DOM node and renders the main App component wrapped in StrictMode for development checks.",
+        "functions": []
+    },
+    "frontend/src/hooks/useStaffApi.js": {
+        "purpose": "Comprehensive test suite for the useStaffApi custom React hook. Validates error handling for HTTP status codes (401, 403, 500+), navigation behavior on authentication failures, error state management, and API call execution patterns including successful calls, network errors, and edge cases.",
+        "functions": []
+    },
+    "frontend/src/pages/LoginPage.tsx": {
+        "purpose": "Implements the login page component for the frontend application. Manages user authentication flow by rendering a login form, handling login submissions through the useAuth hook, displaying error messages, and automatically redirecting authenticated users to the home route.",
+        "functions": [
+            {
+                "signature": "function LoginPage()",
+                "purpose": "Main component function that renders the login page UI, manages authentication state, handles automatic navigation after successful login, and coordinates error display and form submission."
+            },
+            {
+                "signature": "const handleLogin = async (username: string, password: string)",
+                "purpose": "Asynchronous handler that processes login form submissions by calling the login function from useAuth hook and logging any errors that occur during authentication."
+            }
+        ]
+    },
+    "frontend/src/tests/App.component.test.tsx": {
+        "purpose": "Comprehensive test suite for the App component that validates routing behavior, component mounting lifecycle, authentication enforcement via ProtectedRoute, and integration of LoginPage and StaffList components. Ensures correct route configuration for /login (public), /staff (protected), and catch-all routes, verifying that protected routes are wrapped with ProtectedRoute and that logging events fire on mount.",
+        "functions": []
+    },
+    "frontend/src/tests/ErrorBanner.test.tsx": {
+        "purpose": "Comprehensive test suite for the ErrorBanner React component. Validates rendering behavior for single and multiple error messages, field-level validation errors, collapsible technical details with correlation IDs, dismiss functionality with callbacks, accessibility features (ARIA attributes and focus management), and backward compatibility with existing prop interfaces.",
+        "functions": []
+    },
+    "frontend/src/App.tsx": {
+        "purpose": "Delayed response - Exceeded 5 minutes.",
+        "functions": []
     }
 }
