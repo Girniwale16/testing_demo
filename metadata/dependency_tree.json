@@ -183,5 +183,59 @@
     "frontend/src/components/ErrorAlert.jsx": [],
     "frontend/src/components/ErrorBanner.tsx": [],
     "frontend/src/components/StaffList.jsx": [],
-    "frontend/src/hooks/useStaffApi.js": []
+    "frontend/src/hooks/useStaffApi.js": [],
+    "frontend/src/tests/app.test.tsx": [
+        "../api/authApi"
+    ],
+    "frontend/src/tests/staffApi.test.ts": [
+        "../api/axiosInstance",
+        "../api/staffApi"
+    ],
+    "frontend/src/tests/Toast.test.tsx": [
+        "../components/Toast",
+        "../utils/logger"
+    ],
+    "frontend/src/tests/staffValidation.test.ts": [
+        "../utils/staffValidation"
+    ],
+    "frontend/src/tests/StaffFormModal.test.tsx": [
+        "../components/StaffFormModal",
+        "../hooks/useStaffForm",
+        "../components/ErrorBanner",
+        "../components/Toast",
+        "../utils/logger"
+    ],
+    "frontend/src/tests/LoginPage.test.tsx": [
+        "../pages/LoginPage",
+        "../hooks/useAuth",
+        "../utils/logger",
+        "../components/LoginForm",
+        "../components/ErrorBanner"
+    ],
+    "frontend/src/tests/axiosInstance.test.ts": [
+        "../api/axiosInstance",
+        "../utils/logger"
+    ],
+    "frontend/src/tests/ProtectedRoute.test.tsx": [
+        "../components/ProtectedRoute",
+        "../hooks/useAuth",
+        "../utils/logger"
+    ],
+    "frontend/src/tests/LoginForm.test.tsx": [
+        "../components/LoginForm",
+        "../utils/logger"
+    ],
+    "frontend/src/tests/useAuth.test.ts": [
+        "../hooks/useAuth",
+        "../api/authApi",
+        "../utils/logger"
+    ],
+    "frontend/src/types/auth.types.ts": [],
+    "frontend/src/tests/useStaffForm.test.ts": [
+        "../hooks/useStaffForm",
+        "../api/staffApi",
+        "../utils/staffValidation",
+        "../utils/logger"
+    ],
+    "frontend/src/utils/logger.ts": []
 }
