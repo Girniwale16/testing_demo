@@ -1,23 +1,29 @@
 {
-    "backend/src/main/java/com/visionary/roster/dto/ErrorResponse.java": [],
-    "backend/src/main/java/com/visionary/roster/audit/AuditEmitter.java": [],
+    "backend/src/main/java/com/visionary/roster/dto/LoginRequest.java": [],
+    "backend/src/main/java/com/visionary/roster/dto/CreateStaffRequest.java": [],
     "backend/src/main/java/com/visionary/roster/config/SecurityConfig.java": [],
+    "backend/src/main/java/com/visionary/roster/controller/StaffController.java": [
+        "com.visionary.roster.dto.CreateStaffRequest",
+        "com.visionary.roster.dto.StaffResponse",
+        "com.visionary.roster.dto.UpdateStaffRequest",
+        "com.visionary.roster.service.StaffService"
+    ],
+    "backend/src/main/java/com/visionary/roster/dto/ErrorResponse.java": [],
     "backend/src/main/java/com/visionary/roster/controller/AuthController.java": [
         "com.visionary.roster.dto.LoginRequest",
         "com.visionary.roster.dto.LoginResponse",
         "com.visionary.roster.dto.SessionResponse",
         "com.visionary.roster.service.AuthService"
     ],
-    "backend/src/main/java/com/visionary/roster/dto/CreateStaffRequest.java": [],
-    "backend/src/main/java/com/visionary/roster/config/CorrelationIdFilter.java": [],
+    "backend/src/main/java/com/visionary/roster/audit/AuditEmitterImpl.java": [
+        "com.visionary.roster.audit.AuditEmitter"
+    ],
     "backend/src/main/java/com/visionary/roster/VisApplication.java": [],
-    "backend/src/main/java/com/visionary/roster/dto/LoginRequest.java": [],
-    "backend/src/main/java/com/visionary/roster/dto/SessionResponse.java": [],
-    "backend/src/main/java/com/visionary/roster/dto/LoginResponse.java": [],
+    "backend/src/main/java/com/visionary/roster/dto/UpdateStaffRequest.java": [],
     "backend/src/main/java/com/visionary/roster/dto/StaffResponse.java": [
         "com.visionary.roster.model.Staff"
     ],
-    "backend/src/main/java/com/visionary/roster/dto/UpdateStaffRequest.java": [],
+    "backend/src/main/java/com/visionary/roster/exception/InactiveAccountException.java": [],
     "backend/src/main/java/com/visionary/roster/exception/ForbiddenAccessException.java": [],
     "backend/src/main/java/com/visionary/roster/exception/GlobalExceptionHandler.java": [
         "com.visionary.roster.dto.ErrorResponse",
@@ -27,92 +33,12 @@
         "com.visionary.roster.exception.ResourceNotFoundException"
     ],
     "backend/src/main/java/com/visionary/roster/exception/InvalidCredentialsException.java": [],
-    "backend/src/main/java/com/visionary/roster/exception/InactiveAccountException.java": [],
     "backend/src/main/java/com/visionary/roster/exception/ResourceNotFoundException.java": [],
-    "backend/src/main/java/com/visionary/roster/audit/AuditEmitterImpl.java": [],
-    "backend/src/main/java/com/visionary/roster/controller/StaffController.java": [],
     "backend/src/main/java/com/visionary/roster/model/Facility.java": [
         "com.visionary.roster.model.Staff"
     ],
-    "frontend/src/components/ErrorAlert.jsx": [
-        "./ErrorAlert"
-    ],
-    "frontend/src/api/authApi.ts": [
-        "./axiosInstance",
-        "../types/auth.types",
-        "../utils/logger"
-    ],
-    "frontend/src/api/axiosInstance.ts": [
-        "../utils/logger"
-    ],
-    "frontend/src/components/ErrorBanner.tsx": [
-        "../utils/logger"
-    ],
-    "frontend/src/api/staffApi.js": [
-        "../staffApi",
-        "../../api/axiosInstance.ts"
-    ],
-    "frontend/src/components/EmptyState.jsx": [
-        "./EmptyState"
-    ],
-    "frontend/src/components/LoadingSkeleton.jsx": [
-        "./LoadingSkeleton"
-    ],
-    "frontend/src/components/LoginForm.tsx": [
-        "../utils/logger"
-    ],
-    "frontend/src/components/Pagination.jsx": [
-        "./Pagination"
-    ],
-    "frontend/src/components/RetryBanner.jsx": [
-        "./RetryBanner"
-    ],
-    "frontend/src/components/ProtectedRoute.tsx": [
-        "../hooks/useAuth",
-        "../utils/logger"
-    ],
-    "frontend/src/components/StaffList.jsx": [
-        "./StaffList",
-        "../hooks/useStaffApi",
-        "../api/staffApi",
-        "./LoadingSkeleton",
-        "./EmptyState",
-        "./StaffTable",
-        "./Pagination",
-        "./RetryBanner",
-        "./ErrorAlert"
-    ],
-    "frontend/src/hooks/useAuth.ts": [
-        "../api/authApi",
-        "../types/auth.types",
-        "../utils/logger"
-    ],
-    "frontend/src/components/StaffTable.jsx": [
-        "./StaffTable"
-    ],
-    "frontend/src/main.tsx": [
-        "./App"
-    ],
-    "frontend/src/hooks/useStaffApi.js": [
-        "../useStaffApi",
-        "../../api/staffApi"
-    ],
-    "frontend/src/pages/LoginPage.tsx": [
-        "../components/LoginForm",
-        "../components/ErrorBanner",
-        "../hooks/useAuth",
-        "../utils/logger"
-    ],
-    "frontend/src/tests/App.component.test.tsx": [
-        "../App",
-        "../utils/logger",
-        "../pages/LoginPage",
-        "../components/ProtectedRoute",
-        "../components/StaffList.jsx"
-    ],
-    "frontend/src/tests/ErrorBanner.test.tsx": [
-        "../components/ErrorBanner",
-        "../utils/logger"
-    ],
-    "frontend/src/App.tsx": []
+    "backend/src/main/java/com/visionary/roster/config/CorrelationIdFilter.java": [],
+    "backend/src/main/java/com/visionary/roster/audit/AuditEmitter.java": [],
+    "backend/src/main/java/com/visionary/roster/dto/LoginResponse.java": [],
+    "backend/src/main/java/com/visionary/roster/dto/SessionResponse.java": []
 }
