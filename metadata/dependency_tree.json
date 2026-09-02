@@ -315,5 +315,7 @@
     ],
     "backend/src/test/resources/db/migration/V1__create_tables.sql": [],
     "backend/src/test/resources/db/migration/V2__add_auth_columns_to_user_account.sql": [],
-    "backend/src/test/java/com/visionary/roster/service/StaffServiceTest.java": []
+    "backend/src/test/java/com/visionary/roster/service/StaffServiceTest.java": [],
+    "backend/src/test/resources/db/migration/V3__create_staff_table.sql": [],
+    "backend/src/test/resources/db/migration/V4__update_audit_fields.sql": []
 }
