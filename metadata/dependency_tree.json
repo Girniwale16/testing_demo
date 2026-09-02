@@ -115,5 +115,73 @@
     ],
     "backend/src/main/resources/db/migration/V1__create_tables.sql": [],
     "backend/src/test/java/com/vis/AppTest.java": [],
-    "backend/src/test/java/com/visionary/roster/audit/AuditEmitterImplTest.java": []
+    "backend/src/test/java/com/visionary/roster/audit/AuditEmitterImplTest.java": [],
+    "frontend/src/api/staffApi.js": [
+        "../staffApi",
+        "../../api/axiosInstance.ts"
+    ],
+    "frontend/src/api/authApi.ts": [
+        "./axiosInstance",
+        "../types/auth.types",
+        "../utils/logger"
+    ],
+    "frontend/src/components/EmptyState.jsx": [
+        "./EmptyState"
+    ],
+    "frontend/src/components/LoginForm.tsx": [
+        "../utils/logger"
+    ],
+    "frontend/src/components/Pagination.jsx": [
+        "./Pagination"
+    ],
+    "frontend/src/components/LoadingSkeleton.jsx": [
+        "./LoadingSkeleton"
+    ],
+    "frontend/src/components/ProtectedRoute.tsx": [
+        "../hooks/useAuth",
+        "../utils/logger"
+    ],
+    "frontend/src/hooks/useAuth.ts": [
+        "../api/authApi",
+        "../types/auth.types",
+        "../utils/logger"
+    ],
+    "frontend/src/components/StaffTable.jsx": [
+        "./StaffTable"
+    ],
+    "frontend/src/pages/LoginPage.tsx": [
+        "../components/LoginForm",
+        "../components/ErrorBanner",
+        "../hooks/useAuth",
+        "../utils/logger"
+    ],
+    "frontend/src/tests/App.component.test.tsx": [
+        "../App",
+        "../utils/logger",
+        "../pages/LoginPage",
+        "../components/ProtectedRoute",
+        "../components/StaffList.jsx"
+    ],
+    "frontend/src/tests/ErrorBanner.test.tsx": [
+        "../components/ErrorBanner",
+        "../utils/logger"
+    ],
+    "frontend/src/App.tsx": [
+        "./pages/LoginPage",
+        "./components/ProtectedRoute",
+        "./utils/logger"
+    ],
+    "frontend/src/api/axiosInstance.ts": [
+        "../utils/logger"
+    ],
+    "frontend/src/components/RetryBanner.jsx": [
+        "./RetryBanner"
+    ],
+    "frontend/src/main.tsx": [
+        "./App"
+    ],
+    "frontend/src/components/ErrorAlert.jsx": [],
+    "frontend/src/components/ErrorBanner.tsx": [],
+    "frontend/src/components/StaffList.jsx": [],
+    "frontend/src/hooks/useStaffApi.js": []
 }
