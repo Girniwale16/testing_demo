@@ -360,5 +360,412 @@
     "backend/src/main/java/com/visionary/roster/dto/SessionResponse.java": {
         "purpose": "Delayed response - Exceeded 5 minutes.",
         "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/model/UserAccount.java": {
+        "purpose": "Represents the UserAccount entity for authentication and authorization in a multi-facility roster system. Manages user credentials, roles, facility associations, and account lifecycle (activation/deactivation) independently from staff employment status. Provides JPA persistence mapping with audit fields and helper methods for account status validation.",
+        "functions": [
+            {
+                "signature": "protected void onCreate()",
+                "purpose": "JPA lifecycle callback that initializes createdAt timestamp, sets default createdBy to 'system' if null, and ensures isActive defaults to true on entity creation."
+            },
+            {
+                "signature": "protected void onUpdate()",
+                "purpose": "JPA lifecycle callback that updates the updatedAt timestamp whenever the entity is modified."
+            },
+            {
+                "signature": "public boolean isAccountActive()",
+                "purpose": "Helper method that determines if the user account is active for authentication and authorization by checking if accountStatus is null or equals 'ACTIVE'."
+            }
+        ]
+    },
+    "backend/src/main/java/com/visionary/roster/repository/StaffRepository.java": {
+        "purpose": "Defines the data access layer for Staff entity operations in the roster management system. Extends Spring Data JPA repository to provide CRUD operations and custom query methods for retrieving, validating, and managing staff records by facility, employment status, and email.",
+        "functions": [
+            {
+                "signature": "List<Staff> findByFacility_FacilityIdAndEmploymentStatus(Long facilityId, String employmentStatus)",
+                "purpose": "Retrieves active staff members filtered by both facility ID and employment status for targeted staff management queries."
+            },
+            {
+                "signature": "List<Staff> findByFacilityId(Long facilityId)",
+                "purpose": "Retrieves all staff members belonging to a specific facility regardless of their employment status."
+            },
+            {
+                "signature": "boolean existsByEmail(String email)",
+                "purpose": "Validates email uniqueness by checking if a staff member with the given email already exists in the system."
+            },
+            {
+                "signature": "List<Staff> findByEmploymentStatus(String employmentStatus)",
+                "purpose": "Retrieves all staff members filtered by a specific employment status across all facilities."
+            },
+            {
+                "signature": "boolean existsByEmailAndIdNot(String email, Long id)",
+                "purpose": "Validates email uniqueness during updates by checking if the email exists for any staff member except the one being updated."
+            },
+            {
+                "signature": "Optional<Staff> findByEmail(String email)",
+                "purpose": "Retrieves a single staff member by their email address, returning an Optional to handle cases where the email may not exist."
+            }
+        ]
+    },
+    "backend/src/main/java/com/visionary/roster/security/RoleAuthorizationService.java": {
+        "purpose": "Provides role-based authorization enforcement for the roster application. Validates user roles against required permissions, enforces MANAGER role requirements, and checks role assignments using Spring Security context. Throws ForbiddenAccessException when authorization checks fail.",
+        "functions": [
+            {
+                "signature": "public void validateRole(String requiredRole, String operation)",
+                "purpose": "Validates that the current authenticated user has the required role for a specific operation. Throws ForbiddenAccessException if authentication fails or role does not match."
+            },
+            {
+                "signature": "public void requireManagerRole()",
+                "purpose": "Enforces that the current authenticated user has the MANAGER role. Must be called at the beginning of all manager-only service methods."
+            },
+            {
+                "signature": "public boolean hasRole(String role)",
+                "purpose": "Checks if the current authenticated user has the specified role. Returns true if the user has the role, false otherwise."
+            }
+        ]
+    },
+    "backend/src/main/java/com/visionary/roster/service/AuthService.java": {
+        "purpose": "Provides authentication and session management services for the roster application. Handles user login with credential validation, password verification, account status checks, and security context management. Manages user sessions including retrieval of current session data and logout operations with comprehensive security logging.",
+        "functions": [
+            {
+                "signature": "public LoginResponse login(String username, String password, Long facilityId)",
+                "purpose": "Authenticates a user by validating credentials against the database, checking account status, updating last login timestamp, establishing security context, and returning login response with user and facility details."
+            },
+            {
+                "signature": "public SessionResponse getCurrentSession()",
+                "purpose": "Retrieves the current authenticated user's session information from the security context and returns session details including user account and facility data."
+            },
+            {
+                "signature": "public void logout()",
+                "purpose": "Terminates the current user session by clearing the security context and removing user-related MDC logging context entries."
+            }
+        ]
+    },
+    "backend/src/main/resources/application.yml": {
+        "purpose": "Defines the Spring Boot application configuration for the vis-backend service. Configures PostgreSQL datasource with HikariCP connection pooling, JPA/Hibernate settings with validation mode, Flyway database migrations, server port settings, and logging levels for application monitoring.",
+        "functions": []
+    },
+    "backend/src/main/java/com/visionary/roster/model/Staff.java": {
+        "purpose": "JPA Entity representing a Staff member in the roster system. Maps to the 'staff' database table and manages staff member data including personal information, employment status, role, and facility association. Provides factory methods for entity creation from DTOs and business logic for staff lifecycle operations.",
+        "functions": [
+            {
+                "signature": "public static Staff toEntity(CreateStaffRequest request, Long facilityId)",
+                "purpose": "Static factory method that creates a new Staff entity instance from a CreateStaffRequest DTO and associates it with a facility."
+            },
+            {
+                "signature": "public void updateFromRequest(UpdateStaffRequest request)",
+                "purpose": "Updates the current staff entity with non-null fields from an UpdateStaffRequest DTO, allowing partial updates."
+            },
+            {
+                "signature": "public boolean isActive()",
+                "purpose": "Checks and returns whether the staff member's employment status is currently ACTIVE."
+            },
+            {
+                "signature": "public void deactivate(LocalDate endDate)",
+                "purpose": "Deactivates the staff member by setting employment status to INACTIVE and recording the employment end date."
+            }
+        ]
+    },
+    "backend/src/main/java/com/visionary/roster/repository/UserAccountRepository.java": {
+        "purpose": "Defines the data access layer repository interface for UserAccount entities in the roster management system. Provides custom query methods to retrieve user accounts by username with optional facility filtering, leveraging JPA for database operations.",
+        "functions": [
+            {
+                "signature": "Optional<UserAccount> findByUsernameAndFacilityId(@Param(\"username\") String username, @Param(\"facilityId\") Long facilityId)",
+                "purpose": "Retrieves a UserAccount by username and facility ID with eager loading of the associated facility entity."
+            },
+            {
+                "signature": "Optional<UserAccount> findByUsername(@Param(\"username\") String username)",
+                "purpose": "Retrieves a UserAccount by username with eager loading of the associated facility entity."
+            }
+        ]
+    },
+    "backend/src/main/java/com/visionary/roster/service/StaffService.java": {
+        "purpose": "Service layer for managing staff operations in a healthcare roster system. Enforces role-based authorization and facility scoping for all staff CRUD operations including creation, updates, retrieval, and deactivation. Emits audit events for all state-changing operations and validates business rules such as employment status transitions and date ranges.",
+        "functions": [
+            {
+                "signature": "public StaffResponse createStaff(CreateStaffRequest request, Long facilityId, Long userId)",
+                "purpose": "Creates a new staff member with manager authorization and facility scoping validation. Validates email uniqueness, employment status, and date ranges before persisting and emitting audit events."
+            },
+            {
+                "signature": "public StaffResponse updateStaff(Long staffId, UpdateStaffRequest request, Long userId)",
+                "purpose": "Updates existing staff information with manager authorization and facility scoping validation. Validates employment status transitions and date ranges, tracks changed fields, and emits audit events."
+            },
+            {
+                "signature": "public StaffResponse getStaff(Long staffId, Long userId)",
+                "purpose": "Retrieves a single staff record by ID with facility scoping validation to ensure the requesting user has access to the staff member's facility."
+            },
+            {
+                "signature": "public List<StaffResponse> listStaff(Long facilityId, Long userId)",
+                "purpose": "Retrieves all staff members in a specified facility with facility scoping validation to ensure the requesting user has access to that facility."
+            },
+            {
+                "signature": "public void deactivateStaff(Long staffId, Long requestingUserId)",
+                "purpose": "Deactivates a staff member with manager authorization and facility scoping validation. Implements idempotency by returning silently if staff is already deactivated and emits audit events."
+            },
+            {
+                "signature": "public List<StaffResponse> listActiveStaff(Long facilityId, Long requestingUserId)",
+                "purpose": "Retrieves all active staff members for a specified facility with facility scoping validation, filtering by ACTIVE employment status."
+            }
+        ]
+    },
+    "backend/src/main/java/com/visionary/roster/security/FacilityScopingService.java": {
+        "purpose": "Enforces facility-based multi-tenancy security by extracting and validating facility IDs from authenticated user contexts. Serves as the single source of truth for facility scoping across the application, preventing unauthorized cross-facility data access through validation methods consumed by multiple services and repositories.",
+        "functions": [
+            {
+                "signature": "public Long getCurrentUserFacilityId()",
+                "purpose": "Extracts the facility ID from the authenticated user's security context by retrieving the user principal and loading the full UserAccount entity. This is the single source of truth for facility context extraction across the application."
+            },
+            {
+                "signature": "public void validateFacilityAccess(Long facilityId)",
+                "purpose": "Validates that the provided facility ID matches the current authenticated user's facility, throwing ForbiddenAccessException if access is denied to prevent cross-facility data access."
+            },
+            {
+                "signature": "public void validateFacilityAccess(Long requestedFacilityId, String resourceType)",
+                "purpose": "Enhanced validation method that checks facility access with detailed logging and correlation tracking, providing comprehensive audit trails for facility boundary violations and access attempts."
+            }
+        ]
+    },
+    "backend/src/main/resources/db/migration/V3__create_staff_table.sql": {
+        "purpose": "Database migration script that creates the staff table for tracking employee information, employment status, and facility assignments. Establishes foreign key relationships with the facility table and implements constraints to enforce data integrity rules for employment status and end dates.",
+        "functions": []
+    },
+    "backend/src/main/resources/db/migration/V2__add_auth_columns_to_user_account.sql": {
+        "purpose": "Database migration script that adds authentication and account management columns to the user_account table. Introduces tracking for last login timestamp, account active status, employment status with constraints, and account end date, along with performance indexes and comprehensive documentation comments.",
+        "functions": []
+    },
+    "backend/src/main/resources/db/migration/V4__update_audit_fields.sql": {
+        "purpose": "Database migration script (V4) that updates audit field constraints and data types across facility, user_account, and staff tables to align with Entity class definitions. Adds missing columns to user_account (staff_member_id, account_status, account_end_date) and creates indexes on audit timestamp columns for query optimization.",
+        "functions": []
+    },
+    "backend/src/main/resources/db/migration/V5__add_staff_contact_and_start_date.sql": {
+        "purpose": "Database migration script that extends the staff table schema to support staff contact information and employment start dates. This is version 5 of the Flyway migration sequence for the staff management feature.",
+        "functions": []
+    },
+    "backend/src/test/java/com/visionary/roster/AppTest.java": {
+        "purpose": "Provides comprehensive unit and integration tests for the roster management system's security layer, specifically validating facility-based access control and role-based authorization. Tests cover facility scoping validation, role authorization checks, and staff management endpoints with various authentication and authorization scenarios including cross-facility access prevention.",
+        "functions": [
+            {
+                "signature": "void setUp()",
+                "purpose": "Initializes the security context before each test execution in the AppTest class."
+            },
+            {
+                "signature": "void validateFacilityAccess_validAccess_passes()",
+                "purpose": "Tests that facility access validation passes when user's facility matches the requested facility ID."
+            },
+            {
+                "signature": "void validateFacilityAccess_facilityMismatch_throwsForbiddenAccessException()",
+                "purpose": "Tests that facility access validation throws ForbiddenAccessException when user attempts to access a different facility's resources."
+            },
+            {
+                "signature": "void validateFacilityAccess_nullFacility_throwsForbiddenAccessException()",
+                "purpose": "Tests that facility access validation throws ForbiddenAccessException when user has no facility assigned."
+            },
+            {
+                "signature": "void validateFacilityAccess_notAuthenticated_throwsForbiddenAccessException()",
+                "purpose": "Tests that facility access validation throws ForbiddenAccessException when no authentication context exists."
+            },
+            {
+                "signature": "void validateFacilityAccess_userNotFound_throwsForbiddenAccessException()",
+                "purpose": "Tests that facility access validation throws ForbiddenAccessException when authenticated user cannot be found in the repository."
+            },
+            {
+                "signature": "void validateRole_validRole_passes()",
+                "purpose": "Tests that role validation passes when user has the required role authority."
+            },
+            {
+                "signature": "void validateRole_roleMismatch_throwsForbiddenAccessException()",
+                "purpose": "Tests that role validation throws ForbiddenAccessException when user lacks the required role privileges."
+            },
+            {
+                "signature": "void validateRole_supervisorRole_throwsForbiddenAccessException()",
+                "purpose": "Tests that role validation throws ForbiddenAccessException for SUPERVISOR role as capabilities are not yet defined."
+            },
+            {
+                "signature": "void validateRole_noRole_throwsForbiddenAccessException()",
+                "purpose": "Tests that role validation throws ForbiddenAccessException when user has no role assigned."
+            },
+            {
+                "signature": "void validateRole_notAuthenticated_throwsForbiddenAccessException()",
+                "purpose": "Tests that role validation throws ForbiddenAccessException when no authentication context exists."
+            },
+            {
+                "signature": "void forbiddenAccessException_fieldsPopulated_correctValues()",
+                "purpose": "Tests that ForbiddenAccessException correctly stores and retrieves all exception fields including userId, facilityId, resource, and reason."
+            },
+            {
+                "signature": "void testUpdateStaff_Success() throws Exception",
+                "purpose": "Integration test verifying that a manager can successfully update staff information within their own facility."
+            },
+            {
+                "signature": "void testUpdateStaff_Forbidden_NonManager() throws Exception",
+                "purpose": "Integration test verifying that non-manager users are forbidden from updating staff information."
+            },
+            {
+                "signature": "void testUpdateStaff_Forbidden_CrossFacility() throws Exception",
+                "purpose": "Integration test verifying that managers cannot update staff from a different facility."
+            },
+            {
+                "signature": "void testUpdateStaff_NotFound() throws Exception",
+                "purpose": "Integration test verifying that updating a non-existent staff member returns a 404 not found status."
+            },
+            {
+                "signature": "void testUpdateStaff_ValidationError() throws Exception",
+                "purpose": "Integration test verifying that invalid staff data triggers validation errors with appropriate error response."
+            },
+            {
+                "signature": "void testDeactivateStaff_Success() throws Exception",
+                "purpose": "Integration test verifying that a manager can successfully deactivate staff within their facility."
+            },
+            {
+                "signature": "void testDeactivateStaff_Idempotent() throws Exception",
+                "purpose": "Integration test verifying that deactivating an already deactivated staff member is idempotent and succeeds."
+            },
+            {
+                "signature": "void testDeactivateStaff_Forbidden_NonManager() throws Exception",
+                "purpose": "Integration test verifying that non-manager users are forbidden from deactivating staff."
+            },
+            {
+                "signature": "void testListActiveStaff_ExcludesDeactivated() throws Exception",
+                "purpose": "Integration test verifying that the staff listing endpoint only returns active staff and excludes deactivated ones."
+            }
+        ]
+    },
+    "backend/src/test/java/com/vis/AppTestTest.java": {
+        "purpose": "Legacy test class for the com.vis package that provides basic JUnit 5 framework validation and sanity checks. Serves as a placeholder with documentation references directing developers to the primary test suite located in com.visionary.roster.AppTest. Intended for consolidation to avoid test duplication and maintain a single source of truth.",
+        "functions": [
+            {
+                "signature": "public void setUp()",
+                "purpose": "Initializes test setup before each test method execution. Currently empty but available for future test initialization needs."
+            },
+            {
+                "signature": "public void testBasicAssertion()",
+                "purpose": "Validates that the JUnit test framework is properly configured by executing a basic assertion that always passes."
+            },
+            {
+                "signature": "public void testClassInstantiation()",
+                "purpose": "Verifies that the AppTest class can be properly instantiated and is not null."
+            },
+            {
+                "signature": "public void testClassDocumentationReference()",
+                "purpose": "Ensures the test class maintains correct package naming and serves as a reminder of the reference to the primary test location."
+            },
+            {
+                "signature": "public void testJUnit5Compatibility()",
+                "purpose": "Confirms JUnit 5 assertion methods work correctly by testing multiple assertion types."
+            },
+            {
+                "signature": "public void testNoDuplicateTestLogic()",
+                "purpose": "Placeholder test that reminds developers to consolidate duplicate test implementations into com.visionary.roster.AppTest."
+            }
+        ]
+    },
+    "backend/src/test/java/com/visionary/roster/audit/AuditEmitterTest.java": {
+        "purpose": "Comprehensive test suite for the AuditEmitter interface that validates all method signatures and parameter constraints. Tests three core audit event emission methods with extensive validation scenarios including null checks, empty string checks, and various valid input combinations across nested test classes.",
+        "functions": []
+    },
+    "backend/src/test/java/com/visionary/roster/AppTestTest.java": {
+        "purpose": "Provides comprehensive integration tests for the Staff Controller REST API endpoints in a healthcare roster management system. Tests cover staff update operations, deactivation workflows, and active staff listing with role-based access control, facility-based authorization, and validation error handling across multiple scenarios.",
+        "functions": [
+            {
+                "signature": "void setUp()",
+                "purpose": "Initializes test fixtures including two facilities, test staff member, and three user accounts with different roles and facility assignments before each test execution."
+            },
+            {
+                "signature": "void testUpdateStaff_Success_VerifyAllFieldsUpdated() throws Exception",
+                "purpose": "Verifies that a manager can successfully update all staff fields and confirms the changes are persisted in the database."
+            },
+            {
+                "signature": "void testUpdateStaff_Success_PartialUpdate() throws Exception",
+                "purpose": "Tests that a manager can perform a partial update on staff information, specifically updating only the email field."
+            },
+            {
+                "signature": "void testUpdateStaff_Forbidden_NonManager_VerifyNoChanges() throws Exception",
+                "purpose": "Ensures that non-manager users receive a forbidden response when attempting to update staff and verifies no data changes occur."
+            },
+            {
+                "signature": "void testUpdateStaff_Forbidden_CrossFacility_VerifyNoChanges() throws Exception",
+                "purpose": "Validates that managers cannot update staff from different facilities and confirms the original data remains unchanged."
+            },
+            {
+                "signature": "void testUpdateStaff_NotFound_WithValidData() throws Exception",
+                "purpose": "Tests that attempting to update a non-existent staff member returns a not found status even with valid update data."
+            },
+            {
+                "signature": "void testUpdateStaff_ValidationError_InvalidEmail() throws Exception",
+                "purpose": "Verifies that providing an invalid email format during staff update triggers validation errors with appropriate error messages."
+            },
+            {
+                "signature": "void testUpdateStaff_ValidationError_MissingEmail() throws Exception",
+                "purpose": "Ensures that omitting required email field during staff update results in an unprocessable entity response."
+            },
+            {
+                "signature": "void testUpdateStaff_ValidationError_EmptyFirstName() throws Exception",
+                "purpose": "Tests that providing an empty first name during staff update triggers validation errors."
+            },
+            {
+                "signature": "void testDeactivateStaff_Success_VerifyDatabaseState() throws Exception",
+                "purpose": "Confirms that a manager can successfully deactivate staff and verifies the active status is updated in the database while other fields remain unchanged."
+            },
+            {
+                "signature": "void testDeactivateStaff_Idempotent_VerifyMultipleCalls() throws Exception",
+                "purpose": "Validates that deactivating staff multiple times is idempotent and maintains the deactivated state consistently."
+            },
+            {
+                "signature": "void testDeactivateStaff_Forbidden_NonManager_VerifyStillActive() throws Exception",
+                "purpose": "Ensures non-manager users cannot deactivate staff and confirms the staff member remains active."
+            },
+            {
+                "signature": "void testDeactivateStaff_Forbidden_CrossFacility() throws Exception",
+                "purpose": "Tests that managers cannot deactivate staff from other facilities and verifies the staff remains active."
+            },
+            {
+                "signature": "void testDeactivateStaff_NotFound() throws Exception",
+                "purpose": "Verifies that attempting to deactivate a non-existent staff member returns a not found status."
+            },
+            {
+                "signature": "void testListActiveStaff_ExcludesDeactivated_VerifyCount() throws Exception",
+                "purpose": "Confirms that the active staff listing endpoint only returns active staff members and excludes deactivated ones from the results."
+            },
+            {
+                "signature": "void testListActiveStaff_OnlyActiveFacilityA() throws Exception",
+                "purpose": "Validates that listing active staff filters results by facility and only returns staff from the specified facility."
+            },
+            {
+                "signature": "void testListActiveStaff_EmptyResult_NoActiveStaff() throws Exception",
+                "purpose": "Tests that the endpoint returns an empty list when no active staff exist for the specified facility."
+            },
+            {
+                "signature": "void testListActiveStaff_EmptyResult_NonExistentFacility() throws Exception",
+                "purpose": "Verifies that querying for staff in a non-existent facility returns an empty result set."
+            },
+            {
+                "signature": "void testUpdateStaff_Success_RoleChange() throws Exception",
+                "purpose": "Tests that a manager can successfully change a staff member's role and confirms the role update is persisted."
+            },
+            {
+                "signature": "void testDeactivateStaff_AlreadyDeactivated_Idempotent() throws Exception",
+                "purpose": "Confirms that deactivating an already deactivated staff member is idempotent and maintains the deactivated state."
+            },
+            {
+                "signature": "void testUpdateStaff_ValidationError_NullFields() throws Exception",
+                "purpose": "Validates that attempting to update staff with null required fields results in validation errors."
+            },
+            {
+                "signature": "void testListActiveStaff_MultipleRoles() throws Exception",
+                "purpose": "Tests that the active staff listing correctly returns staff members with different roles from the same facility."
+            }
+        ]
+    },
+    "backend/src/main/resources/db/migration/V1__create_tables.sql": {
+        "purpose": "Delayed response - Exceeded 5 minutes.",
+        "functions": []
+    },
+    "backend/src/test/java/com/vis/AppTest.java": {
+        "purpose": "Delayed response - Exceeded 5 minutes.",
+        "functions": []
+    },
+    "backend/src/test/java/com/visionary/roster/audit/AuditEmitterImplTest.java": {
+        "purpose": "Delayed response - Exceeded 5 minutes.",
+        "functions": []
     }
 }
