@@ -2292,5 +2292,231 @@
     "backend/src/test/java/com/visionary/roster/service/StaffServiceTest.java": {
         "purpose": "Delayed response - Exceeded 5 minutes.",
         "functions": []
+    },
+    "backend/src/test/resources/db/migration/V3__create_staff_table.sql": {
+        "purpose": "Provides comprehensive integration tests for the V3 database migration script that creates the 'staff' table. Validates table structure, column definitions, constraints, indexes, default values, and data insertion operations to ensure the migration executes correctly in the testing environment.",
+        "functions": [
+            {
+                "signature": "void testStaffTableExists()",
+                "purpose": "Verifies that the 'staff' table is successfully created by the migration script."
+            },
+            {
+                "signature": "void testStaffTableHasIdColumn()",
+                "purpose": "Validates that the 'id' column exists with correct data type (bigint), is a primary key, and has auto-increment enabled."
+            },
+            {
+                "signature": "void testStaffTableHasFirstNameColumn()",
+                "purpose": "Confirms the 'first_name' column exists as a non-nullable varchar with maximum length of 255 characters."
+            },
+            {
+                "signature": "void testStaffTableHasLastNameColumn()",
+                "purpose": "Confirms the 'last_name' column exists as a non-nullable varchar with maximum length of 255 characters."
+            },
+            {
+                "signature": "void testStaffTableHasRoleColumn()",
+                "purpose": "Confirms the 'role' column exists as a non-nullable varchar with maximum length of 255 characters."
+            },
+            {
+                "signature": "void testStaffTableHasFacilityNameColumn()",
+                "purpose": "Confirms the 'facility_name' column exists as a non-nullable varchar with maximum length of 255 characters."
+            },
+            {
+                "signature": "void testStaffTableHasIsDeactivatedColumn()",
+                "purpose": "Validates the 'is_deactivated' column exists as a tinyint with a default value of 0 (false)."
+            },
+            {
+                "signature": "void testStaffTableHasCreatedAtColumn()",
+                "purpose": "Confirms the 'created_at' timestamp column exists with CURRENT_TIMESTAMP as the default value."
+            },
+            {
+                "signature": "void testStaffTableHasUpdatedAtColumn()",
+                "purpose": "Validates the 'updated_at' timestamp column exists with CURRENT_TIMESTAMP default and automatic update on row modification."
+            },
+            {
+                "signature": "void testIndexOnIsDeactivatedExists()",
+                "purpose": "Verifies that the index 'idx_staff_deactivated' is created on the 'is_deactivated' column for query optimization."
+            },
+            {
+                "signature": "void testIndexOnFacilityNameExists()",
+                "purpose": "Verifies that the index 'idx_staff_facility' is created on the 'facility_name' column for query optimization."
+            },
+            {
+                "signature": "void testInsertStaffRecordWithAllRequiredFields()",
+                "purpose": "Tests inserting a complete staff record with all required fields and validates that default values and timestamps are properly populated."
+            },
+            {
+                "signature": "void testIsDeactivatedDefaultsToFalse()",
+                "purpose": "Confirms that the 'is_deactivated' column defaults to false when not explicitly set during insertion."
+            },
+            {
+                "signature": "void testCreatedAtAutoPopulates()",
+                "purpose": "Verifies that the 'created_at' timestamp is automatically populated when a new staff record is inserted."
+            },
+            {
+                "signature": "void testUpdatedAtAutoPopulates()",
+                "purpose": "Verifies that the 'updated_at' timestamp is automatically populated when a new staff record is inserted."
+            },
+            {
+                "signature": "void testQueryByIsDeactivatedUsesIndex()",
+                "purpose": "Tests querying staff records by 'is_deactivated' status to ensure the index is utilized for performance."
+            },
+            {
+                "signature": "void testQueryByFacilityNameUsesIndex()",
+                "purpose": "Tests querying staff records by 'facility_name' to ensure the index is utilized for performance."
+            },
+            {
+                "signature": "void testStaffTableHasAllRequiredColumns()",
+                "purpose": "Validates that the 'staff' table contains exactly 8 columns as defined in the migration schema."
+            },
+            {
+                "signature": "void testPrimaryKeyConstraintOnId()",
+                "purpose": "Confirms that a primary key constraint exists on the 'id' column of the 'staff' table."
+            }
+        ]
+    },
+    "backend/src/test/resources/db/migration/V4__update_audit_fields.sql": {
+        "purpose": "Provides comprehensive integration tests for the V4 database migration that updates audit fields across facility, user_account, and staff tables. Validates column types, constraints, default values, indexes, and data integrity for audit tracking fields (created_by, updated_by, created_at, updated_at) using Flyway migration framework and Spring Boot test infrastructure.",
+        "functions": [
+            {
+                "signature": "void setUp()",
+                "purpose": "Initializes the test environment by configuring Flyway, cleaning the database, and running all migrations before each test."
+            },
+            {
+                "signature": "void tearDown()",
+                "purpose": "Cleans up the database after each test by executing Flyway clean operation."
+            },
+            {
+                "signature": "void testFacilityCreatedByColumnTypeIsVarchar100()",
+                "purpose": "Verifies that the facility table's created_by column has the correct data type (VARCHAR) and length (100)."
+            },
+            {
+                "signature": "void testFacilityCreatedByHasDefaultValue()",
+                "purpose": "Validates that the facility table's created_by column has a default value of 'system'."
+            },
+            {
+                "signature": "void testFacilityCreatedByIsNotNull()",
+                "purpose": "Ensures that the facility table's created_by column has a NOT NULL constraint."
+            },
+            {
+                "signature": "void testFacilityUpdatedByColumnTypeIsVarchar100()",
+                "purpose": "Verifies that the facility table's updated_by column has the correct data type (VARCHAR) and length (100)."
+            },
+            {
+                "signature": "void testFacilityCreatedAtIsNotNull()",
+                "purpose": "Ensures that the facility table's created_at column has a NOT NULL constraint."
+            },
+            {
+                "signature": "void testFacilityUpdatedAtIsNotNull()",
+                "purpose": "Ensures that the facility table's updated_at column has a NOT NULL constraint."
+            },
+            {
+                "signature": "void testUserAccountCreatedByColumnTypeIsVarchar100()",
+                "purpose": "Verifies that the user_account table's created_by column has the correct data type (VARCHAR) and length (100)."
+            },
+            {
+                "signature": "void testUserAccountCreatedByHasDefaultValue()",
+                "purpose": "Validates that the user_account table's created_by column has a default value of 'system'."
+            },
+            {
+                "signature": "void testUserAccountCreatedByIsNotNull()",
+                "purpose": "Ensures that the user_account table's created_by column has a NOT NULL constraint."
+            },
+            {
+                "signature": "void testUserAccountUpdatedByColumnTypeIsVarchar100()",
+                "purpose": "Verifies that the user_account table's updated_by column has the correct data type (VARCHAR) and length (100)."
+            },
+            {
+                "signature": "void testUserAccountCreatedAtIsNotNull()",
+                "purpose": "Ensures that the user_account table's created_at column has a NOT NULL constraint."
+            },
+            {
+                "signature": "void testUserAccountUpdatedAtIsNotNull()",
+                "purpose": "Ensures that the user_account table's updated_at column has a NOT NULL constraint."
+            },
+            {
+                "signature": "void testUserAccountStaffMemberIdColumnExists()",
+                "purpose": "Verifies that the user_account table contains the staff_member_id column."
+            },
+            {
+                "signature": "void testUserAccountAccountStatusColumnExists()",
+                "purpose": "Validates that the user_account table's account_status column exists with correct data type (VARCHAR) and length (20)."
+            },
+            {
+                "signature": "void testUserAccountAccountEndDateColumnExists()",
+                "purpose": "Verifies that the user_account table's account_end_date column exists with the correct data type (DATE)."
+            },
+            {
+                "signature": "void testStaffCreatedAtIsNotNull()",
+                "purpose": "Ensures that the staff table's created_at column has a NOT NULL constraint."
+            },
+            {
+                "signature": "void testStaffUpdatedAtIsNotNull()",
+                "purpose": "Ensures that the staff table's updated_at column has a NOT NULL constraint."
+            },
+            {
+                "signature": "void testFacilityCreatedAtIndexExists()",
+                "purpose": "Verifies that an index named idx_facility_created_at exists on the facility table's created_at column."
+            },
+            {
+                "signature": "void testFacilityUpdatedAtIndexExists()",
+                "purpose": "Verifies that an index named idx_facility_updated_at exists on the facility table's updated_at column."
+            },
+            {
+                "signature": "void testUserAccountCreatedAtIndexExists()",
+                "purpose": "Verifies that an index named idx_user_account_created_at exists on the user_account table's created_at column."
+            },
+            {
+                "signature": "void testUserAccountUpdatedAtIndexExists()",
+                "purpose": "Verifies that an index named idx_user_account_updated_at exists on the user_account table's updated_at column."
+            },
+            {
+                "signature": "void testStaffCreatedAtIndexExists()",
+                "purpose": "Verifies that an index named idx_staff_created_at exists on the staff table's created_at column."
+            },
+            {
+                "signature": "void testStaffUpdatedAtIndexExists()",
+                "purpose": "Verifies that an index named idx_staff_updated_at exists on the staff table's updated_at column."
+            },
+            {
+                "signature": "void testFacilityInsertWithoutCreatedByUsesDefault()",
+                "purpose": "Tests that inserting a facility record without specifying created_by automatically uses the default value 'system'."
+            },
+            {
+                "signature": "void testUserAccountInsertWithoutCreatedByUsesDefault()",
+                "purpose": "Tests that inserting a user_account record without specifying created_by automatically uses the default value 'system'."
+            },
+            {
+                "signature": "void testFacilityCannotInsertNullCreatedAt()",
+                "purpose": "Validates that attempting to insert a facility record with NULL created_at throws an exception due to NOT NULL constraint."
+            },
+            {
+                "signature": "void testFacilityCannotInsertNullUpdatedAt()",
+                "purpose": "Validates that attempting to insert a facility record with NULL updated_at throws an exception due to NOT NULL constraint."
+            },
+            {
+                "signature": "void testUserAccountCannotInsertNullCreatedAt()",
+                "purpose": "Validates that attempting to insert a user_account record with NULL created_at throws an exception due to NOT NULL constraint."
+            },
+            {
+                "signature": "void testUserAccountCannotInsertNullUpdatedAt()",
+                "purpose": "Validates that attempting to insert a user_account record with NULL updated_at throws an exception due to NOT NULL constraint."
+            },
+            {
+                "signature": "void testStaffCannotInsertNullCreatedAt()",
+                "purpose": "Validates that attempting to insert a staff record with NULL created_at throws an exception due to NOT NULL constraint."
+            },
+            {
+                "signature": "void testStaffCannotInsertNullUpdatedAt()",
+                "purpose": "Validates that attempting to insert a staff record with NULL updated_at throws an exception due to NOT NULL constraint."
+            },
+            {
+                "signature": "void testMigrationVersionAppliedSuccessfully()",
+                "purpose": "Confirms that the V4 migration was successfully applied by checking the flyway_schema_history table."
+            },
+            {
+                "signature": "void testAllAuditIndexesCreatedForPerformance()",
+                "purpose": "Verifies that all six audit-related indexes (created_at and updated_at for facility, user_account, and staff tables) were created for query performance optimization."
+            }
+        ]
     }
 }
