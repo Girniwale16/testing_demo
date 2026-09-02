@@ -237,5 +237,83 @@
         "../utils/staffValidation",
         "../utils/logger"
     ],
-    "frontend/src/utils/logger.ts": []
+    "frontend/src/utils/logger.ts": [],
+    "backend/src/test/java/com/visionary/roster/model/FacilityTest.java": [
+        "com.visionary.roster.model.Facility",
+        "com.visionary.roster.model.Staff"
+    ],
+    "backend/src/test/java/com/visionary/roster/exception/ResourceNotFoundExceptionTest.java": [
+        "com.visionary.roster.exception.ResourceNotFoundException"
+    ],
+    "backend/src/test/java/com/visionary/roster/exception/GlobalExceptionHandlerTest.java": [
+        "com.visionary.roster.dto.ErrorResponse",
+        "com.visionary.roster.exception.InvalidCredentialsException",
+        "com.visionary.roster.exception.InactiveAccountException",
+        "com.visionary.roster.exception.ForbiddenAccessException",
+        "com.visionary.roster.exception.ResourceNotFoundException"
+    ],
+    "backend/src/test/java/com/visionary/roster/dto/StaffUpdateRequestTest.java": [
+        "com.visionary.roster.dto.StaffUpdateRequest"
+    ],
+    "backend/src/test/java/com/visionary/roster/config/SecurityConfigTest.java": [],
+    "backend/src/test/java/com/visionary/roster/dto/UpdateStaffRequestTest.java": [
+        "com.visionary.roster.dto.UpdateStaffRequest"
+    ],
+    "backend/src/test/java/com/visionary/roster/controller/StaffControllerTest.java": [
+        "com.visionary.roster.dto.CreateStaffRequest",
+        "com.visionary.roster.dto.StaffResponse",
+        "com.visionary.roster.dto.UpdateStaffRequest",
+        "com.visionary.roster.service.StaffService",
+        "com.visionary.roster.controller.StaffController"
+    ],
+    "backend/src/test/java/com/visionary/roster/dto/StaffResponseTest.java": [
+        "com.visionary.roster.dto.StaffResponse",
+        "com.visionary.roster.entity.Facility",
+        "com.visionary.roster.entity.Staff"
+    ],
+    "backend/src/test/java/com/visionary/roster/exception/GlobalExceptionHandlerTestTest.java": [
+        "com.visionary.roster.exception.GlobalExceptionHandler",
+        "com.visionary.roster.dto.ErrorResponse",
+        "com.visionary.roster.exception.InvalidCredentialsException",
+        "com.visionary.roster.exception.InactiveAccountException",
+        "com.visionary.roster.exception.ForbiddenAccessException",
+        "com.visionary.roster.exception.ResourceNotFoundException"
+    ],
+    "backend/src/test/java/com/visionary/roster/dto/CreateStaffRequestTest.java": [
+        "com.visionary.roster.dto.CreateStaffRequest",
+        "com.visionary.roster.entity.StaffMember"
+    ],
+    "backend/src/test/java/com/visionary/roster/model/StaffMemberTest.java": [
+        "com.visionary.roster.model.StaffMember"
+    ],
+    "backend/src/test/java/com/visionary/roster/model/StaffTest.java": [
+        "com.visionary.roster.model.Staff"
+    ],
+    "backend/src/test/java/com/visionary/roster/model/UserAccountTest.java": [
+        "com.visionary.roster.model.UserAccount",
+        "com.visionary.roster.model.Facility"
+    ],
+    "backend/src/test/java/com/visionary/roster/security/FacilityScopingServiceTest.java": [
+        "com.visionary.roster.exception.ForbiddenAccessException",
+        "com.visionary.roster.model.Facility",
+        "com.visionary.roster.model.UserAccount",
+        "com.visionary.roster.repository.UserAccountRepository",
+        "com.visionary.roster.security.FacilityScopingService"
+    ],
+    "backend/src/test/java/com/visionary/roster/security/RoleAuthorizationServiceTest.java": [
+        "com.visionary.roster.entity.UserAccount",
+        "com.visionary.roster.exception.ForbiddenAccessException",
+        "com.visionary.roster.security.RoleAuthorizationService"
+    ],
+    "backend/src/test/java/com/visionary/roster/repository/StaffMemberRepositoryTest.java": [
+        "com.visionary.roster.entity.StaffMember",
+        "com.visionary.roster.repository.StaffMemberRepository"
+    ],
+    "backend/src/test/java/com/visionary/roster/repository/StaffRepositoryTest.java": [
+        "com.visionary.roster.entity.Staff",
+        "com.visionary.roster.repository.StaffRepository"
+    ],
+    "backend/src/test/resources/db/migration/V1__create_tables.sql": [],
+    "backend/src/test/resources/db/migration/V2__add_auth_columns_to_user_account.sql": [],
+    "backend/src/test/java/com/visionary/roster/service/StaffServiceTest.java": []
 }
