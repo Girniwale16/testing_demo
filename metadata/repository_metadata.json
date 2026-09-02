@@ -1043,5 +1043,1254 @@
     "frontend/src/utils/logger.ts": {
         "purpose": "Delayed response - Exceeded 5 minutes.",
         "functions": []
+    },
+    "backend/src/test/java/com/visionary/roster/model/FacilityTest.java": {
+        "purpose": "Provides comprehensive unit tests for the Facility entity model, specifically validating the bidirectional one-to-many relationship between Facility and Staff entities. Tests cover staff member collection initialization, add/remove operations, bidirectional relationship consistency, JPA annotation configuration, and edge cases like null handling and duplicate prevention.",
+        "functions": []
+    },
+    "backend/src/test/java/com/visionary/roster/exception/ResourceNotFoundExceptionTest.java": {
+        "purpose": "Provides comprehensive unit test coverage for the ResourceNotFoundException class. Validates all constructors, getter methods, exception inheritance, ResponseStatus annotation configuration, and edge cases including null and empty parameter handling.",
+        "functions": [
+            {
+                "signature": "void testConstructorWithMessage()",
+                "purpose": "Tests the single-argument constructor that accepts a message string and verifies the exception is created with the correct message and null resource metadata."
+            },
+            {
+                "signature": "void testConstructorWithResourceTypeAndId()",
+                "purpose": "Tests the two-argument constructor that accepts resource type and ID, verifying the formatted message and stored metadata values."
+            },
+            {
+                "signature": "void testConstructorWithResourceTypeAndIdFormatsMessageCorrectly()",
+                "purpose": "Validates that the exception message is properly formatted with resource type, ID, and 'not found' text."
+            },
+            {
+                "signature": "void testGetResourceType()",
+                "purpose": "Verifies the getResourceType() method returns the correct resource type value."
+            },
+            {
+                "signature": "void testGetResourceId()",
+                "purpose": "Verifies the getResourceId() method returns the correct resource ID value."
+            },
+            {
+                "signature": "void testExceptionExtendsRuntimeException()",
+                "purpose": "Confirms that ResourceNotFoundException properly extends RuntimeException in the inheritance hierarchy."
+            },
+            {
+                "signature": "void testResponseStatusAnnotation()",
+                "purpose": "Validates that the class is annotated with @ResponseStatus and configured with HttpStatus.NOT_FOUND."
+            },
+            {
+                "signature": "void testConstructorWithNullMessage()",
+                "purpose": "Tests edge case behavior when a null message is passed to the single-argument constructor."
+            },
+            {
+                "signature": "void testConstructorWithNullResourceType()",
+                "purpose": "Tests edge case behavior when null is passed as the resource type parameter."
+            },
+            {
+                "signature": "void testConstructorWithNullResourceId()",
+                "purpose": "Tests edge case behavior when null is passed as the resource ID parameter."
+            },
+            {
+                "signature": "void testConstructorWithEmptyResourceType()",
+                "purpose": "Tests edge case behavior when an empty string is passed as the resource type parameter."
+            },
+            {
+                "signature": "void testExceptionCanBeThrown()",
+                "purpose": "Verifies that the exception can be properly thrown and caught using assertThrows."
+            },
+            {
+                "signature": "void testExceptionCanBeCaught()",
+                "purpose": "Validates that the exception can be thrown and caught in a try-catch block with all properties accessible."
+            }
+        ]
+    },
+    "backend/src/test/java/com/visionary/roster/exception/GlobalExceptionHandlerTest.java": {
+        "purpose": "Provides centralized exception handling for the Visionary Roster application by intercepting various exception types and transforming them into standardized ErrorResponse objects with appropriate HTTP status codes. Manages correlation IDs for request tracing and logs exceptions with contextual information for debugging and monitoring purposes.",
+        "functions": [
+            {
+                "signature": "public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex)",
+                "purpose": "Handles validation exceptions from request body validation failures and returns a structured error response with field-level error details and HTTP 422 status."
+            },
+            {
+                "signature": "public ResponseEntity<ErrorResponse> handleInvalidCredentialsException(InvalidCredentialsException ex)",
+                "purpose": "Handles invalid credential exceptions during authentication and returns an unauthorized error response with HTTP 401 status."
+            },
+            {
+                "signature": "public ResponseEntity<ErrorResponse> handleInactiveAccountException(InactiveAccountException ex)",
+                "purpose": "Handles inactive account exceptions when users attempt to access the system with deactivated accounts and returns a forbidden error response with HTTP 403 status."
+            },
+            {
+                "signature": "public ResponseEntity<ErrorResponse> handleForbiddenAccessException(ForbiddenAccessException ex)",
+                "purpose": "Handles forbidden access exceptions when users attempt to access facilities they don't have permissions for and returns a forbidden error response with HTTP 403 status."
+            },
+            {
+                "signature": "public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex)",
+                "purpose": "Handles resource not found exceptions when requested entities don't exist and returns a not found error response with HTTP 404 status."
+            },
+            {
+                "signature": "public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex)",
+                "purpose": "Handles illegal argument exceptions from invalid method parameters and returns a bad request error response with HTTP 400 status."
+            },
+            {
+                "signature": "public ResponseEntity<ErrorResponse> handleEntityNotFoundException(EntityNotFoundException ex)",
+                "purpose": "Handles JPA entity not found exceptions and returns a not found error response with HTTP 404 status."
+            },
+            {
+                "signature": "public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex)",
+                "purpose": "Handles Spring Security authentication exceptions and returns an unauthorized error response with HTTP 401 status."
+            },
+            {
+                "signature": "public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex)",
+                "purpose": "Handles Spring Security access denied exceptions and returns a forbidden error response with HTTP 403 status."
+            },
+            {
+                "signature": "public ResponseEntity<ErrorResponse> handleGenericException(Exception ex)",
+                "purpose": "Catches all unhandled exceptions as a fallback and returns a generic internal server error response with HTTP 500 status."
+            }
+        ]
+    },
+    "backend/src/test/java/com/visionary/roster/dto/StaffUpdateRequestTest.java": {
+        "purpose": "Provides comprehensive unit tests for the StaffUpdateRequest DTO validation logic. Tests all validation constraints including required fields, size limits, email format validation, and getter/setter functionality to ensure data integrity for staff update operations.",
+        "functions": [
+            {
+                "signature": "static void setUp()",
+                "purpose": "Initializes the Jakarta Bean Validation framework and creates a Validator instance for use across all test methods."
+            },
+            {
+                "signature": "void testValidStaffUpdateRequest()",
+                "purpose": "Validates that a properly populated StaffUpdateRequest with all required fields passes validation without any constraint violations."
+            },
+            {
+                "signature": "void testFirstNameNotBlank()",
+                "purpose": "Verifies that an empty firstName field triggers a validation error with the message 'First name is required'."
+            },
+            {
+                "signature": "void testFirstNameNotNull()",
+                "purpose": "Ensures that a null firstName field produces a validation violation requiring the first name."
+            },
+            {
+                "signature": "void testFirstNameMaxSize()",
+                "purpose": "Tests that firstName exceeding 100 characters triggers a size constraint violation."
+            },
+            {
+                "signature": "void testFirstNameExactly100Characters()",
+                "purpose": "Confirms that a firstName with exactly 100 characters is accepted as valid."
+            },
+            {
+                "signature": "void testLastNameNotBlank()",
+                "purpose": "Verifies that an empty lastName field triggers a validation error with the message 'Last name is required'."
+            },
+            {
+                "signature": "void testLastNameNotNull()",
+                "purpose": "Ensures that a null lastName field produces a validation violation requiring the last name."
+            },
+            {
+                "signature": "void testLastNameMaxSize()",
+                "purpose": "Tests that lastName exceeding 100 characters triggers a size constraint violation."
+            },
+            {
+                "signature": "void testLastNameExactly100Characters()",
+                "purpose": "Confirms that a lastName with exactly 100 characters is accepted as valid."
+            },
+            {
+                "signature": "void testEmailNotBlank()",
+                "purpose": "Verifies that an empty email field triggers a validation error with the message 'Email is required'."
+            },
+            {
+                "signature": "void testEmailNotNull()",
+                "purpose": "Ensures that a null email field produces a validation violation requiring the email."
+            },
+            {
+                "signature": "void testEmailValidFormat()",
+                "purpose": "Tests that an improperly formatted email string triggers a validation error with the message 'Email must be valid'."
+            },
+            {
+                "signature": "void testEmailMaxSize()",
+                "purpose": "Tests that email exceeding 255 characters triggers a size constraint violation."
+            },
+            {
+                "signature": "void testEmailExactly255Characters()",
+                "purpose": "Confirms that an email with exactly 255 characters is accepted as valid."
+            },
+            {
+                "signature": "void testRoleNotBlank()",
+                "purpose": "Verifies that an empty role field triggers a validation error with the message 'Role is required'."
+            },
+            {
+                "signature": "void testRoleNotNull()",
+                "purpose": "Ensures that a null role field produces a validation violation requiring the role."
+            },
+            {
+                "signature": "void testFacilityIdNotNull()",
+                "purpose": "Verifies that a null facilityId field triggers a validation error with the message 'Facility ID is required'."
+            },
+            {
+                "signature": "void testEmploymentStatusOptional()",
+                "purpose": "Confirms that employmentStatus is an optional field and null values are accepted without validation errors."
+            },
+            {
+                "signature": "void testEmploymentStatusEmptyString()",
+                "purpose": "Verifies that an empty string for employmentStatus is accepted as valid since the field is optional."
+            },
+            {
+                "signature": "void testMultipleValidationFailures()",
+                "purpose": "Tests that when all required fields are null, exactly 5 validation violations are reported simultaneously."
+            },
+            {
+                "signature": "void testFirstNameGetterSetter()",
+                "purpose": "Validates that the firstName getter and setter methods work correctly by setting and retrieving a value."
+            },
+            {
+                "signature": "void testLastNameGetterSetter()",
+                "purpose": "Validates that the lastName getter and setter methods work correctly by setting and retrieving a value."
+            },
+            {
+                "signature": "void testEmailGetterSetter()",
+                "purpose": "Validates that the email getter and setter methods work correctly by setting and retrieving a value."
+            },
+            {
+                "signature": "void testRoleGetterSetter()",
+                "purpose": "Validates that the role getter and setter methods work correctly by setting and retrieving a value."
+            },
+            {
+                "signature": "void testFacilityIdGetterSetter()",
+                "purpose": "Validates that the facilityId getter and setter methods work correctly by setting and retrieving a value."
+            },
+            {
+                "signature": "void testEmploymentStatusGetterSetter()",
+                "purpose": "Validates that the employmentStatus getter and setter methods work correctly by setting and retrieving a value."
+            },
+            {
+                "signature": "void testValidEmailFormats()",
+                "purpose": "Tests multiple valid email format patterns to ensure the email validator accepts standard compliant email addresses."
+            },
+            {
+                "signature": "void testInvalidEmailFormats()",
+                "purpose": "Tests multiple invalid email format patterns to ensure the email validator properly rejects malformed email addresses."
+            }
+        ]
+    },
+    "backend/src/test/java/com/visionary/roster/config/SecurityConfigTest.java": {
+        "purpose": "Provides comprehensive integration tests for the Spring Security configuration of the roster application. Validates authentication and authorization rules for various API endpoints, ensuring that role-based access control (MANAGER, STAFF, USER) is correctly enforced across staff management endpoints and authentication flows.",
+        "functions": [
+            {
+                "signature": "void setup()",
+                "purpose": "Initializes MockMvc with Spring Security configuration before each test execution."
+            },
+            {
+                "signature": "void testLoginEndpointPermitAll() throws Exception",
+                "purpose": "Verifies that the login endpoint allows unauthenticated access without requiring credentials."
+            },
+            {
+                "signature": "void testLogoutEndpointRequiresAuthentication() throws Exception",
+                "purpose": "Ensures that the logout endpoint denies access to unauthenticated users and returns 401 status."
+            },
+            {
+                "signature": "void testSessionEndpointRequiresAuthentication() throws Exception",
+                "purpose": "Validates that the session endpoint requires authentication and rejects unauthenticated requests."
+            },
+            {
+                "signature": "void testManagerCanPutStaffEndpoint() throws Exception",
+                "purpose": "Confirms that users with MANAGER role can perform PUT operations on staff endpoints."
+            },
+            {
+                "signature": "void testStaffCannotPutStaffEndpoint() throws Exception",
+                "purpose": "Verifies that users with STAFF role are forbidden from performing PUT operations on staff endpoints."
+            },
+            {
+                "signature": "void testUnauthenticatedCannotPutStaffEndpoint() throws Exception",
+                "purpose": "Ensures unauthenticated users cannot perform PUT operations on staff endpoints and receive 401 status."
+            },
+            {
+                "signature": "void testManagerCanDeactivateStaff() throws Exception",
+                "purpose": "Validates that MANAGER role can access staff deactivation endpoints via POST requests."
+            },
+            {
+                "signature": "void testStaffCannotDeactivateStaff() throws Exception",
+                "purpose": "Confirms that STAFF role is forbidden from accessing staff deactivation endpoints."
+            },
+            {
+                "signature": "void testUnauthenticatedCannotDeactivateStaff() throws Exception",
+                "purpose": "Ensures unauthenticated users cannot access staff deactivation endpoints and receive 401 status."
+            },
+            {
+                "signature": "void testManagerCanGetStaffEndpoint() throws Exception",
+                "purpose": "Verifies that MANAGER role can perform GET operations on staff endpoints."
+            },
+            {
+                "signature": "void testStaffCanGetStaffEndpoint() throws Exception",
+                "purpose": "Confirms that STAFF role can perform GET operations on staff endpoints."
+            },
+            {
+                "signature": "void testUnauthenticatedCannotGetStaffEndpoint() throws Exception",
+                "purpose": "Validates that unauthenticated users cannot perform GET operations on staff endpoints."
+            },
+            {
+                "signature": "void testUserRoleCannotGetStaffEndpoint() throws Exception",
+                "purpose": "Ensures that USER role is forbidden from accessing staff endpoints via GET requests."
+            },
+            {
+                "signature": "void testUserRoleCannotPutStaffEndpoint() throws Exception",
+                "purpose": "Confirms that USER role is forbidden from performing PUT operations on staff endpoints."
+            },
+            {
+                "signature": "void testUserRoleCannotDeactivateStaff() throws Exception",
+                "purpose": "Validates that USER role cannot access staff deactivation endpoints and receives 403 status."
+            },
+            {
+                "signature": "void testAuthenticatedStaffCanLogout() throws Exception",
+                "purpose": "Verifies that authenticated STAFF users can access the logout endpoint."
+            },
+            {
+                "signature": "void testAuthenticatedManagerCanAccessSession() throws Exception",
+                "purpose": "Confirms that authenticated MANAGER users can access the session endpoint."
+            },
+            {
+                "signature": "void testCsrfIsDisabled() throws Exception",
+                "purpose": "Validates that CSRF protection is disabled for the application endpoints."
+            },
+            {
+                "signature": "void testStaffEndpointsOrderBeforeAnyRequest() throws Exception",
+                "purpose": "Ensures that staff endpoint security rules are evaluated before generic anyRequest rules."
+            },
+            {
+                "signature": "void testStaffGetAllowedButPutDenied() throws Exception",
+                "purpose": "Confirms that STAFF role can GET but cannot PUT on the same staff endpoint."
+            },
+            {
+                "signature": "void testManagerHasFullAccessToStaffEndpoints() throws Exception",
+                "purpose": "Validates that MANAGER role has complete access to all HTTP methods on staff endpoints."
+            },
+            {
+                "signature": "void testAnyRequestRequiresAuthentication() throws Exception",
+                "purpose": "Ensures that any protected endpoint requires authentication and returns 401 for unauthenticated requests."
+            },
+            {
+                "signature": "void testAuthenticatedUserCanAccessOtherEndpoints() throws Exception",
+                "purpose": "Verifies that any authenticated user can access non-staff protected endpoints."
+            },
+            {
+                "signature": "void testUnauthorizedEntryPoint() throws Exception",
+                "purpose": "Confirms that the HttpStatusEntryPoint returns 401 status for unauthenticated requests to protected endpoints."
+            },
+            {
+                "signature": "void testNestedStaffPathsWithPut() throws Exception",
+                "purpose": "Validates that MANAGER role can perform PUT operations on nested staff endpoint paths."
+            },
+            {
+                "signature": "void testNestedStaffPathsWithGet() throws Exception",
+                "purpose": "Ensures that STAFF role can perform GET operations on nested staff endpoint paths."
+            },
+            {
+                "signature": "void testDeactivateEndpointWithDifferentIds() throws Exception",
+                "purpose": "Confirms that MANAGER role can access deactivation endpoints with various staff ID parameters."
+            }
+        ]
+    },
+    "backend/src/test/java/com/visionary/roster/dto/UpdateStaffRequestTest.java": {
+        "purpose": "Comprehensive JUnit test suite for the UpdateStaffRequest DTO class. Validates all Jakarta Bean Validation annotations (@NotBlank, @PastOrPresent, @Pattern, @ValidDateRange), tests constructors, getters, setters, equals, hashCode, and toString methods to ensure data integrity and proper behavior of staff update request objects.",
+        "functions": []
+    },
+    "backend/src/test/java/com/visionary/roster/controller/StaffControllerTest.java": {
+        "purpose": "Provides comprehensive unit test coverage for the StaffController REST API endpoints in a Spring Boot application. Tests all CRUD operations for staff management including creation, retrieval, update, deactivation, and listing of staff members, with a focus on verifying proper authentication context extraction, HTTP status codes, response bodies, and service layer interactions using Mockito mocks.",
+        "functions": [
+            {
+                "signature": "void setUp()",
+                "purpose": "Initializes the security context and authentication mocks before each test, setting up the test user ID as the authenticated principal."
+            },
+            {
+                "signature": "void createStaff_shouldReturnCreatedStatusWithLocationHeader()",
+                "purpose": "Verifies that creating a staff member returns HTTP 201 CREATED status with a properly formatted Location header pointing to the new resource."
+            },
+            {
+                "signature": "void createStaff_shouldExtractUserIdFromSecurityContext()",
+                "purpose": "Ensures that the createStaff endpoint correctly extracts the authenticated user ID from the Spring Security context."
+            },
+            {
+                "signature": "void createStaff_shouldExtractFacilityIdFromRequestBody()",
+                "purpose": "Validates that the facility ID is properly extracted from the request body and passed to the service layer."
+            },
+            {
+                "signature": "void updateStaff_shouldReturnOkStatusWithUpdatedStaff()",
+                "purpose": "Tests that updating a staff member returns HTTP 200 OK with the updated staff details in the response body."
+            },
+            {
+                "signature": "void updateStaff_shouldExtractUserIdFromSecurityContext()",
+                "purpose": "Confirms that the updateStaff endpoint correctly retrieves the authenticated user ID from the security context."
+            },
+            {
+                "signature": "void getStaff_shouldReturnOkStatusWithStaffDetails()",
+                "purpose": "Verifies that retrieving a single staff member returns HTTP 200 OK with complete staff details."
+            },
+            {
+                "signature": "void getStaff_shouldExtractUserIdFromSecurityContext()",
+                "purpose": "Ensures the getStaff endpoint properly extracts the user ID from the authentication context."
+            },
+            {
+                "signature": "void listStaff_shouldReturnOkStatusWithStaffList()",
+                "purpose": "Tests that listing all staff for a facility returns HTTP 200 OK with a complete list of staff members."
+            },
+            {
+                "signature": "void listStaff_shouldExtractUserIdFromSecurityContext()",
+                "purpose": "Validates that the listStaff endpoint correctly retrieves the authenticated user ID."
+            },
+            {
+                "signature": "void listStaff_shouldReturnEmptyListWhenNoStaffFound()",
+                "purpose": "Confirms that the endpoint returns an empty list with HTTP 200 OK when no staff members exist for a facility."
+            },
+            {
+                "signature": "void deactivateStaff_shouldReturnOkStatus()",
+                "purpose": "Verifies that deactivating a staff member returns HTTP 200 OK with no response body."
+            },
+            {
+                "signature": "void deactivateStaff_shouldExtractUserIdFromSecurityContext()",
+                "purpose": "Ensures the deactivateStaff endpoint properly extracts the user ID from the security context."
+            },
+            {
+                "signature": "void listActiveStaff_shouldReturnOkStatusWithActiveStaffList()",
+                "purpose": "Tests that listing only active staff members returns HTTP 200 OK with a filtered list of active staff."
+            },
+            {
+                "signature": "void listActiveStaff_shouldExtractUserIdFromSecurityContext()",
+                "purpose": "Validates that the listActiveStaff endpoint correctly retrieves the authenticated user ID."
+            },
+            {
+                "signature": "void createStaff_shouldCallServiceWithCorrectParameters()",
+                "purpose": "Verifies that the createStaff endpoint passes all request parameters correctly to the service layer using argument matchers."
+            },
+            {
+                "signature": "void updateStaff_shouldCallServiceWithCorrectParameters()",
+                "purpose": "Ensures that the updateStaff endpoint correctly passes the staff ID, update request, and user ID to the service."
+            },
+            {
+                "signature": "void createStaff_shouldBuildCorrectLocationUri()",
+                "purpose": "Tests that the Location header URI is correctly constructed with the proper API path and staff ID."
+            },
+            {
+                "signature": "void allEndpoints_shouldExtractUserIdFromSecurityContextCorrectly()",
+                "purpose": "Comprehensive test verifying that all six controller endpoints consistently extract the user ID from the security context exactly once per invocation."
+            }
+        ]
+    },
+    "backend/src/test/java/com/visionary/roster/dto/StaffResponseTest.java": {
+        "purpose": "Provides comprehensive unit test coverage for the StaffResponse DTO class. Validates all field getters and setters, the default constructor, and the fromEntity factory method under various scenarios including null handling, complete data mapping, and edge cases with missing facility or endDate values.",
+        "functions": [
+            {
+                "signature": "void testDefaultConstructor()",
+                "purpose": "Verifies that the default constructor creates a StaffResponse object with all fields initialized to null."
+            },
+            {
+                "signature": "void testIdGetterAndSetter()",
+                "purpose": "Tests the getId and setId methods to ensure proper storage and retrieval of the staff ID."
+            },
+            {
+                "signature": "void testFirstNameGetterAndSetter()",
+                "purpose": "Tests the getFirstName and setFirstName methods to ensure proper storage and retrieval of the first name."
+            },
+            {
+                "signature": "void testLastNameGetterAndSetter()",
+                "purpose": "Tests the getLastName and setLastName methods to ensure proper storage and retrieval of the last name."
+            },
+            {
+                "signature": "void testEmailGetterAndSetter()",
+                "purpose": "Tests the getEmail and setEmail methods to ensure proper storage and retrieval of the email address."
+            },
+            {
+                "signature": "void testRoleGetterAndSetter()",
+                "purpose": "Tests the getRole and setRole methods to ensure proper storage and retrieval of the staff role."
+            },
+            {
+                "signature": "void testEmploymentStatusGetterAndSetter()",
+                "purpose": "Tests the getEmploymentStatus and setEmploymentStatus methods to ensure proper storage and retrieval of employment status."
+            },
+            {
+                "signature": "void testFacilityIdGetterAndSetter()",
+                "purpose": "Tests the getFacilityId and setFacilityId methods to ensure proper storage and retrieval of the facility ID."
+            },
+            {
+                "signature": "void testFacilityNameGetterAndSetter()",
+                "purpose": "Tests the getFacilityName and setFacilityName methods to ensure proper storage and retrieval of the facility name."
+            },
+            {
+                "signature": "void testCreatedAtGetterAndSetter()",
+                "purpose": "Tests the getCreatedAt and setCreatedAt methods to ensure proper storage and retrieval of the creation timestamp."
+            },
+            {
+                "signature": "void testUpdatedAtGetterAndSetter()",
+                "purpose": "Tests the getUpdatedAt and setUpdatedAt methods to ensure proper storage and retrieval of the update timestamp."
+            },
+            {
+                "signature": "void testEndDateGetterAndSetter()",
+                "purpose": "Tests the getEndDate and setEndDate methods to ensure proper storage and retrieval of the employment end date."
+            },
+            {
+                "signature": "void testFromEntityWithNullStaff()",
+                "purpose": "Verifies that the fromEntity factory method returns null when provided with a null Staff entity."
+            },
+            {
+                "signature": "void testFromEntityWithCompleteStaffAndFacility()",
+                "purpose": "Tests the fromEntity method with a fully populated Staff entity including facility information to ensure all fields are correctly mapped to the StaffResponse DTO."
+            },
+            {
+                "signature": "void testFromEntityWithNullFacility()",
+                "purpose": "Tests the fromEntity method when the Staff entity has a null facility to ensure facility-related fields in the response are null."
+            },
+            {
+                "signature": "void testFromEntityWithNullEndDate()",
+                "purpose": "Tests the fromEntity method when the Staff entity has a null endDate to ensure the response correctly handles optional date fields."
+            },
+            {
+                "signature": "void testFromEntityWithMinimalStaffData()",
+                "purpose": "Tests the fromEntity method with minimal Staff data to verify that the mapping works correctly when optional fields are null."
+            }
+        ]
+    },
+    "backend/src/test/java/com/visionary/roster/exception/GlobalExceptionHandlerTestTest.java": {
+        "purpose": "Comprehensive unit test suite for the GlobalExceptionHandler class, validating exception handling behavior across multiple HTTP error scenarios (400, 401, 403, 404, 422, 500). Tests verify correct HTTP status codes, error response structure, correlation ID management, field validation error mapping, and remediation message inclusion for all exception types handled by the global exception handler.",
+        "functions": [
+            {
+                "signature": "void setUp()",
+                "purpose": "Clears the MDC (Mapped Diagnostic Context) before each test to ensure clean state for correlation ID testing."
+            },
+            {
+                "signature": "void tearDown()",
+                "purpose": "Clears the MDC after each test to prevent correlation ID leakage between test cases."
+            },
+            {
+                "signature": "void testHandleValidationException_Returns422WithFieldErrors()",
+                "purpose": "Verifies that validation exceptions return HTTP 422 status with properly mapped field errors and correlation ID."
+            },
+            {
+                "signature": "void testHandleValidationException_LogsCorrelationId()",
+                "purpose": "Validates that the correlation ID from MDC is correctly included in the validation exception response."
+            },
+            {
+                "signature": "void handleValidationException_shouldReturn422WithFieldErrors()",
+                "purpose": "Tests comprehensive validation error response including error code, message, status, field errors map, and details string."
+            },
+            {
+                "signature": "void handleValidationException_shouldGenerateCorrelationIdWhenNotPresent()",
+                "purpose": "Ensures that a correlation ID is automatically generated when not present in MDC during validation exception handling."
+            },
+            {
+                "signature": "void handleInvalidCredentialsException_shouldReturn401()",
+                "purpose": "Verifies that invalid credentials exceptions return HTTP 401 with appropriate error code and message."
+            },
+            {
+                "signature": "void handleInactiveAccountException_shouldReturn403()",
+                "purpose": "Tests that inactive account exceptions return HTTP 403 with correct error response structure."
+            },
+            {
+                "signature": "void handleForbiddenAccessException_shouldReturn403WithDetails()",
+                "purpose": "Validates forbidden access exception handling returns HTTP 403 with user, facility, and role details."
+            },
+            {
+                "signature": "void handleResourceNotFoundException_shouldReturn404WithResourceDetails()",
+                "purpose": "Tests that resource not found exceptions return HTTP 404 with resource type and ID in the message."
+            },
+            {
+                "signature": "void handleResourceNotFoundException_shouldHandleNullResourceType()",
+                "purpose": "Ensures graceful handling of resource not found exceptions when resource type is null."
+            },
+            {
+                "signature": "void handleResourceNotFoundException_shouldHandleNullResourceId()",
+                "purpose": "Validates proper handling of resource not found exceptions when resource ID is null."
+            },
+            {
+                "signature": "void handleIllegalArgumentException_shouldReturn400()",
+                "purpose": "Tests that illegal argument exceptions return HTTP 400 with bad request error code."
+            },
+            {
+                "signature": "void handleEntityNotFoundException_shouldReturn404()",
+                "purpose": "Verifies that JPA entity not found exceptions return HTTP 404 with appropriate error response."
+            },
+            {
+                "signature": "void handleAuthenticationException_shouldReturn401()",
+                "purpose": "Tests that Spring Security authentication exceptions return HTTP 401 with authentication failed error code."
+            },
+            {
+                "signature": "void handleAccessDeniedException_shouldReturn403()",
+                "purpose": "Validates that Spring Security access denied exceptions return HTTP 403 with access denied error code."
+            },
+            {
+                "signature": "void handleGenericException_shouldReturn500()",
+                "purpose": "Tests that unhandled generic exceptions return HTTP 500 with internal server error response."
+            },
+            {
+                "signature": "void allExceptionHandlers_shouldIncludeCorrelationIdInResponse()",
+                "purpose": "Verifies that all exception handlers consistently include the correlation ID from MDC in their responses."
+            },
+            {
+                "signature": "void allExceptionHandlers_shouldGenerateCorrelationIdWhenMissing()",
+                "purpose": "Ensures all exception handlers generate a new correlation ID when MDC does not contain one."
+            },
+            {
+                "signature": "void allExceptionHandlers_shouldIncludeTimestamp()",
+                "purpose": "Validates that all exception handlers include a timestamp in the error response."
+            },
+            {
+                "signature": "void allExceptionHandlers_shouldIncludeRemediation()",
+                "purpose": "Tests that all exception handlers provide remediation guidance in the error response."
+            },
+            {
+                "signature": "void handleValidationException_shouldHandleEmptyFieldErrors()",
+                "purpose": "Verifies proper handling of validation exceptions with no field errors, returning empty collections."
+            },
+            {
+                "signature": "void handleResourceNotFoundException_shouldIncludeDetailsFromException()",
+                "purpose": "Tests that additional details from resource not found exceptions are included in the error response."
+            },
+            {
+                "signature": "void getOrGenerateCorrelationId_shouldReturnExistingCorrelationId()",
+                "purpose": "Validates that existing correlation IDs from MDC are reused rather than generating new ones."
+            },
+            {
+                "signature": "void getOrGenerateCorrelationId_shouldGenerateNewCorrelationIdWhenEmpty()",
+                "purpose": "Ensures a new correlation ID is generated when MDC contains an empty string."
+            }
+        ]
+    },
+    "backend/src/test/java/com/visionary/roster/dto/CreateStaffRequestTest.java": {
+        "purpose": "Provides comprehensive unit tests for the CreateStaffRequest DTO class, validating constructor behavior, getter/setter methods, Jakarta Bean Validation constraints (name, contact, role, employmentStatus), and the toEntity() conversion method that transforms the DTO into a StaffMember entity.",
+        "functions": [
+            {
+                "signature": "void setUp()",
+                "purpose": "Initializes the Jakarta Bean Validator instance before each test execution to enable constraint validation testing."
+            },
+            {
+                "signature": "void testNoArgsConstructor()",
+                "purpose": "Verifies that the CreateStaffRequest DTO can be instantiated using its no-argument constructor."
+            },
+            {
+                "signature": "void testAllArgsConstructorWithAllFields()",
+                "purpose": "Tests the all-arguments constructor with complete field values including start and end dates, validating all getters return expected values."
+            },
+            {
+                "signature": "void testAllArgsConstructorWithNullDates()",
+                "purpose": "Tests the all-arguments constructor with null date fields to ensure optional date handling works correctly."
+            },
+            {
+                "signature": "void testNameGetterAndSetter()",
+                "purpose": "Validates the setter and getter methods for the name field."
+            },
+            {
+                "signature": "void testContactGetterAndSetter()",
+                "purpose": "Validates the setter and getter methods for the contact field."
+            },
+            {
+                "signature": "void testRoleGetterAndSetter()",
+                "purpose": "Validates the setter and getter methods for the role field."
+            },
+            {
+                "signature": "void testEmploymentStatusGetterAndSetter()",
+                "purpose": "Validates the setter and getter methods for the employmentStatus field."
+            },
+            {
+                "signature": "void testStartDateGetterAndSetter()",
+                "purpose": "Validates the setter and getter methods for the startDate field."
+            },
+            {
+                "signature": "void testEndDateGetterAndSetter()",
+                "purpose": "Validates the setter and getter methods for the endDate field."
+            },
+            {
+                "signature": "void testValidationFailsWhenNameIsNull()",
+                "purpose": "Ensures Jakarta Bean Validation fails with appropriate error message when the required name field is null."
+            },
+            {
+                "signature": "void testValidationFailsWhenNameIsBlank()",
+                "purpose": "Ensures Jakarta Bean Validation fails with appropriate error message when the required name field contains only whitespace."
+            },
+            {
+                "signature": "void testValidationFailsWhenContactIsNull()",
+                "purpose": "Ensures Jakarta Bean Validation fails with appropriate error message when the required contact field is null."
+            },
+            {
+                "signature": "void testValidationFailsWhenContactIsBlank()",
+                "purpose": "Ensures Jakarta Bean Validation fails with appropriate error message when the required contact field is empty."
+            },
+            {
+                "signature": "void testValidationFailsWhenRoleIsNull()",
+                "purpose": "Ensures Jakarta Bean Validation fails with appropriate error message when the required role field is null."
+            },
+            {
+                "signature": "void testValidationFailsWhenRoleIsBlank()",
+                "purpose": "Ensures Jakarta Bean Validation fails with appropriate error message when the required role field contains only whitespace."
+            },
+            {
+                "signature": "void testValidationFailsWhenEmploymentStatusIsNull()",
+                "purpose": "Ensures Jakarta Bean Validation fails with appropriate error message when the required employmentStatus field is null."
+            },
+            {
+                "signature": "void testValidationFailsWhenEmploymentStatusIsBlank()",
+                "purpose": "Ensures Jakarta Bean Validation fails with appropriate error message when the required employmentStatus field is empty."
+            },
+            {
+                "signature": "void testValidationPassesWithRequiredFieldsAndNullDates()",
+                "purpose": "Confirms that validation succeeds when all required fields are provided and optional date fields are null."
+            },
+            {
+                "signature": "void testValidationPassesWithAllFields()",
+                "purpose": "Confirms that validation succeeds when all fields including optional dates are properly populated."
+            },
+            {
+                "signature": "void testToEntityWithAllFields()",
+                "purpose": "Tests the toEntity() method with all fields populated, verifying correct transformation from DTO to StaffMember entity including facilityId assignment."
+            },
+            {
+                "signature": "void testToEntityWithNullDates()",
+                "purpose": "Tests the toEntity() method with null date fields to ensure proper entity conversion with optional fields."
+            },
+            {
+                "signature": "void testToEntityWithOnlyStartDate()",
+                "purpose": "Tests the toEntity() method when only startDate is provided and endDate is null, validating partial date field handling."
+            },
+            {
+                "signature": "void testToEntityWithDifferentFacilityIds()",
+                "purpose": "Verifies that the toEntity() method correctly assigns different facilityId values to generated StaffMember entities."
+            },
+            {
+                "signature": "void testMultipleValidationViolations()",
+                "purpose": "Tests that multiple validation constraint violations are properly detected and reported when multiple required fields are invalid."
+            }
+        ]
+    },
+    "backend/src/test/java/com/visionary/roster/model/StaffMemberTest.java": {
+        "purpose": "Comprehensive unit test suite for the StaffMember entity class. Validates all constructors, getters, setters, equals, hashCode, and toString methods to ensure 100% test coverage of the StaffMember model's business logic and data integrity.",
+        "functions": [
+            {
+                "signature": "void setUp()",
+                "purpose": "Initializes test fixtures including test dates and a fresh StaffMember instance before each test execution."
+            },
+            {
+                "signature": "void testNoArgsConstructor()",
+                "purpose": "Verifies that the no-args constructor creates a valid StaffMember instance with all fields initialized to null."
+            },
+            {
+                "signature": "void testAllArgsConstructor()",
+                "purpose": "Validates that the all-args constructor correctly sets all eight fields of a StaffMember instance."
+            },
+            {
+                "signature": "void testAllArgsConstructorWithNullOptionalFields()",
+                "purpose": "Tests the all-args constructor with null values for optional fields like startDate and endDate."
+            },
+            {
+                "signature": "void testGetAndSetId()",
+                "purpose": "Verifies the getId and setId methods correctly retrieve and update the staff member's ID."
+            },
+            {
+                "signature": "void testGetAndSetName()",
+                "purpose": "Validates the getName and setName methods for the staff member's name field."
+            },
+            {
+                "signature": "void testGetAndSetContact()",
+                "purpose": "Tests the getContact and setContact methods for the staff member's contact information."
+            },
+            {
+                "signature": "void testGetAndSetRole()",
+                "purpose": "Verifies the getRole and setRole methods for the staff member's role field."
+            },
+            {
+                "signature": "void testGetAndSetEmploymentStatus()",
+                "purpose": "Validates the getEmploymentStatus and setEmploymentStatus methods for employment status tracking."
+            },
+            {
+                "signature": "void testGetAndSetStartDate()",
+                "purpose": "Tests the getStartDate and setStartDate methods for the staff member's employment start date."
+            },
+            {
+                "signature": "void testGetAndSetEndDate()",
+                "purpose": "Verifies the getEndDate and setEndDate methods for the staff member's employment end date."
+            },
+            {
+                "signature": "void testGetAndSetFacilityId()",
+                "purpose": "Validates the getFacilityId and setFacilityId methods for multi-tenant facility association."
+            },
+            {
+                "signature": "void testEqualsWithSameObject()",
+                "purpose": "Tests that the equals method returns true when comparing a StaffMember instance to itself."
+            },
+            {
+                "signature": "void testEqualsWithNull()",
+                "purpose": "Verifies that the equals method returns false when comparing to null."
+            },
+            {
+                "signature": "void testEqualsWithDifferentClass()",
+                "purpose": "Tests that the equals method returns false when comparing to an object of a different class."
+            },
+            {
+                "signature": "void testEqualsWithSameId()",
+                "purpose": "Validates that two StaffMember instances with the same ID are considered equal."
+            },
+            {
+                "signature": "void testEqualsWithDifferentId()",
+                "purpose": "Verifies that two StaffMember instances with different IDs are not equal."
+            },
+            {
+                "signature": "void testEqualsWithBothNullIds()",
+                "purpose": "Tests that two StaffMember instances with null IDs are considered equal."
+            },
+            {
+                "signature": "void testEqualsWithOneNullId()",
+                "purpose": "Validates that a StaffMember with a null ID is not equal to one with a non-null ID."
+            },
+            {
+                "signature": "void testHashCodeConsistency()",
+                "purpose": "Verifies that the hashCode method returns consistent values across multiple invocations."
+            },
+            {
+                "signature": "void testHashCodeWithSameId()",
+                "purpose": "Tests that two StaffMember instances with the same ID produce the same hash code."
+            },
+            {
+                "signature": "void testHashCodeWithNullId()",
+                "purpose": "Validates that the hashCode method handles null ID values without throwing exceptions."
+            },
+            {
+                "signature": "void testToStringContainsAllFields()",
+                "purpose": "Verifies that the toString method includes all eight fields in its string representation."
+            },
+            {
+                "signature": "void testToStringWithNullFields()",
+                "purpose": "Tests that the toString method correctly handles and displays null field values."
+            },
+            {
+                "signature": "void testFacilityIdMultiTenantScoping()",
+                "purpose": "Validates that the facilityId field can be updated to support multi-tenant data scoping."
+            },
+            {
+                "signature": "void testCompleteObjectLifecycle()",
+                "purpose": "Tests a complete lifecycle scenario including object creation, field updates, and state verification."
+            },
+            {
+                "signature": "void testEntityWithOnlyRequiredFields()",
+                "purpose": "Verifies that a StaffMember can be created with only required fields while optional fields remain null."
+            },
+            {
+                "signature": "void testEqualsAndHashCodeContract()",
+                "purpose": "Validates that the equals and hashCode methods satisfy the Java contract for symmetric equality and consistent hashing."
+            }
+        ]
+    },
+    "backend/src/test/java/com/visionary/roster/model/StaffTest.java": {
+        "purpose": "Comprehensive unit test suite for the Staff entity class. Validates all constructors, factory methods (toEntity, updateFromRequest), getters/setters, equals/hashCode contracts, and toString implementation to ensure 100% test coverage of Staff business logic.",
+        "functions": []
+    },
+    "backend/src/test/java/com/visionary/roster/model/UserAccountTest.java": {
+        "purpose": "Comprehensive JUnit 5 test suite for the UserAccount entity model, validating the isAccountActive() business logic, account status field behavior, lifecycle methods (onCreate, onUpdate), and relationships with Facility. Tests cover case sensitivity, null handling, parameterized scenarios, and complete account lifecycle from creation to deactivation.",
+        "functions": [
+            {
+                "signature": "void setUp()",
+                "purpose": "Initializes test fixtures before each test, creating a Facility and UserAccount with default test data."
+            },
+            {
+                "signature": "void testIsAccountActive_WhenAccountStatusIsNull_ReturnsTrue()",
+                "purpose": "Verifies that isAccountActive() returns true when accountStatus field is null."
+            },
+            {
+                "signature": "void testIsAccountActive_WhenAccountStatusIsActive_ReturnsTrue()",
+                "purpose": "Verifies that isAccountActive() returns true when accountStatus is set to 'ACTIVE'."
+            },
+            {
+                "signature": "void testIsAccountActive_WhenAccountStatusIsInactive_ReturnsFalse()",
+                "purpose": "Verifies that isAccountActive() returns false when accountStatus is 'INACTIVE'."
+            },
+            {
+                "signature": "void testIsAccountActive_WhenAccountStatusIsSuspended_ReturnsFalse()",
+                "purpose": "Verifies that isAccountActive() returns false when accountStatus is 'SUSPENDED'."
+            },
+            {
+                "signature": "void testIsAccountActive_WhenAccountStatusIsLocked_ReturnsFalse()",
+                "purpose": "Verifies that isAccountActive() returns false when accountStatus is 'LOCKED'."
+            },
+            {
+                "signature": "void testIsAccountActive_WithVariousNonActiveStatuses_ReturnsFalse(String status)",
+                "purpose": "Parameterized test verifying isAccountActive() returns false for multiple non-active status values."
+            },
+            {
+                "signature": "void testIsAccountActive_IsCaseSensitive_ForActiveStatus()",
+                "purpose": "Validates that isAccountActive() is case-sensitive and only returns true for uppercase 'ACTIVE'."
+            },
+            {
+                "signature": "void testAccountStatus_CanBeSetAndRetrieved()",
+                "purpose": "Tests getter and setter functionality for the accountStatus field."
+            },
+            {
+                "signature": "void testAccountEndDate_CanBeSetAndRetrieved()",
+                "purpose": "Tests getter and setter functionality for the accountEndDate field."
+            },
+            {
+                "signature": "void testAccountEndDate_CanBeNull()",
+                "purpose": "Verifies that accountEndDate field accepts null values."
+            },
+            {
+                "signature": "void testAccountDeactivation_WithStatusAndEndDate()",
+                "purpose": "Tests account deactivation scenario with both status set to INACTIVE and end date populated."
+            },
+            {
+                "signature": "void testAccountActivation_WithActiveStatus()",
+                "purpose": "Tests account activation scenario with ACTIVE status and null end date."
+            },
+            {
+                "signature": "void testFacilityId_ExistsThroughFacilityRelationship()",
+                "purpose": "Verifies that facilityId is accessible through the Facility relationship."
+            },
+            {
+                "signature": "void testOnCreate_SetsDefaultValues()",
+                "purpose": "Tests that onCreate() lifecycle method sets default values for createdAt, createdBy, and isActive fields."
+            },
+            {
+                "signature": "void testOnCreate_PreservesExistingCreatedBy()",
+                "purpose": "Verifies that onCreate() does not overwrite an existing createdBy value."
+            },
+            {
+                "signature": "void testOnUpdate_SetsUpdatedAtTimestamp()",
+                "purpose": "Tests that onUpdate() lifecycle method sets the updatedAt timestamp."
+            },
+            {
+                "signature": "void testDistinction_BetweenAccountStatusAndIsActiveFlag()",
+                "purpose": "Validates the distinction between the isActive flag and accountStatus field behavior."
+            },
+            {
+                "signature": "void testAccount_CanHaveEndDateWithoutBeingInactive()",
+                "purpose": "Tests that an account can have a future end date while still being active."
+            },
+            {
+                "signature": "void testAccountStatus_HasCorrectLengthConstraint()",
+                "purpose": "Verifies that accountStatus field supports up to 20 characters."
+            },
+            {
+                "signature": "void testAccountStatus_EmptyStringTreatedAsNonActive()",
+                "purpose": "Tests that an empty string accountStatus is treated as non-active."
+            },
+            {
+                "signature": "void testAccountStatus_WhitespaceOnlyTreatedAsNonActive()",
+                "purpose": "Tests that whitespace-only accountStatus is treated as non-active."
+            },
+            {
+                "signature": "void testAccount_WithNullStatusAndPastEndDate()",
+                "purpose": "Verifies that isAccountActive() only checks accountStatus and ignores accountEndDate."
+            },
+            {
+                "signature": "void testStaffMemberId_CanBeNullForNonStaffUsers()",
+                "purpose": "Tests that staffMemberId can be null for non-staff users like contractors or auditors."
+            },
+            {
+                "signature": "void testCompleteAccountLifecycle_FromCreationToDeactivation()",
+                "purpose": "Integration test covering the complete account lifecycle from creation through various status changes to deactivation."
+            }
+        ]
+    },
+    "backend/src/test/java/com/visionary/roster/security/FacilityScopingServiceTest.java": {
+        "purpose": "Provides comprehensive unit test coverage for the FacilityScopingService class, validating facility-based access control and authentication logic. Tests verify that users can only access resources within their assigned facility, enforcing security boundaries and proper exception handling for authentication failures, missing users, and cross-facility access attempts.",
+        "functions": []
+    },
+    "backend/src/test/java/com/visionary/roster/security/RoleAuthorizationServiceTest.java": {
+        "purpose": "Comprehensive unit test suite for RoleAuthorizationService that validates role-based authorization logic for manager role requirements. Tests authentication state handling, role validation for both UserAccount and Long principal types, and proper exception throwing for unauthorized access scenarios across multiple authorization methods.",
+        "functions": []
+    },
+    "backend/src/test/java/com/visionary/roster/repository/StaffMemberRepositoryTest.java": {
+        "purpose": "Comprehensive test suite for StaffMemberRepository that validates all repository methods including CRUD operations, facility-scoped queries, and employment status filtering. Ensures 100% coverage of repository query patterns with focus on multi-tenant facility isolation and data integrity.",
+        "functions": [
+            {
+                "signature": "void setUp()",
+                "purpose": "Initializes test data by creating four staff members across two facilities with varying employment statuses before each test execution."
+            },
+            {
+                "signature": "void testFindById_WhenIdExists_ReturnsStaffMember()",
+                "purpose": "Verifies that findById returns a present Optional containing the correct staff member when a valid ID is provided."
+            },
+            {
+                "signature": "void testFindById_WhenIdDoesNotExist_ReturnsEmpty()",
+                "purpose": "Validates that findById returns an empty Optional when querying with a non-existent ID."
+            },
+            {
+                "signature": "void testFindById_WhenIdIsNull_ReturnsEmpty()",
+                "purpose": "Ensures that findById handles null ID input gracefully by returning an empty Optional."
+            },
+            {
+                "signature": "void testFindByFacilityId_ReturnsAllStaffForFacility()",
+                "purpose": "Tests that findByFacilityId retrieves all staff members belonging to a specific facility."
+            },
+            {
+                "signature": "void testFindByFacilityId_WhenNoStaffExists_ReturnsEmptyList()",
+                "purpose": "Confirms that findByFacilityId returns an empty list when no staff members exist for the specified facility."
+            },
+            {
+                "signature": "void testFindByFacilityId_DoesNotReturnStaffFromOtherFacilities()",
+                "purpose": "Validates facility isolation by ensuring findByFacilityId does not return staff from other facilities."
+            },
+            {
+                "signature": "void testFindByFacilityIdAndEmploymentStatus_ReturnsFilteredStaff()",
+                "purpose": "Tests that findByFacilityIdAndEmploymentStatus correctly filters staff by both facility and employment status."
+            },
+            {
+                "signature": "void testFindByFacilityIdAndEmploymentStatus_ReturnsMultipleStaff()",
+                "purpose": "Verifies that findByFacilityIdAndEmploymentStatus can return multiple staff members with the same status."
+            },
+            {
+                "signature": "void testFindByFacilityIdAndEmploymentStatus_WhenNoMatches_ReturnsEmptyList()",
+                "purpose": "Ensures that findByFacilityIdAndEmploymentStatus returns an empty list when no matches are found."
+            },
+            {
+                "signature": "void testFindByFacilityIdAndEmploymentStatus_WithTerminatedStatus()",
+                "purpose": "Tests that findByFacilityIdAndEmploymentStatus correctly handles TERMINATED status and returns staff with end dates."
+            },
+            {
+                "signature": "void testFindByFacilityIdAndEmploymentStatus_DoesNotReturnOtherFacilities()",
+                "purpose": "Validates facility isolation in status-filtered queries by ensuring no cross-facility data leakage."
+            },
+            {
+                "signature": "void testFindByFacilityIdAndName_ReturnsMatchingStaff()",
+                "purpose": "Tests that findByFacilityIdAndName retrieves staff members matching the specified name within a facility."
+            },
+            {
+                "signature": "void testFindByFacilityIdAndName_ReturnsMultipleStaffWithSameName()",
+                "purpose": "Verifies that findByFacilityIdAndName can return multiple staff members with identical names in the same facility."
+            },
+            {
+                "signature": "void testFindByFacilityIdAndName_WhenNameDoesNotExist_ReturnsEmptyList()",
+                "purpose": "Confirms that findByFacilityIdAndName returns an empty list when the specified name does not exist."
+            },
+            {
+                "signature": "void testFindByFacilityIdAndName_DoesNotReturnOtherFacilities()",
+                "purpose": "Validates facility isolation in name-based queries by ensuring no cross-facility results."
+            },
+            {
+                "signature": "void testFindByFacilityIdAndName_IsCaseSensitive()",
+                "purpose": "Tests that findByFacilityIdAndName performs case-sensitive name matching."
+            },
+            {
+                "signature": "void testSave_PersistsNewStaffMember()",
+                "purpose": "Verifies that save successfully persists a new staff member and assigns a generated ID."
+            },
+            {
+                "signature": "void testSave_UpdatesExistingStaffMember()",
+                "purpose": "Tests that save correctly updates an existing staff member's attributes."
+            },
+            {
+                "signature": "void testSave_HandlesSoftDeletePattern()",
+                "purpose": "Validates that save supports soft-delete pattern by updating employment status to TERMINATED with an end date."
+            },
+            {
+                "signature": "void testDeleteById_RemovesStaffMember()",
+                "purpose": "Tests that deleteById physically removes a staff member from the database."
+            },
+            {
+                "signature": "void testDeleteById_DoesNotAffectOtherStaff()",
+                "purpose": "Ensures that deleteById only removes the specified staff member without affecting others."
+            },
+            {
+                "signature": "void testFacilityIsolation_AcrossAllQueries()",
+                "purpose": "Comprehensive test validating that all repository query methods maintain strict facility isolation."
+            },
+            {
+                "signature": "void testCompositeIndexQueries_ExecuteSuccessfully()",
+                "purpose": "Verifies that all composite index queries execute without errors and return valid results."
+            },
+            {
+                "signature": "void testMultipleEmploymentStatuses()",
+                "purpose": "Tests that the repository correctly handles and filters multiple employment status values across a facility."
+            }
+        ]
+    },
+    "backend/src/test/java/com/visionary/roster/repository/StaffRepositoryTest.java": {
+        "purpose": "Provides comprehensive unit tests for the StaffRepository interface, validating all custom query methods for staff management operations including filtering by facility, employment status, email lookups, and uniqueness checks. Tests cover positive cases, edge cases, null handling, and repository interface compliance using Spring Boot's DataJpaTest framework.",
+        "functions": [
+            {
+                "signature": "void setUp()",
+                "purpose": "Initializes test data before each test execution by creating multiple Staff entities with varying facility IDs and employment statuses for comprehensive test coverage."
+            },
+            {
+                "signature": "void testFindByFacilityIdAndEmploymentStatus_ActiveStaff()",
+                "purpose": "Verifies that the repository correctly retrieves all active staff members for a specific facility ID."
+            },
+            {
+                "signature": "void testFindByFacilityIdAndEmploymentStatus_InactiveStaff()",
+                "purpose": "Validates that the repository can find inactive staff members filtered by facility ID and employment status."
+            },
+            {
+                "signature": "void testFindByFacilityIdAndEmploymentStatus_NoMatch()",
+                "purpose": "Tests that an empty list is returned when no staff matches the specified facility and employment status criteria."
+            },
+            {
+                "signature": "void testFindByIdAndFacilityId_Found()",
+                "purpose": "Confirms that a staff member can be retrieved by their ID and facility ID combination."
+            },
+            {
+                "signature": "void testFindByIdAndFacilityId_WrongFacility()",
+                "purpose": "Ensures that no result is returned when the staff ID exists but the facility ID does not match."
+            },
+            {
+                "signature": "void testFindByIdAndFacilityId_NotFound()",
+                "purpose": "Validates that an empty result is returned when the staff ID does not exist in the repository."
+            },
+            {
+                "signature": "void testFindByEmploymentStatus_Active()",
+                "purpose": "Tests retrieval of all active staff members across all facilities regardless of facility ID."
+            },
+            {
+                "signature": "void testFindByEmploymentStatus_Inactive()",
+                "purpose": "Verifies that all inactive staff members can be retrieved across all facilities."
+            },
+            {
+                "signature": "void testFindByEmploymentStatus_NoMatch()",
+                "purpose": "Confirms that an empty list is returned when no staff has the specified employment status."
+            },
+            {
+                "signature": "void testExistsByEmailAndIdNot_EmailExists()",
+                "purpose": "Tests that the repository correctly identifies when an email exists for a different staff member."
+            },
+            {
+                "signature": "void testExistsByEmailAndIdNot_SameStaff()",
+                "purpose": "Validates that the repository returns false when checking email uniqueness for the same staff member."
+            },
+            {
+                "signature": "void testExistsByEmailAndIdNot_EmailDoesNotExist()",
+                "purpose": "Ensures that false is returned when the email does not exist in the repository."
+            },
+            {
+                "signature": "void testExistsByEmailAndIdNot_NewStaffWithExistingEmail()",
+                "purpose": "Tests email uniqueness validation for new staff creation scenarios where ID is null."
+            },
+            {
+                "signature": "void testFindByEmail_Found()",
+                "purpose": "Verifies that a staff member can be successfully retrieved by their email address."
+            },
+            {
+                "signature": "void testFindByEmail_NotFound()",
+                "purpose": "Confirms that an empty result is returned when searching for a non-existent email."
+            },
+            {
+                "signature": "void testFindByEmail_NullEmail()",
+                "purpose": "Tests that the repository handles null email input gracefully by returning an empty result."
+            },
+            {
+                "signature": "void testFindByEmail_CaseSensitive()",
+                "purpose": "Validates the case-sensitivity behavior of email searches in the repository."
+            },
+            {
+                "signature": "void testRepositoryAnnotation()",
+                "purpose": "Verifies that the StaffRepository interface is properly annotated with the @Repository annotation."
+            },
+            {
+                "signature": "void testRepositoryExtendsJpaRepository()",
+                "purpose": "Confirms that the StaffRepository interface correctly extends JpaRepository for ORM functionality."
+            },
+            {
+                "signature": "void testFindByEmploymentStatus_MultipleFacilities()",
+                "purpose": "Tests that staff with the same employment status across different facilities are all retrieved correctly."
+            },
+            {
+                "signature": "void testFindByEmploymentStatus_EmptyString()",
+                "purpose": "Validates that an empty string employment status parameter returns no results."
+            },
+            {
+                "signature": "void testFindByFacilityIdAndEmploymentStatus_NullFacilityId()",
+                "purpose": "Tests that null facility ID input is handled gracefully by returning an empty result."
+            },
+            {
+                "signature": "void testFindByFacilityIdAndEmploymentStatus_NullStatus()",
+                "purpose": "Ensures that null employment status input is handled properly by returning an empty result."
+            }
+        ]
+    },
+    "backend/src/test/resources/db/migration/V1__create_tables.sql": {
+        "purpose": "Comprehensive integration test suite for the V1__create_tables.sql Flyway migration script. Validates database schema creation, table structures, constraints (primary keys, foreign keys, unique constraints), indexes, default values, cascade behavior, and isolation of test database schema for the facility and user_account tables.",
+        "functions": [
+            {
+                "signature": "void setUp()",
+                "purpose": "Initializes the test environment by cleaning existing tables, configuring Flyway, and executing the V1 migration script before each test."
+            },
+            {
+                "signature": "void tearDown()",
+                "purpose": "Cleans up the test database by dropping all created tables after each test execution."
+            },
+            {
+                "signature": "void testFacilityTableExists()",
+                "purpose": "Verifies that the facility table is successfully created by the migration script."
+            },
+            {
+                "signature": "void testUserAccountTableExists()",
+                "purpose": "Verifies that the user_account table is successfully created by the migration script."
+            },
+            {
+                "signature": "void testFacilityTableStructure()",
+                "purpose": "Validates that the facility table contains all required columns including id, name, address, timezone, region_code, active, created_at, updated_at, created_by, and updated_by."
+            },
+            {
+                "signature": "void testUserAccountTableStructure()",
+                "purpose": "Validates that the user_account table contains all required columns including id, username, email, password_hash, roles, facility_id, created_at, updated_at, created_by, and updated_by."
+            },
+            {
+                "signature": "void testFacilityPrimaryKeyConstraint()",
+                "purpose": "Ensures that the facility table has a primary key constraint defined."
+            },
+            {
+                "signature": "void testUserAccountPrimaryKeyConstraint()",
+                "purpose": "Ensures that the user_account table has a primary key constraint defined."
+            },
+            {
+                "signature": "void testUserAccountForeignKeyConstraint()",
+                "purpose": "Verifies that the user_account table has a foreign key constraint named fk_user_facility referencing the facility table."
+            },
+            {
+                "signature": "void testUserAccountUniqueConstraint()",
+                "purpose": "Validates that the user_account table has a unique constraint named uk_user_facility_username on facility_id and username combination."
+            },
+            {
+                "signature": "void testUserAccountIndexExists()",
+                "purpose": "Confirms that the idx_user_account_facility_role index exists on the user_account table."
+            },
+            {
+                "signature": "void testInsertFacilityWithDefaultValues()",
+                "purpose": "Tests that inserting a facility record properly applies default values for active, created_at, and updated_at columns."
+            },
+            {
+                "signature": "void testInsertUserAccountWithValidFacility()",
+                "purpose": "Validates that a user account can be successfully inserted with a valid facility_id foreign key reference."
+            },
+            {
+                "signature": "void testForeignKeyConstraintOnDelete()",
+                "purpose": "Tests the CASCADE delete behavior where deleting a facility automatically deletes associated user accounts."
+            },
+            {
+                "signature": "void testUniqueConstraintViolation()",
+                "purpose": "Verifies that attempting to insert duplicate username within the same facility_id throws an exception due to unique constraint violation."
+            },
+            {
+                "signature": "void testFacilityTableComment()",
+                "purpose": "Validates that the facility table has the correct table comment 'Facility master table for test environment'."
+            },
+            {
+                "signature": "void testUserAccountTableComment()",
+                "purpose": "Validates that the user_account table has the correct table comment 'User account table for test environment with test user data'."
+            },
+            {
+                "signature": "void testMigrationDoesNotConflictWithV3()",
+                "purpose": "Ensures that the test migration does not create the staff table, avoiding conflicts with V3__create_staff_table.sql migration."
+            },
+            {
+                "signature": "void testTestDatabaseSchemaIsIsolated()",
+                "purpose": "Verifies that only expected tables (facility, user_account, flyway_schema_history) exist in the test schema and no unexpected tables from main resources are present."
+            },
+            {
+                "signature": "void testNotNullConstraintsOnFacility()",
+                "purpose": "Tests that NOT NULL constraints on facility table columns (name, timezone) are properly enforced by throwing exceptions on null value insertion."
+            },
+            {
+                "signature": "void testNotNullConstraintsOnUserAccount()",
+                "purpose": "Tests that NOT NULL constraints on user_account table columns (username, password_hash, roles, facility_id) are properly enforced by throwing exceptions on null value insertion."
+            }
+        ]
+    },
+    "backend/src/test/resources/db/migration/V2__add_auth_columns_to_user_account.sql": {
+        "purpose": "Comprehensive integration test suite for database migration V2 that validates the addition of authentication and employment tracking columns to the user_account table. Tests column creation, data types, constraints, default values, indexes, and business logic scenarios for user account status management.",
+        "functions": []
+    },
+    "backend/src/test/java/com/visionary/roster/service/StaffServiceTest.java": {
+        "purpose": "Delayed response - Exceeded 5 minutes.",
+        "functions": []
     }
 }
