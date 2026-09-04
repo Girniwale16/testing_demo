@@ -159,6 +159,234 @@ class AuditEmitterTest {
             assertTrue(spyEmitter.isMetadataSerializable(metadata));
             assertEquals(4, metadata.size());
         }
+
+        @Test
+        @DisplayName("Test emit staff update event for deactivation action with null staffId")
+        void testEmitStaffUpdateEvent_DeactivationAction_NullStaffId() {
+            // Arrange
+            Long staffId = null;
+            Long userId = 100L;
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("action", "DEACTIVATE");
+            metadata.put("userRole", "MANAGER");
+            metadata.put("requiredRole", "MANAGER");
+            metadata.put("authorizationResult", "AUTHORIZED");
+
+            // Act & Assert
+            IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> auditEmitter.emitStaffUpdateEvent(staffId, userId, metadata)
+            );
+            assertTrue(exception.getMessage().contains("staffId"));
+        }
+
+        @Test
+        @DisplayName("Test emit staff update event for deactivation action with null userId")
+        void testEmitStaffUpdateEvent_DeactivationAction_NullUserId() {
+            // Arrange
+            Long staffId = 1L;
+            Long userId = null;
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("action", "DEACTIVATE");
+            metadata.put("userRole", "MANAGER");
+            metadata.put("requiredRole", "MANAGER");
+            metadata.put("authorizationResult", "AUTHORIZED");
+
+            // Act & Assert
+            IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> auditEmitter.emitStaffUpdateEvent(staffId, userId, metadata)
+            );
+            assertTrue(exception.getMessage().contains("userId"));
+        }
+
+        @Test
+        @DisplayName("Test emit staff update event for deactivation action with missing action field")
+        void testEmitStaffUpdateEvent_DeactivationAction_MissingActionField() {
+            // Arrange
+            Long staffId = 1L;
+            Long userId = 100L;
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("userRole", "MANAGER");
+            metadata.put("requiredRole", "MANAGER");
+            metadata.put("authorizationResult", "AUTHORIZED");
+
+            TestAuditEmitterImpl testEmitter = new TestAuditEmitterImpl();
+
+            // Act
+            testEmitter.emitStaffUpdateEvent(staffId, userId, metadata);
+
+            // Assert - Verify correlation ID and timestamp are still generated
+            assertNotNull(testEmitter.getLastCorrelationId());
+            assertNotNull(testEmitter.getLastTimestamp());
+            assertNull(metadata.get("action"));
+        }
+
+        @Test
+        @DisplayName("Test emit staff update event for deactivation action with unauthorized result")
+        void testEmitStaffUpdateEvent_DeactivationAction_UnauthorizedResult() {
+            // Arrange
+            Long staffId = 1L;
+            Long userId = 100L;
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("action", "DEACTIVATE");
+            metadata.put("userRole", "USER");
+            metadata.put("requiredRole", "MANAGER");
+            metadata.put("authorizationResult", "UNAUTHORIZED");
+
+            TestAuditEmitterImpl testEmitter = new TestAuditEmitterImpl();
+
+            // Act
+            testEmitter.emitStaffUpdateEvent(staffId, userId, metadata);
+
+            // Assert - Verify audit event is still published even for unauthorized attempts
+            assertNotNull(testEmitter.getLastCorrelationId());
+            assertNotNull(testEmitter.getLastTimestamp());
+            assertEquals("UNAUTHORIZED", metadata.get("authorizationResult"));
+            assertEquals("USER", metadata.get("userRole"));
+            assertEquals("MANAGER", metadata.get("requiredRole"));
+        }
+
+        @Test
+        @DisplayName("Test emit staff update event for deactivation action with additional metadata fields")
+        void testEmitStaffUpdateEvent_DeactivationAction_AdditionalMetadata() {
+            // Arrange
+            Long staffId = 1L;
+            Long userId = 100L;
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("action", "DEACTIVATE");
+            metadata.put("userRole", "MANAGER");
+            metadata.put("requiredRole", "MANAGER");
+            metadata.put("authorizationResult", "AUTHORIZED");
+            metadata.put("reason", "Employee resignation");
+            metadata.put("effectiveDate", "2024-01-15");
+            metadata.put("ipAddress", "192.168.1.100");
+
+            TestAuditEmitterImpl testEmitter = new TestAuditEmitterImpl();
+
+            // Act
+            testEmitter.emitStaffUpdateEvent(staffId, userId, metadata);
+
+            // Assert - Verify all metadata fields are serializable
+            assertTrue(testEmitter.isMetadataSerializable(metadata));
+            assertEquals(7, metadata.size());
+            assertEquals("Employee resignation", metadata.get("reason"));
+            assertEquals("2024-01-15", metadata.get("effectiveDate"));
+            assertEquals("192.168.1.100", metadata.get("ipAddress"));
+        }
+
+        @Test
+        @DisplayName("Test emit staff update event for deactivation action verifies correlation ID uniqueness")
+        void testEmitStaffUpdateEvent_DeactivationAction_CorrelationIdUniqueness() {
+            // Arrange
+            Long staffId = 1L;
+            Long userId = 100L;
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("action", "DEACTIVATE");
+            metadata.put("userRole", "MANAGER");
+            metadata.put("requiredRole", "MANAGER");
+            metadata.put("authorizationResult", "AUTHORIZED");
+
+            TestAuditEmitterImpl testEmitter = new TestAuditEmitterImpl();
+
+            // Act - Emit multiple events
+            testEmitter.emitStaffUpdateEvent(staffId, userId, metadata);
+            String firstCorrelationId = testEmitter.getLastCorrelationId();
+            
+            testEmitter.emitStaffUpdateEvent(staffId, userId, metadata);
+            String secondCorrelationId = testEmitter.getLastCorrelationId();
+
+            // Assert - Verify correlation IDs are unique
+            assertNotNull(firstCorrelationId);
+            assertNotNull(secondCorrelationId);
+            assertNotEquals(firstCorrelationId, secondCorrelationId);
+        }
+
+        @Test
+        @DisplayName("Test emit staff update event for deactivation action verifies timestamp progression")
+        void testEmitStaffUpdateEvent_DeactivationAction_TimestampProgression() throws InterruptedException {
+            // Arrange
+            Long staffId = 1L;
+            Long userId = 100L;
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("action", "DEACTIVATE");
+            metadata.put("userRole", "MANAGER");
+            metadata.put("requiredRole", "MANAGER");
+            metadata.put("authorizationResult", "AUTHORIZED");
+
+            TestAuditEmitterImpl testEmitter = new TestAuditEmitterImpl();
+
+            // Act - Emit multiple events with delay
+            testEmitter.emitStaffUpdateEvent(staffId, userId, metadata);
+            Long firstTimestamp = testEmitter.getLastTimestamp();
+            
+            Thread.sleep(10); // Small delay to ensure timestamp difference
+            
+            testEmitter.emitStaffUpdateEvent(staffId, userId, metadata);
+            Long secondTimestamp = testEmitter.getLastTimestamp();
+
+            // Assert - Verify timestamps progress forward
+            assertNotNull(firstTimestamp);
+            assertNotNull(secondTimestamp);
+            assertTrue(secondTimestamp >= firstTimestamp);
+        }
+
+        @Test
+        @DisplayName("Test emit staff update event for deactivation action with non-serializable metadata")
+        void testEmitStaffUpdateEvent_DeactivationAction_NonSerializableMetadata() {
+            // Arrange
+            Long staffId = 1L;
+            Long userId = 100L;
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("action", "DEACTIVATE");
+            metadata.put("userRole", "MANAGER");
+            metadata.put("requiredRole", "MANAGER");
+            metadata.put("authorizationResult", "AUTHORIZED");
+            metadata.put("nonSerializable", new Object()); // Non-serializable object
+
+            TestAuditEmitterImpl testEmitter = new TestAuditEmitterImpl();
+
+            // Act
+            testEmitter.emitStaffUpdateEvent(staffId, userId, metadata);
+
+            // Assert - Verify metadata serialization check fails for non-serializable objects
+            assertFalse(testEmitter.isMetadataSerializable(metadata));
+        }
+
+        @Test
+        @DisplayName("Test emit staff update event for deactivation action with different role combinations")
+        void testEmitStaffUpdateEvent_DeactivationAction_DifferentRoleCombinations() {
+            // Arrange
+            Long staffId = 1L;
+            Long userId = 100L;
+            
+            String[][] roleCombinations = {
+                {"ADMIN", "ADMIN", "AUTHORIZED"},
+                {"MANAGER", "MANAGER", "AUTHORIZED"},
+                {"USER", "MANAGER", "UNAUTHORIZED"},
+                {"MANAGER", "ADMIN", "UNAUTHORIZED"},
+                {"ADMIN", "MANAGER", "AUTHORIZED"}
+            };
+
+            TestAuditEmitterImpl testEmitter = new TestAuditEmitterImpl();
+
+            // Act & Assert
+            for (String[] roles : roleCombinations) {
+                Map<String, Object> metadata = new HashMap<>();
+                metadata.put("action", "DEACTIVATE");
+                metadata.put("userRole", roles[0]);
+                metadata.put("requiredRole", roles[1]);
+                metadata.put("authorizationResult", roles[2]);
+
+                assertDoesNotThrow(() -> testEmitter.emitStaffUpdateEvent(staffId, userId, metadata));
+                
+                assertEquals(roles[0], metadata.get("userRole"));
+                assertEquals(roles[1], metadata.get("requiredRole"));
+                assertEquals(roles[2], metadata.get("authorizationResult"));
+                assertNotNull(testEmitter.getLastCorrelationId());
+                assertNotNull(testEmitter.getLastTimestamp());
+            }
+        }
     }
 
     @Nested

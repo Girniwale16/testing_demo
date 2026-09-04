@@ -284,4 +284,3 @@ class SecurityConfigTest {
                 // Verify HTTP 204 No Content response on successful deactivation
                 .andExpect(status().is(204));
     }
-}

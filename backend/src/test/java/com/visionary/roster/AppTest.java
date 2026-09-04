@@ -10,6 +10,8 @@ import com.visionary.roster.repository.StaffRepository;
 import com.visionary.roster.repository.UserAccountRepository;
 import com.visionary.roster.security.FacilityScopingService;
 import com.visionary.roster.security.RoleAuthorizationService;
+import com.visionary.roster.service.StaffService;
+import com.visionary.roster.audit.AuditEmitter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -288,6 +290,18 @@ class StaffControllerIntegrationTest {
     @Autowired
     private UserAccountRepository userAccountRepository;
 
+    @Autowired
+    private StaffService staffService;
+
+    @Autowired
+    private RoleAuthorizationService roleAuthorizationService;
+
+    @Autowired
+    private FacilityScopingService facilityScopingService;
+
+    @Autowired
+    private AuditEmitter auditEmitter;
+
     private Facility facilityA;
     private Facility facilityB;
     private Staff testStaff;
@@ -332,6 +346,18 @@ class StaffControllerIntegrationTest {
         managerUserFacilityB.setRole("MANAGER");
         managerUserFacilityB.setFacility(facilityB);
         managerUserFacilityB = userAccountRepository.save(managerUserFacilityB);
+    }
+
+    @Test
+    @Transactional
+    void testApplicationContextLoadsWithAllBeans() {
+        assertNotNull(staffService, "StaffService should be wired");
+        assertNotNull(roleAuthorizationService, "RoleAuthorizationService should be wired");
+        assertNotNull(facilityScopingService, "FacilityScopingService should be wired");
+        assertNotNull(auditEmitter, "AuditEmitter should be wired");
+        assertNotNull(staffRepository, "StaffRepository should be wired");
+        assertNotNull(facilityRepository, "FacilityRepository should be wired");
+        assertNotNull(userAccountRepository, "UserAccountRepository should be wired");
     }
 
     @Test

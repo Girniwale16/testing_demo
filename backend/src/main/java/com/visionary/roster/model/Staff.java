@@ -49,6 +49,9 @@ public class Staff {
     @Column(name = "facility_id", nullable = false)
     private Long facilityId;
 
+    @Column(name = "active", nullable = false)
+    private boolean active = true;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "facility_id", insertable = false, updatable = false)
     private Facility facility;
@@ -116,6 +119,14 @@ public class Staff {
         if (request.getEndDate() != null) {
             this.endDate = request.getEndDate();
         }
+    }
+
+    /**
+     * Lifecycle callback that updates the updatedAt timestamp before entity update.
+     */
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 
     public Long getId() {
@@ -198,6 +209,14 @@ public class Staff {
         this.facilityId = facilityId;
     }
 
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
     public Facility getFacility() {
         return facility;
     }
@@ -220,15 +239,6 @@ public class Staff {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
-    }
-
-    /**
-     * Checks if the staff member is currently active.
-     *
-     * @return true if employment status is ACTIVE, false otherwise
-     */
-    public boolean isActive() {
-        return "ACTIVE".equals(employmentStatus);
     }
 
     /**
@@ -264,6 +274,7 @@ public class Staff {
                 ", email='" + email + '\'' +
                 ", role='" + role + '\'' +
                 ", employmentStatus='" + employmentStatus + '\'' +
+                ", active=" + active +
                 ", startDate=" + startDate +
                 ", endDate=" + endDate +
                 ", facilityId=" + facilityId +

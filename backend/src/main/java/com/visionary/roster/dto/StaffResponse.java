@@ -21,6 +21,7 @@ public class StaffResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDate endDate;
+    private boolean active;
 
     /**
      * Default constructor.
@@ -227,6 +228,26 @@ public class StaffResponse {
     }
 
     /**
+     * Gets the active status of the staff member.
+     * Note: active=false indicates deactivated staff member.
+     *
+     * @return true if the staff member is active, false if deactivated
+     */
+    public boolean isActive() {
+        return active;
+    }
+
+    /**
+     * Sets the active status of the staff member.
+     * Note: active=false indicates deactivated staff member.
+     *
+     * @param active the active status
+     */
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    /**
      * Factory method to create a StaffResponse from a Staff entity.
      *
      * @param staff the Staff entity
@@ -247,6 +268,7 @@ public class StaffResponse {
         response.setCreatedAt(staff.getCreatedAt());
         response.setUpdatedAt(staff.getUpdatedAt());
         response.setEndDate(staff.getEndDate());
+        response.setActive(staff.isActive());
 
         if (staff.getFacility() != null) {
             response.setFacilityId(staff.getFacility().getFacilityId());
